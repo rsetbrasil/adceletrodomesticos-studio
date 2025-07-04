@@ -36,7 +36,7 @@ export default function SingleInstallmentPage() {
         setInstallment(foundInstallment || null);
       }
     }
-  }, [params, orders]);
+  }, [params.id, params.installmentNumber, orders]);
 
   if (!isClient) {
     return <div className="p-8 text-center">Carregando parcela...</div>;
