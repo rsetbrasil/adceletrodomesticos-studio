@@ -129,7 +129,7 @@ export default function SingleInstallmentPage() {
                </div>
             </div>
 
-            <div className="print-hidden">
+            <div className="break-inside-avoid pt-6">
               {pixPayload && <PixQRCode payload={pixPayload} />}
             </div>
         </main>
