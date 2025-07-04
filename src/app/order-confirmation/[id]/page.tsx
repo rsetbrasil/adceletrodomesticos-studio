@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -11,6 +11,9 @@ import Link from 'next/link';
 import type { Order } from '@/lib/types';
 import { CheckCircle } from 'lucide-react';
 import Image from 'next/image';
+import { generatePixPayload } from '@/lib/pix';
+import PixQRCode from '@/components/PixQRCode';
+import { format } from 'date-fns';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -43,6 +46,27 @@ export default function OrderConfirmationPage() {
       return () => clearTimeout(timer);
     }
   }, [lastOrder, params.id, router]);
+
+  const pixPayload = useMemo(() => {
+    if (!order || (order.paymentMethod !== 'Pix' && order.paymentMethod !== 'Crediário')) return null;
+
+    // ATENÇÃO: Estes dados são exemplos. Em uma aplicação real,
+    // a chave PIX e os dados do lojista devem vir de uma configuração segura.
+    const pixKey = 'fb43228c-4740-4c16-a217-21706a782496'; // Chave aleatória (EVP) de exemplo
+    const merchantName = 'ADC MOVEIS E ELETRO';
+    const merchantCity = 'SAO PAULO';
+    
+    let amount = order.total;
+    let txid = order.id;
+
+    // If it's a "Crediário", generate PIX for the first installment
+    if (order.paymentMethod === 'Crediário' && order.installmentDetails && order.installmentDetails.length > 0) {
+      amount = order.installmentDetails[0].amount;
+      txid = `${order.id}-${order.installmentDetails[0].installmentNumber}`;
+    }
+    
+    return generatePixPayload(pixKey, merchantName, merchantCity, txid, amount);
+  }, [order]);
 
   if (!order) {
     return (
@@ -93,12 +117,24 @@ export default function OrderConfirmationPage() {
                   <span className="font-semibold">{order.paymentMethod}</span>
                 </div>
                 {order.paymentMethod === 'Crediário' && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Parcelas:</span>
-                    <span className="font-semibold text-accent">{order.installments}x de {formatCurrency(order.installmentValue)}</span>
-                  </div>
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Parcelas:</span>
+                      <span className="font-semibold text-accent">{order.installments}x de {formatCurrency(order.installmentValue)}</span>
+                    </div>
+                     <div className="flex justify-between">
+                      <span className="text-muted-foreground">Próximo Vencimento:</span>
+                      <span className="font-semibold">{order.installmentDetails && order.installmentDetails.length > 0 ? format(new Date(order.installmentDetails[0].dueDate), 'dd/MM/yyyy') : '-'}</span>
+                    </div>
+                  </>
                 )}
               </div>
+               { (order.paymentMethod === 'Pix' || order.paymentMethod === 'Crediário') && pixPayload && (
+                 <div className="mt-6">
+                    <p className="font-semibold mb-2 text-primary">{order.paymentMethod === 'Pix' ? 'Pague com PIX para confirmar' : 'Pague a 1ª parcela com PIX'}</p>
+                    <PixQRCode payload={pixPayload} />
+                 </div>
+              )}
             </div>
           </div>
           <Separator className="my-8" />

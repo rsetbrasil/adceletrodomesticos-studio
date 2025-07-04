@@ -9,6 +9,8 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { generatePixPayload } from '@/lib/pix';
+import PixQRCode from '@/components/PixQRCode';
 
 const formatCurrency = (value: number) => {
   if (typeof value !== 'number') return 'R$ 0,00';
@@ -40,6 +42,19 @@ export default function SingleInstallmentPage() {
     
     return { order: foundOrder, installment: foundInstallment || null };
   }, [isLoading, orders, params.id, params.installmentNumber]);
+
+  const pixPayload = useMemo(() => {
+    if (!order || !installment) return null;
+    
+    // ATENÇÃO: Estes dados são exemplos. Em uma aplicação real,
+    // a chave PIX e os dados do lojista devem vir de uma configuração segura.
+    const pixKey = 'fb43228c-4740-4c16-a217-21706a782496'; // Chave aleatória (EVP) de exemplo
+    const merchantName = 'ADC MOVEIS E ELETRO';
+    const merchantCity = 'SAO PAULO';
+    const txid = `${order.id}-${installment.installmentNumber}`;
+    
+    return generatePixPayload(pixKey, merchantName, merchantCity, txid, installment.amount);
+  }, [order, installment]);
 
   if (isLoading) {
     return <div className="p-8 text-center">Carregando parcela...</div>;
@@ -75,8 +90,8 @@ export default function SingleInstallmentPage() {
           </Button>
         </header>
 
-        <main className="break-inside-avoid">
-            <div className="bg-background rounded-lg border shadow-sm p-6">
+        <main className="space-y-6">
+            <div className="bg-background rounded-lg border shadow-sm p-6 break-inside-avoid">
                <div className="flex justify-between items-start pb-2 border-b">
                  <Logo />
                  <div className="text-right">
@@ -107,11 +122,15 @@ export default function SingleInstallmentPage() {
                          <p className="text-xs text-muted-foreground">VALOR DO DOCUMENTO</p>
                          <p className="text-2xl font-bold text-primary">{formatCurrency(installment.amount)}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">Pagamento em loja</p>
+                    <p className="text-xs text-muted-foreground">Pagamento em loja ou via PIX</p>
                </div>
                <div className="mt-4 border-t pt-2 text-xs text-muted-foreground">
                     <p>(=) Valor Cobrado: {formatCurrency(installment.amount)}</p>
                </div>
+            </div>
+
+            <div className="print-hidden">
+              {pixPayload && <PixQRCode payload={pixPayload} />}
             </div>
         </main>
       </div>
