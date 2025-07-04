@@ -120,24 +120,28 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                 <FormField control={form.control} name="longDescription" render={({ field }) => ( <FormItem><FormLabel>Descrição Longa</FormLabel><FormControl><Textarea placeholder="Forneça uma descrição completa e detalhada do produto." {...field} rows={6} /></FormControl><FormMessage /></FormItem> )} />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField control={form.control} name="price" render={({ field }) => ( <FormItem> <FormLabel>Preço (R$)</FormLabel> <FormControl> <Input type="number" step="0.01" {...field} /> </FormControl> {price > 0 && ( <p className="text-sm text-muted-foreground mt-2"> 10x de {formatCurrency(installmentValue)} </p> )} <FormMessage /> </FormItem> )} />
-                    <FormField control={form.control} name="category" render={({ field }) => ( 
-                        <FormItem> 
-                            <FormLabel>Categoria</FormLabel> 
-                            <FormControl> 
-                                <Select onValueChange={field.onChange} defaultValue={field.value}> 
-                                    <SelectTrigger> 
-                                        <SelectValue placeholder="Selecione..." /> 
-                                    </SelectTrigger>
-                                    <SelectContent> 
-                                        {categories.map((cat) => ( 
-                                            <SelectItem key={cat} value={cat} className="capitalize"> {cat} </SelectItem> 
-                                        ))} 
-                                    </SelectContent> 
-                                </Select> 
-                            </FormControl> 
-                            <FormMessage /> 
-                        </FormItem> 
-                    )} />
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Categoria</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categories.map((cat) => (
+                                <SelectItem key={cat} value={cat} className="capitalize">{cat}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField control={form.control} name="stock" render={({ field }) => ( <FormItem> <FormLabel>Estoque</FormLabel> <FormControl> <Input type="number" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
                 </div>
             </div>
