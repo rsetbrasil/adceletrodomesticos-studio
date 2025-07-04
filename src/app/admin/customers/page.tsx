@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import type { Order, CustomerInfo, Installment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Users, CreditCard, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -193,10 +194,16 @@ export default function CustomersAdminPage() {
                           <TableHead>Vencimento</TableHead>
                           <TableHead className="text-right">Valor</TableHead>
                           <TableHead className="text-center">Status</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {customerFinancials.allInstallments.map((inst) => (
+                        {customerFinancials.allInstallments.map((inst, index, arr) => {
+                          const isFirstOfOrder = index === 0 || arr[index - 1].orderId !== inst.orderId;
+                          const order = orders.find(o => o.id === inst.orderId);
+                          const isCrediario = !order?.paymentMethod || order.paymentMethod === 'Crediário';
+
+                          return (
                           <TableRow key={`${inst.orderId}-${inst.installmentNumber}`}>
                             <TableCell className="font-mono text-xs">{inst.orderId}</TableCell>
                             <TableCell>{inst.installmentNumber} / {inst.installmentsCount}</TableCell>
@@ -205,8 +212,18 @@ export default function CustomersAdminPage() {
                             <TableCell className="text-center">
                               <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
                             </TableCell>
+                            <TableCell className="text-right">
+                                {isFirstOfOrder && isCrediario && (
+                                    <Button variant="outline" size="sm" asChild>
+                                        <Link href={`/carnet/${inst.orderId}`} target="_blank" rel="noopener noreferrer">
+                                            <Printer className="mr-2 h-4 w-4" />
+                                            Ver Carnê
+                                        </Link>
+                                    </Button>
+                                )}
+                            </TableCell>
                           </TableRow>
-                        ))}
+                        )})}
                       </TableBody>
                     </Table>
                   </div>
