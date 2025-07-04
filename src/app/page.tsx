@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { products as allProducts } from '@/lib/products';
+import { useCart } from '@/context/CartContext';
 import type { Product } from '@/lib/types';
 import ProductCard from '@/components/ProductCard';
 import ProductFilters from '@/components/ProductFilters';
 
 export default function Home() {
-  const [products, setProducts] = useState<Product[]>(allProducts);
+  const { products: allProducts } = useCart();
   const [filters, setFilters] = useState({
     category: 'all',
     search: '',
@@ -17,7 +17,7 @@ export default function Home() {
   const categories = useMemo(() => {
     const allCategories = allProducts.map((p) => p.category);
     return ['all', ...Array.from(new Set(allCategories))];
-  }, []);
+  }, [allProducts]);
 
   const handleFilterChange = (
     newFilters: Partial<typeof filters>
@@ -54,7 +54,7 @@ export default function Home() {
     }
 
     return filtered;
-  }, [filters]);
+  }, [filters, allProducts]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -79,7 +79,7 @@ export default function Home() {
         </div>
       ) : (
         <div className="text-center py-16">
-          <p className="text-lg text-muted-foreground">Nenhum produto encontrado com os filtros selecionados.</p>
+          <p className="text-lg text-muted-foreground">Nenhum produto encontrado.</p>
         </div>
       )}
     </div>

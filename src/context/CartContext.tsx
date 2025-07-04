@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { CartItem, Order, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { products as initialProducts } from '@/lib/products';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -17,17 +18,23 @@ interface CartContextType {
   orders: Order[];
   addOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
+  products: Product[];
+  addProduct: (product: Omit<Product, 'id' | 'imageUrl' | 'data-ai-hint'>) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
+
+const isServer = typeof window === 'undefined';
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
   const { toast } = useToast();
 
   useEffect(() => {
+    if (isServer) return;
     try {
       const storedCart = localStorage.getItem('cartItems');
       if (storedCart) {
@@ -37,12 +44,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if (storedOrders) {
         setOrders(JSON.parse(storedOrders));
       }
+      const storedProducts = localStorage.getItem('products');
+      if (storedProducts) {
+        setProducts(JSON.parse(storedProducts));
+      } else {
+        localStorage.setItem('products', JSON.stringify(initialProducts));
+      }
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
     }
   }, []);
 
   useEffect(() => {
+    if (isServer) return;
     try {
       localStorage.setItem('cartItems', JSON.stringify(cartItems));
     } catch (error) {
@@ -51,6 +65,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [cartItems]);
   
   useEffect(() => {
+    if (isServer) return;
     try {
       localStorage.setItem('orders', JSON.stringify(orders));
     } catch (error) {
@@ -58,8 +73,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [orders]);
 
+  useEffect(() => {
+    if (isServer) return;
+    try {
+      localStorage.setItem('products', JSON.stringify(products));
+    } catch (error) {
+      console.error("Failed to save products to localStorage", error);
+    }
+  }, [products]);
+
   // This effect synchronizes state with localStorage changes from other tabs
   useEffect(() => {
+    if (isServer) return;
     const handleStorageChange = (event: StorageEvent) => {
       try {
         if (event.key === 'orders' && event.newValue) {
@@ -67,6 +92,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         if (event.key === 'cartItems' && event.newValue) {
           setCartItems(JSON.parse(event.newValue));
+        }
+        if (event.key === 'products' && event.newValue) {
+          setProducts(JSON.parse(event.newValue));
         }
       } catch (error) {
         console.error("Failed to parse localStorage data on change", error);
@@ -80,6 +108,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  const addProduct = (productData: Omit<Product, 'id' | 'imageUrl' | 'data-ai-hint'>) => {
+      const newProduct: Product = {
+        ...productData,
+        id: `prod-${Date.now()}`,
+        imageUrl: 'https://placehold.co/600x600.png',
+        'data-ai-hint': 'new product',
+      };
+      setProducts((prevProducts) => [newProduct, ...prevProducts]);
+      toast({
+          title: "Produto Cadastrado!",
+          description: `O produto "${newProduct.name}" foi adicionado ao catálogo.`,
+      });
+  };
 
   const addToCart = (product: Product) => {
     setCartItems((prevItems) => {
@@ -165,6 +206,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         orders,
         addOrder,
         updateOrderStatus,
+        products,
+        addProduct,
       }}
     >
       {children}
