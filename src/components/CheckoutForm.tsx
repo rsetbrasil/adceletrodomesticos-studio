@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
-import { useState, useMemo, useEffect } from 'react';
+import { useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
@@ -28,9 +28,7 @@ const checkoutSchema = z.object({
   cpf: z.string().refine((value) => {
     const justDigits = value.replace(/\D/g, '');
     return justDigits.length === 11;
-  }, {
-    message: 'CPF inválido. Deve conter 11 dígitos.',
-  }),
+  }, 'CPF inválido. Deve conter 11 dígitos.'),
   phone: z.string().min(10, 'Telefone é obrigatório.'),
   email: z.string().email('E-mail inválido.'),
   address: z.string().min(5, 'Endereço é obrigatório.'),
@@ -39,9 +37,7 @@ const checkoutSchema = z.object({
   zip: z.string().refine((value) => {
     const justDigits = value.replace(/\D/g, '');
     return justDigits.length === 8;
-  }, {
-    message: 'CEP inválido. Deve conter 8 dígitos.',
-  }),
+  }, 'CEP inválido. Deve conter 8 dígitos.'),
   paymentMethod: z.enum(['Crediário', 'Pix', 'Dinheiro'], {
     required_error: "Você precisa selecionar uma forma de pagamento.",
   }),
