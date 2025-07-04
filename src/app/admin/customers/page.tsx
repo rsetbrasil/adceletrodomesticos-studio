@@ -341,12 +341,20 @@ export default function CustomersAdminPage() {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     {isCrediario && (
-                                        <Button variant="outline" size="sm" asChild>
-                                            <Link href={`/carnet/${inst.orderId}`} target="_blank" rel="noopener noreferrer">
-                                                <Printer className="mr-2 h-4 w-4" />
-                                                Ver Carnê
-                                            </Link>
-                                        </Button>
+                                        <div className="flex gap-2 justify-end">
+                                            <Button variant="outline" size="sm" asChild>
+                                                <Link href={`/carnet/${inst.orderId}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
+                                                    <Printer className="mr-2 h-4 w-4" />
+                                                    Ver Parcela
+                                                </Link>
+                                            </Button>
+                                            <Button variant="ghost" size="sm" asChild>
+                                                <Link href={`/carnet/${inst.orderId}`} target="_blank" rel="noopener noreferrer">
+                                                    <FileText className="mr-2 h-4 w-4" />
+                                                    Carnê Completo
+                                                </Link>
+                                            </Button>
+                                        </div>
                                     )}
                                 </TableCell>
                             </TableRow>
