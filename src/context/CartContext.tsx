@@ -137,9 +137,25 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateProduct = (updatedProduct: Product) => {
-    setProducts((prevProducts) =>
-      prevProducts.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
-    );
+    const finalProduct = {
+      ...updatedProduct,
+      'data-ai-hint': updatedProduct.name.toLowerCase().split(' ').slice(0, 2).join(' '),
+    };
+
+    setProducts((prevProducts) => {
+      const newProducts = prevProducts.map((p) =>
+        p.id === finalProduct.id ? finalProduct : p
+      );
+      // Synchronously update localStorage to ensure data is fresh for new tabs.
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('products', JSON.stringify(newProducts));
+        } catch (error) {
+          console.error("Failed to save products to localStorage", error);
+        }
+      }
+      return newProducts;
+    });
     toast({
       title: 'Produto Atualizado!',
       description: `O produto "${updatedProduct.name}" foi atualizado.`,
