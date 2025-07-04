@@ -13,13 +13,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { useState, useMemo, useEffect } from 'react';
@@ -27,6 +20,7 @@ import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -177,24 +171,24 @@ export default function CheckoutForm() {
                 <FormItem>
                   <FormLabel>Número de Parcelas</FormLabel>
                   <FormControl>
-                    <Select
-                      onValueChange={(value) => {
-                        field.onChange(Number(value));
-                        setInstallments(Number(value));
+                    <select
+                      {...field}
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        const numericValue = Number(e.target.value);
+                        field.onChange(numericValue);
+                        setInstallments(numericValue);
                       }}
-                      defaultValue={String(field.value)}
+                      className={cn(
+                        'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+                      )}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[...Array(12).keys()].map((i) => (
-                          <SelectItem key={i + 1} value={String(i + 1)}>
-                            {i + 1}x de {formatCurrency(total / (i + 1))}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      {[...Array(12).keys()].map((i) => (
+                        <option key={i + 1} value={String(i + 1)}>
+                          {i + 1}x de {formatCurrency(total / (i + 1))}
+                        </option>
+                      ))}
+                    </select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

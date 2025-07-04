@@ -19,14 +19,9 @@ import { PackagePlus, X } from 'lucide-react';
 import { useState } from 'react';
 import Image from 'next/image';
 import type { Product } from '@/lib/types';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { ScrollArea, ScrollBar } from './ui/scroll-area';
+import { ScrollArea } from './ui/scroll-area';
+import { cn } from "@/lib/utils";
+
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto é obrigatório.'),
@@ -127,16 +122,17 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                         <FormItem>
                           <FormLabel>Categoria</FormLabel>
                           <FormControl>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {categories.map((cat) => (
-                                  <SelectItem key={cat} value={cat} className="capitalize">{cat}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <select
+                              {...field}
+                              className={cn(
+                                'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 capitalize'
+                              )}
+                            >
+                              <option value="" disabled>Selecione...</option>
+                              {categories.map((cat) => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
