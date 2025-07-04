@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import type { Order, CustomerInfo, Installment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -294,7 +295,15 @@ export default function CustomersAdminPage() {
                                       {selectedCustomer.attachments.map((file, index) => (
                                           <div key={index} className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
                                               <div className="flex items-center gap-3 overflow-hidden">
-                                                  {file.type === 'image' ? <FileImage className="h-5 w-5 text-muted-foreground flex-shrink-0" /> : <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />}
+                                                  {file.type === 'image' ? (
+                                                      <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                                                          <Image src={file.url} alt={file.name} width={40} height={40} className="h-10 w-10 rounded-md object-cover" />
+                                                      </a>
+                                                  ) : (
+                                                      <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                                                        <FileText className="h-8 w-8 text-muted-foreground" />
+                                                      </a>
+                                                  )}
                                                   <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline truncate" title={file.name}>
                                                       {file.name}
                                                   </a>
