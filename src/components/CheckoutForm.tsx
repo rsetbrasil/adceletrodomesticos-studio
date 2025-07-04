@@ -178,7 +178,7 @@ export default function CheckoutForm() {
                   <FormLabel>Número de Parcelas</FormLabel>
                   <Select
                     onValueChange={(value) => {
-                      field.onChange(value);
+                      field.onChange(Number(value));
                       setInstallments(Number(value));
                     }}
                     defaultValue={String(field.value)}
