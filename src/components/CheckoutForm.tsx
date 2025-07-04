@@ -15,13 +15,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
-import { useMemo, useEffect } from 'react';
+import { useEffect } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order } from '@/lib/types';
 import { addMonths } from 'date-fns';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -52,17 +52,7 @@ export default function CheckoutForm() {
   const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, products } = useCart();
   const router = useRouter();
   const { toast } = useToast();
-  const total = getCartTotal();
-
-  const maxAllowedInstallments = useMemo(() => {
-    if (!cartItems || cartItems.length === 0) return 12;
-    const cartProductIds = new Set(cartItems.map(item => item.id));
-    const productsInCart = products.filter(p => cartProductIds.has(p.id));
-    if (productsInCart.length === 0) return 12;
-    const minInstallments = Math.min(...productsInCart.map(p => p.maxInstallments || 12));
-    return minInstallments > 0 ? minInstallments : 12;
-  }, [cartItems, products]);
-
+  
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
@@ -78,43 +68,53 @@ export default function CheckoutForm() {
     },
   });
 
-  const paymentMethod = form.watch('paymentMethod');
-  const installmentsCount = form.watch('installments');
-
   useEffect(() => {
-    if (paymentMethod !== 'Crediário') {
-      form.setValue('installments', 1);
-    }
-  }, [paymentMethod, form]);
-
-  const installmentValue = useMemo(() => {
-    return total > 0 && installmentsCount > 0 ? total / installmentsCount : 0;
-  }, [total, installmentsCount]);
-  
-  useEffect(() => {
-    if (cartItems.length === 0) {
+    if (cartItems.length === 0 && typeof window !== 'undefined') {
       router.push('/');
     }
   }, [cartItems, router]);
 
+  const total = getCartTotal();
+  const paymentMethod = form.watch('paymentMethod');
+  const installmentsCount = form.watch('installments');
+
+  // Simplified logic to avoid potential syntax issues with complex expressions
+  let maxAllowedInstallments = 12;
+  if (cartItems && cartItems.length > 0) {
+    const cartProductIds = new Set(cartItems.map(item => item.id));
+    const productsInCart = products.filter(p => cartProductIds.has(p.id));
+    if (productsInCart.length > 0) {
+        // Using a simple loop for robustness instead of Math.min with spread operator
+        let min = productsInCart[0].maxInstallments || 12;
+        for (const p of productsInCart) {
+            const currentMax = p.maxInstallments || 12;
+            if (currentMax < min) {
+                min = currentMax;
+            }
+        }
+        maxAllowedInstallments = min;
+    }
+  }
+
+  const installmentValue = total > 0 && installmentsCount > 0 ? total / installmentsCount : 0;
+  
   if (cartItems.length === 0) {
       return null;
   }
 
   function onSubmit(values: z.infer<typeof checkoutSchema>) {
     const orderId = `CF-${Date.now()}`;
+    
     const finalInstallments = values.paymentMethod === 'Crediário' ? values.installments : 1;
     const finalInstallmentValue = total / finalInstallments;
     const orderDate = new Date();
 
-    const installmentDetails = Array.from({ length: finalInstallments }, (_, i) => {
-      return {
+    const installmentDetails = Array.from({ length: finalInstallments }, (_, i) => ({
         installmentNumber: i + 1,
         amount: finalInstallmentValue,
         dueDate: addMonths(orderDate, i + 1).toISOString(),
         status: 'Pendente' as const,
-      };
-    });
+    }));
 
     const order: Order = {
       id: orderId,
@@ -183,13 +183,13 @@ export default function CheckoutForm() {
             <h3 className="text-xl font-semibold mb-4 font-headline">1. Informações do Cliente</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-              <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} /></FormControl><FormMessage /></FormMessage> )} />
-              <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormMessage> )} />
-              <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="seu@email.com" {...field} /></FormControl><FormMessage /></FormMessage> )} />
-              <FormField control={form.control} name="address" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormMessage> )} />
-              <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormMessage> )} />
-              <FormField control={form.control} name="state" render={({ field }) => ( <FormItem><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormMessage> )} />
-              <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} /></FormControl><FormMessage /></FormMessage> )} />
+              <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="seu@email.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="address" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="state" render={({ field }) => ( <FormItem><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} /></FormControl><FormMessage /></FormItem> )} />
             </div>
           </div>
           
@@ -201,7 +201,15 @@ export default function CheckoutForm() {
               render={({ field }) => (
                 <FormItem className="space-y-3">
                   <FormControl>
-                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-2">
+                    <RadioGroup 
+                        onValueChange={(value) => {
+                            field.onChange(value);
+                            if (value !== 'Crediário') {
+                                form.setValue('installments', 1);
+                            }
+                        }} 
+                        defaultValue={field.value ?? undefined} 
+                        className="flex flex-col space-y-2">
                       <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 has-[:checked]:border-primary">
                         <FormControl><RadioGroupItem value="Crediário" /></FormControl>
                         <FormLabel className="font-normal w-full">Crediário da Loja</FormLabel>
@@ -234,6 +242,7 @@ export default function CheckoutForm() {
                     <FormControl>
                       <select
                         {...field}
+                        value={field.value ?? 1}
                         className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         onChange={(e) => field.onChange(Number(e.target.value))}
                       >
