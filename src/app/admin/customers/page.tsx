@@ -9,11 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -78,6 +79,8 @@ export default function CustomersAdminPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [imageToView, setImageToView] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editedInfo, setEditedInfo] = useState<Partial<CustomerInfo>>({});
 
   useEffect(() => {
     setIsClient(true);
@@ -162,6 +165,28 @@ export default function CustomersAdminPage() {
     updateCustomer(updatedCustomer);
   };
 
+  const handleOpenEditDialog = () => {
+    if (selectedCustomer) {
+      setEditedInfo(selectedCustomer);
+      setIsEditDialogOpen(true);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditedInfo(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveChanges = () => {
+    if (selectedCustomer && editedInfo) {
+      const updatedCustomerData = { ...selectedCustomer, ...editedInfo };
+      updateCustomer(updatedCustomerData);
+      setSelectedCustomer(updatedCustomerData);
+      setIsEditDialogOpen(false);
+    }
+  };
+
+
   if (!isClient) {
     return (
         <div className="flex justify-center items-center py-24">
@@ -222,10 +247,16 @@ export default function CustomersAdminPage() {
             {selectedCustomer ? (
                 <div className="space-y-8">
                 <div>
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <User className="h-5 w-5 text-primary" />
-                        Informações Pessoais
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold flex items-center gap-2">
+                            <User className="h-5 w-5 text-primary" />
+                            Informações Pessoais
+                        </h3>
+                        <Button variant="outline" size="sm" onClick={handleOpenEditDialog}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                        </Button>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                         <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-muted-foreground" />
@@ -401,6 +432,61 @@ export default function CustomersAdminPage() {
                         <Image src={imageToView} alt="Visualização do anexo" fill className="object-contain" />
                     )}
                 </div>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle>Editar Informações do Cliente</DialogTitle>
+                    <DialogDescription>
+                        Faça alterações nos dados cadastrais do cliente aqui. Clique em salvar quando terminar.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-6 py-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="name">Nome Completo</Label>
+                            <Input id="name" name="name" value={editedInfo.name || ''} onChange={handleInputChange} />
+                        </div>
+                        <div>
+                            <Label htmlFor="cpf">CPF</Label>
+                            <Input id="cpf" name="cpf" value={editedInfo.cpf || ''} disabled />
+                        </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="phone">Telefone</Label>
+                            <Input id="phone" name="phone" value={editedInfo.phone || ''} onChange={handleInputChange} />
+                        </div>
+                        <div>
+                            <Label htmlFor="email">Email</Label>
+                            <Input id="email" name="email" type="email" value={editedInfo.email || ''} onChange={handleInputChange} />
+                        </div>
+                    </div>
+                    <div>
+                        <Label htmlFor="address">Endereço</Label>
+                        <Input id="address" name="address" value={editedInfo.address || ''} onChange={handleInputChange} />
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <div>
+                            <Label htmlFor="city">Cidade</Label>
+                            <Input id="city" name="city" value={editedInfo.city || ''} onChange={handleInputChange} />
+                        </div>
+                        <div>
+                            <Label htmlFor="state">Estado</Label>
+                            <Input id="state" name="state" value={editedInfo.state || ''} onChange={handleInputChange} />
+                        </div>
+                        <div>
+                            <Label htmlFor="zip">CEP</Label>
+                            <Input id="zip" name="zip" value={editedInfo.zip || ''} onChange={handleInputChange} />
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+                    <Button type="submit" onClick={handleSaveChanges}>Salvar Alterações</Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     </>
