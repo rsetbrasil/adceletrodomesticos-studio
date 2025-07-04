@@ -58,6 +58,28 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [orders]);
 
+  // This effect synchronizes state with localStorage changes from other tabs
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      try {
+        if (event.key === 'orders' && event.newValue) {
+          setOrders(JSON.parse(event.newValue));
+        }
+        if (event.key === 'cartItems' && event.newValue) {
+          setCartItems(JSON.parse(event.newValue));
+        }
+      } catch (error) {
+        console.error("Failed to parse localStorage data on change", error);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
 
   const addToCart = (product: Product) => {
     setCartItems((prevItems) => {
