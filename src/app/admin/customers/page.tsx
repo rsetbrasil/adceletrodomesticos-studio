@@ -2,12 +2,12 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
-import type { Order, CustomerInfo } from '@/lib/types';
+import type { Order, CustomerInfo, Installment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Package, Users } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Users, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -15,25 +15,20 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'outline' | 'destructive' => {
-  switch (status) {
-    case 'Processando':
-      return 'secondary';
-    case 'Enviado':
-      return 'default';
-    case 'Entregue':
-      return 'outline';
-    case 'Cancelado':
-      return 'destructive';
-    default:
-      return 'secondary';
-  }
-};
+const getInstallmentStatusVariant = (status: Installment['status']): 'secondary' | 'default' => {
+    switch (status) {
+        case 'Pendente':
+            return 'secondary';
+        case 'Pago':
+            return 'default';
+        default:
+            return 'secondary';
+    }
+}
 
 export default function CustomersAdminPage() {
   const { orders } = useCart();
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
-  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -50,13 +45,26 @@ export default function CustomersAdminPage() {
     });
     return Array.from(customerMap.values());
   }, [orders, isClient]);
-
-  const handleSelectCustomer = (customer: CustomerInfo) => {
-    setSelectedCustomer(customer);
-    const relatedOrders = orders.filter(order => order.customer.cpf === customer.cpf);
-    setCustomerOrders(relatedOrders);
-  };
   
+  const customerFinancials = useMemo(() => {
+      if (!selectedCustomer) {
+          return { allInstallments: [], totalComprado: 0, totalPago: 0, saldoDevedor: 0 };
+      }
+      const customerOrders = orders.filter(order => order.customer.cpf === selectedCustomer.cpf && order.status !== 'Cancelado');
+      
+      const allInstallments = customerOrders.flatMap(order => 
+        (order.installmentDetails || []).map(inst => ({...inst, orderId: order.id, installmentsCount: order.installments}))
+      );
+      
+      const totalComprado = customerOrders.reduce((acc, order) => acc + order.total, 0);
+      const totalPago = allInstallments.filter(inst => inst.status === 'Pago').reduce((acc, inst) => acc + inst.amount, 0);
+      const saldoDevedor = totalComprado - totalPago;
+
+      return { allInstallments, totalComprado, totalPago, saldoDevedor };
+
+  }, [selectedCustomer, orders]);
+
+
   if (!isClient) {
     return (
         <div className="flex justify-center items-center py-24">
@@ -83,7 +91,7 @@ export default function CustomersAdminPage() {
                   key={customer.cpf}
                   variant={selectedCustomer?.cpf === customer.cpf ? 'secondary' : 'ghost'}
                   className="justify-start w-full text-left h-auto py-2"
-                  onClick={() => handleSelectCustomer(customer)}
+                  onClick={() => setSelectedCustomer(customer)}
                 >
                   <div className="flex items-center gap-3">
                     <div className="bg-muted rounded-full p-2">
@@ -110,7 +118,7 @@ export default function CustomersAdminPage() {
       <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle>Detalhes do Cliente</CardTitle>
-          <CardDescription>Informações cadastrais e histórico de pedidos.</CardDescription>
+          <CardDescription>Informações cadastrais e situação do crediário.</CardDescription>
         </CardHeader>
         <CardContent>
           {selectedCustomer ? (
@@ -146,28 +154,56 @@ export default function CustomersAdminPage() {
 
               <div>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Package className="h-5 w-5 text-primary" />
-                    Histórico de Pedidos
+                    <CreditCard className="h-5 w-5 text-primary" />
+                    Situação do Crediário
                 </h3>
-                {customerOrders.length > 0 ? (
+                 <div className="grid gap-4 md:grid-cols-3 mb-6">
+                    <Card className="bg-muted/50">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Total Comprado</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-xl font-bold">{formatCurrency(customerFinancials.totalComprado)}</p>
+                        </CardContent>
+                    </Card>
+                     <Card className="bg-green-500/10 border-green-500/20">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Total Pago</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-xl font-bold text-green-600">{formatCurrency(customerFinancials.totalPago)}</p>
+                        </CardContent>
+                    </Card>
+                     <Card className="bg-amber-500/10 border-amber-500/20">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Saldo Devedor</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-xl font-bold text-amber-600">{formatCurrency(customerFinancials.saldoDevedor)}</p>
+                        </CardContent>
+                    </Card>
+                </div>
+                {customerFinancials.allInstallments.length > 0 ? (
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Pedido ID</TableHead>
-                          <TableHead>Data</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
+                          <TableHead>Parcela</TableHead>
+                          <TableHead>Vencimento</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
                           <TableHead className="text-center">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {customerOrders.map((order) => (
-                          <TableRow key={order.id}>
-                            <TableCell className="font-medium">{order.id}</TableCell>
-                            <TableCell>{format(new Date(order.date), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
+                        {customerFinancials.allInstallments.map((inst) => (
+                          <TableRow key={`${inst.orderId}-${inst.installmentNumber}`}>
+                            <TableCell className="font-mono text-xs">{inst.orderId}</TableCell>
+                            <TableCell>{inst.installmentNumber} / {inst.installmentsCount}</TableCell>
+                            <TableCell>{format(new Date(inst.dueDate), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(inst.amount)}</TableCell>
                             <TableCell className="text-center">
-                              <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                              <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -175,7 +211,7 @@ export default function CustomersAdminPage() {
                     </Table>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground text-sm">Nenhum pedido encontrado para este cliente.</p>
+                  <p className="text-muted-foreground text-sm">Nenhum crediário encontrado para este cliente.</p>
                 )}
               </div>
             </div>
