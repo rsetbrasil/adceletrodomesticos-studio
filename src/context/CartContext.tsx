@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem, Order, Product, CustomerInfo } from '@/lib/types';
+import type { CartItem, Order, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface CartContextType {
@@ -14,6 +14,9 @@ interface CartContextType {
   cartCount: number;
   lastOrder: Order | null;
   setLastOrder: (order: Order) => void;
+  orders: Order[];
+  addOrder: (order: Order) => void;
+  updateOrderStatus: (orderId: string, status: Order['status']) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -21,6 +24,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -29,8 +33,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if (storedCart) {
         setCartItems(JSON.parse(storedCart));
       }
+      const storedOrders = localStorage.getItem('orders');
+      if (storedOrders) {
+        setOrders(JSON.parse(storedOrders));
+      }
     } catch (error) {
-      console.error("Failed to load cart from localStorage", error);
+      console.error("Failed to load data from localStorage", error);
     }
   }, []);
 
@@ -41,6 +49,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       console.error("Failed to save cart to localStorage", error);
     }
   }, [cartItems]);
+  
+  useEffect(() => {
+    try {
+      localStorage.setItem('orders', JSON.stringify(orders));
+    } catch (error) {
+      console.error("Failed to save orders to localStorage", error);
+    }
+  }, [orders]);
+
 
   const addToCart = (product: Product) => {
     setCartItems((prevItems) => {
@@ -95,6 +112,22 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setLastOrderState(order);
   }
 
+  const addOrder = (order: Order) => {
+    setOrders((prevOrders) => [order, ...prevOrders]);
+  };
+
+  const updateOrderStatus = (orderId: string, status: Order['status']) => {
+    setOrders((prevOrders) =>
+      prevOrders.map((order) =>
+        order.id === orderId ? { ...order, status } : order
+      )
+    );
+    toast({
+        title: "Status do Pedido Atualizado!",
+        description: `O pedido #${orderId} agora está como "${status}".`,
+    });
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -106,7 +139,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         getCartTotal,
         cartCount,
         lastOrder,
-        setLastOrder
+        setLastOrder,
+        orders,
+        addOrder,
+        updateOrderStatus,
       }}
     >
       {children}

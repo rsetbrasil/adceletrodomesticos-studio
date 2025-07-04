@@ -24,8 +24,9 @@ import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
-import { Separator } from './ui/separator';
-import { useToast } from './ui/use-toast';
+import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import type { Order } from '@/lib/types';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -44,7 +45,7 @@ const formatCurrency = (value: number) => {
 };
 
 export default function CheckoutForm() {
-  const { cartItems, getCartTotal, clearCart, setLastOrder } = useCart();
+  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   const total = getCartTotal();
@@ -77,7 +78,7 @@ export default function CheckoutForm() {
 
   function onSubmit(values: z.infer<typeof checkoutSchema>) {
     const orderId = `CF-${Date.now()}`;
-    const order = {
+    const order: Order = {
       id: orderId,
       customer: {
         name: values.name,
@@ -94,10 +95,11 @@ export default function CheckoutForm() {
       installments: values.installments,
       installmentValue,
       date: new Date().toISOString(),
+      status: 'Processando',
     };
     
+    addOrder(order);
     setLastOrder(order);
-    console.log('Admin Notification: New Order Received!', order);
     clearCart();
 
     toast({

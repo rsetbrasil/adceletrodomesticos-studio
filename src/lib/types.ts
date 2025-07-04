@@ -36,4 +36,5 @@ export type Order = {
   installments: number;
   installmentValue: number;
   date: string;
+  status: 'Processando' | 'Enviado' | 'Entregue' | 'Cancelado';
 };
