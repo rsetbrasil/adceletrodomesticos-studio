@@ -28,6 +28,11 @@ export type CustomerInfo = {
   city: string;
   state: string;
   zip: string;
+  attachments?: {
+    name: string;
+    type: 'image' | 'pdf';
+    url: string;
+  }[];
 };
 
 export type Installment = {

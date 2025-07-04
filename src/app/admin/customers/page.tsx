@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard, Printer } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileImage, FileText, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Input } from '@/components/ui/input';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -28,7 +29,7 @@ const getInstallmentStatusVariant = (status: Installment['status']): 'secondary'
 }
 
 export default function CustomersAdminPage() {
-  const { orders } = useCart();
+  const { orders, updateCustomer } = useCart();
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [isClient, setIsClient] = useState(false);
 
@@ -65,6 +66,44 @@ export default function CustomersAdminPage() {
 
   }, [selectedCustomer, orders]);
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || !selectedCustomer) return;
+
+    const files = Array.from(event.target.files);
+    const newAttachments = [...(selectedCustomer.attachments || [])];
+
+    for (const file of files) {
+      try {
+          const reader = new FileReader();
+          const promise = new Promise<{ name: string; type: 'image' | 'pdf'; url:string }>((resolve, reject) => {
+            reader.onload = (e) => {
+              if (typeof e.target?.result !== 'string') {
+                  return reject(new Error('Falha ao ler o arquivo.'));
+              }
+              const type = file.type.startsWith('image/') ? 'image' : 'pdf';
+              resolve({ name: file.name, type, url: e.target.result });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          newAttachments.push(await promise);
+      } catch (error) {
+          console.error("Erro ao processar arquivo:", error);
+      }
+    }
+    
+    const updatedCustomer = { ...selectedCustomer, attachments: newAttachments };
+    setSelectedCustomer(updatedCustomer);
+    updateCustomer(updatedCustomer);
+  };
+
+  const handleDeleteAttachment = (indexToDelete: number) => {
+    if (!selectedCustomer) return;
+    const newAttachments = (selectedCustomer.attachments || []).filter((_, index) => index !== indexToDelete);
+    const updatedCustomer = { ...selectedCustomer, attachments: newAttachments };
+    setSelectedCustomer(updatedCustomer);
+    updateCustomer(updatedCustomer);
+  };
 
   if (!isClient) {
     return (
@@ -119,7 +158,7 @@ export default function CustomersAdminPage() {
       <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle>Detalhes do Cliente</CardTitle>
-          <CardDescription>Informações cadastrais e situação do crediário.</CardDescription>
+          <CardDescription>Informações cadastrais, situação do crediário e anexos.</CardDescription>
         </CardHeader>
         <CardContent>
           {selectedCustomer ? (
@@ -231,6 +270,49 @@ export default function CustomersAdminPage() {
                   <p className="text-muted-foreground text-sm">Nenhum crediário encontrado para este cliente.</p>
                 )}
               </div>
+
+               <div className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Upload className="h-5 w-5 text-primary" />
+                      Documentos e Anexos
+                  </h3>
+                  <Card>
+                      <CardContent className="pt-6">
+                          <div className="grid gap-4">
+                              <div className="relative border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center">
+                                  <p className="text-sm text-muted-foreground mb-2">Clique para selecionar imagens ou PDFs</p>
+                                  <Button asChild variant="outline">
+                                      <label htmlFor="file-upload" className="cursor-pointer">
+                                          <Upload className="mr-2 h-4 w-4" />
+                                          Adicionar Arquivos
+                                      </label>
+                                  </Button>
+                                  <Input id="file-upload" type="file" className="sr-only" multiple accept="image/*,application/pdf" onChange={handleFileChange} />
+                              </div>
+                              {(selectedCustomer.attachments && selectedCustomer.attachments.length > 0) ? (
+                                  <div className="space-y-2">
+                                      {selectedCustomer.attachments.map((file, index) => (
+                                          <div key={index} className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
+                                              <div className="flex items-center gap-3 overflow-hidden">
+                                                  {file.type === 'image' ? <FileImage className="h-5 w-5 text-muted-foreground flex-shrink-0" /> : <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />}
+                                                  <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline truncate" title={file.name}>
+                                                      {file.name}
+                                                  </a>
+                                              </div>
+                                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive flex-shrink-0" onClick={() => handleDeleteAttachment(index)}>
+                                                  <X className="h-4 w-4" />
+                                              </Button>
+                                          </div>
+                                      ))}
+                                  </div>
+                              ) : (
+                                  <p className="text-center text-sm text-muted-foreground">Nenhum documento anexado.</p>
+                              )}
+                          </div>
+                      </CardContent>
+                  </Card>
+              </div>
+
             </div>
           ) : (
             <div className="text-center py-24 text-muted-foreground border-2 border-dashed rounded-lg">

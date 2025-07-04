@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem, Order, Product, Installment } from '@/lib/types';
+import type { CartItem, Order, Product, Installment, CustomerInfo } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 
@@ -19,6 +19,7 @@ interface CartContextType {
   addOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
   updateInstallmentStatus: (orderId: string, installmentNumber: number, status: Installment['status']) => void;
+  updateCustomer: (customer: CustomerInfo) => void;
   products: Product[];
   addProduct: (product: Omit<Product, 'id' | 'data-ai-hint'>) => void;
   updateProduct: (product: Product) => void;
@@ -294,6 +295,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const updateCustomer = (updatedCustomer: CustomerInfo) => {
+    setOrders((prevOrders) =>
+      prevOrders.map((order) => {
+        if (order.customer.cpf === updatedCustomer.cpf) {
+          return { ...order, customer: updatedCustomer };
+        }
+        return order;
+      })
+    );
+    toast({
+      title: "Cliente Atualizado!",
+      description: `Os dados de ${updatedCustomer.name} foram salvos.`,
+    });
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -310,6 +326,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         addOrder,
         updateOrderStatus,
         updateInstallmentStatus,
+        updateCustomer,
         products,
         addProduct,
         updateProduct,
