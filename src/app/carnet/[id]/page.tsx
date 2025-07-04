@@ -48,7 +48,7 @@ export default function CarnetPage() {
   }
 
   return (
-    <div className="bg-muted/30 min-h-screen">
+    <div className="bg-muted/30 print:bg-white">
       <div className="container mx-auto py-8 px-4">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>

@@ -55,8 +55,8 @@ export default function SingleInstallmentPage() {
   }
 
   return (
-    <div className="bg-muted/30 min-h-screen flex items-center justify-center">
-      <div className="container mx-auto py-8 px-4 max-w-2xl">
+    <div className="bg-muted/30 print:bg-white py-8">
+      <div className="container mx-auto px-4 max-w-2xl">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />

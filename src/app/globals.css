@@ -73,14 +73,23 @@
     display: none !important;
   }
   body {
-    background-color: #fff !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   .print\:grid-cols-1 {
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }
   .break-inside-avoid {
     break-inside: avoid;
+  }
+  /* Ensure main layout elements are hidden */
+  header, footer {
+      display: none !important;
+  }
+  /* Set page margins */
+  @page {
+      size: A4;
+      margin: 15mm;
   }
 }
