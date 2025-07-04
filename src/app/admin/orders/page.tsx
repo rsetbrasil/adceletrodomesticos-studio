@@ -156,7 +156,7 @@ export default function OrdersAdminPage() {
       </Card>
 
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-          <DialogContent className="max-w-4xl h-[90vh]">
+          <DialogContent className="max-w-6xl h-[90vh]">
               {selectedOrder && (
                   <>
                   <DialogHeader>
