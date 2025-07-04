@@ -19,7 +19,7 @@ interface CartContextType {
   addOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
   products: Product[];
-  addProduct: (product: Omit<Product, 'id' | 'imageUrl' | 'data-ai-hint'>) => void;
+  addProduct: (product: Omit<Product, 'id' | 'data-ai-hint'>) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -106,12 +106,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const addProduct = (productData: Omit<Product, 'id' | 'imageUrl' | 'data-ai-hint'>) => {
+  const addProduct = (productData: Omit<Product, 'id' | 'data-ai-hint'>) => {
       const newProduct: Product = {
         ...productData,
         id: `prod-${Date.now()}`,
-        imageUrl: 'https://placehold.co/600x600.png',
-        'data-ai-hint': 'new product',
+        'data-ai-hint': productData.name.toLowerCase().split(' ').slice(0, 2).join(' '),
       };
       setProducts((prevProducts) => [newProduct, ...prevProducts]);
       toast({
