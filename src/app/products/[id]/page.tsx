@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, ShoppingCart } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -50,23 +52,53 @@ export default function ProductDetailPage() {
   const installmentValue = product.price / 10;
 
   return (
-    <div className="container mx-auto max-w-5xl py-12 px-4">
+    <div className="container mx-auto max-w-6xl py-12 px-4">
       <Button variant="ghost" onClick={() => router.back()} className="mb-8">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Voltar
       </Button>
       <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-        <div className="bg-card p-4 border rounded-lg">
-          <div className="relative aspect-square w-full overflow-hidden rounded-md">
-            <Image
-              src={product.imageUrl}
-              alt={product.name}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 50vw"
-              data-ai-hint={product['data-ai-hint']}
-            />
-          </div>
+        <div>
+           <Carousel className="w-full">
+              <CarouselContent>
+                {(product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls.map((url, index) => (
+                  <CarouselItem key={index}>
+                    <div className="p-1">
+                      <Card>
+                        <CardContent className="relative aspect-square w-full flex items-center justify-center p-0 overflow-hidden rounded-lg">
+                          <Image
+                            src={url}
+                            alt={`${product.name} - imagem ${index + 1}`}
+                            fill
+                            className="object-contain"
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                            data-ai-hint={product['data-ai-hint']}
+                          />
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                )) : (
+                   <CarouselItem>
+                    <div className="p-1">
+                      <Card>
+                        <CardContent className="relative aspect-square w-full flex items-center justify-center p-0 overflow-hidden rounded-lg bg-muted">
+                           <Image
+                            src="https://placehold.co/600x600.png"
+                            alt={product.name}
+                            fill
+                            className="object-contain"
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                          />
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                )}
+              </CarouselContent>
+              <CarouselPrevious className="absolute left-2" />
+              <CarouselNext className="absolute right-2" />
+            </Carousel>
         </div>
         <div className="flex flex-col">
           <Badge variant="secondary" className="capitalize w-fit mb-2">{product.category}</Badge>
@@ -101,6 +133,14 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+      <Card className="mt-12">
+        <CardHeader>
+            <CardTitle>Descrição Detalhada do Produto</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <p className="text-muted-foreground whitespace-pre-line">{product.longDescription}</p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

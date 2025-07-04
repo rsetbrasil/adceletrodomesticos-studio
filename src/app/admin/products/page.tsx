@@ -78,7 +78,7 @@ export default function ManageProductsPage() {
                                         <TableRow key={product.id}>
                                             <TableCell>
                                                 <div className="relative h-12 w-12 rounded-md overflow-hidden">
-                                                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+                                                    <Image src={product.imageUrls[0]} alt={product.name} fill className="object-cover" />
                                                 </div>
                                             </TableCell>
                                             <TableCell className="font-medium">{product.name}</TableCell>

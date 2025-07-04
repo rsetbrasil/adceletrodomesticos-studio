@@ -2,8 +2,9 @@ export type Product = {
   id: string;
   name: string;
   description: string;
+  longDescription: string;
   price: number;
-  imageUrl: string;
+  imageUrls: string[];
   category: string;
   stock: number;
   "data-ai-hint"?: string;

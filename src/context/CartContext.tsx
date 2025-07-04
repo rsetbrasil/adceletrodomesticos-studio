@@ -212,7 +212,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             : item
         );
       }
-      return [...prevItems, { id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl, quantity: 1 }];
+      return [...prevItems, { id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrls[0], quantity: 1 }];
     });
     toast({
         title: "Produto adicionado!",

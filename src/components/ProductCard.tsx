@@ -35,13 +35,17 @@ export default function ProductCard({ product }: ProductCardProps) {
     addToCart(product);
   }
 
+  const imageUrl = (product.imageUrls && product.imageUrls.length > 0) 
+    ? product.imageUrls[0] 
+    : 'https://placehold.co/600x600.png';
+
   return (
     <Link href={`/products/${product.id}`} className="block h-full" aria-label={`Ver detalhes de ${product.name}`}>
       <Card className="flex flex-col overflow-hidden h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
         <CardHeader className="p-0">
           <div className="relative aspect-square w-full">
             <Image
-              src={product.imageUrl}
+              src={imageUrl}
               alt={product.name}
               fill
               className="object-contain p-2"

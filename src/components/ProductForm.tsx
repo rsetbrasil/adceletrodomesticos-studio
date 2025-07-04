@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/context/CartContext';
-import { PackagePlus } from 'lucide-react';
+import { PackagePlus, X } from 'lucide-react';
 import { useState } from 'react';
 import Image from 'next/image';
 import type { Product } from '@/lib/types';
@@ -26,14 +26,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ScrollArea, ScrollBar } from './ui/scroll-area';
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto é obrigatório.'),
-  description: z.string().min(10, 'A descrição é obrigatória.'),
+  description: z.string().min(10, 'A descrição curta é obrigatória.'),
+  longDescription: z.string().min(20, 'A descrição longa é obrigatória.'),
   price: z.coerce.number().positive('O preço deve ser um número positivo.'),
   category: z.string().min(1, 'A categoria é obrigatória.'),
   stock: z.coerce.number().int().min(0, 'O estoque não pode ser negativo.'),
-  imageUrl: z.string().min(1, 'A imagem do produto é obrigatória.'),
+  imageUrls: z.array(z.string()).min(1, 'Pelo menos uma imagem é obrigatória.'),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -52,17 +54,18 @@ interface ProductFormProps {
 
 export default function ProductForm({ productToEdit, onFinished }: ProductFormProps) {
   const { addProduct, updateProduct, categories } = useCart();
-  const [imagePreview, setImagePreview] = useState<string | null>(productToEdit?.imageUrl || null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>(productToEdit?.imageUrls || []);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: productToEdit || {
       name: '',
       description: '',
+      longDescription: '',
       price: 0,
       category: '',
       stock: 0,
-      imageUrl: '',
+      imageUrls: [],
     },
   });
 
@@ -70,17 +73,31 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   const installmentValue = price > 0 ? price / 10 : 0;
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUri = reader.result as string;
-        setImagePreview(dataUri);
-        form.setValue('imageUrl', dataUri);
-      };
-      reader.readAsDataURL(file);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const currentPreviews = form.getValues('imageUrls') || [];
+      const filePromises = Array.from(files).map(file => {
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(filePromises).then(newPreviews => {
+        const allPreviews = [...currentPreviews, ...newPreviews];
+        setImagePreviews(allPreviews);
+        form.setValue('imageUrls', allPreviews, { shouldValidate: true });
+      });
     }
   };
+  
+  const removeImage = (index: number) => {
+      const updatedPreviews = imagePreviews.filter((_, i) => i !== index);
+      setImagePreviews(updatedPreviews);
+      form.setValue('imageUrls', updatedPreviews, { shouldValidate: true });
+  }
 
   function onSubmit(values: ProductFormValues) {
     if (productToEdit) {
@@ -89,128 +106,49 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         addProduct(values);
     }
     form.reset();
-    setImagePreview(null);
+    setImagePreviews([]);
     onFinished();
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            <div className="space-y-8">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome do Produto</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Smartphone Pro Z" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Descreva os detalhes do produto..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="price"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Preço (R$)</FormLabel>
-                            <FormControl>
-                            <Input type="number" step="0.01" {...field} />
-                            </FormControl>
-                            {price > 0 && (
-                            <p className="text-sm text-muted-foreground mt-2">
-                                10x de {formatCurrency(installmentValue)}
-                            </p>
-                            )}
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="category"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Categoria</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione..." />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {categories.map((cat) => (
-                                  <SelectItem key={cat} value={cat} className="capitalize">
-                                    {cat}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="stock"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Estoque</FormLabel>
-                            <FormControl>
-                            <Input type="number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <div className="space-y-6">
+                <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome do Produto</FormLabel><FormControl><Input placeholder="Ex: Smartphone Pro Z" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Descrição Curta</FormLabel><FormControl><Textarea placeholder="Descreva os detalhes do produto..." {...field} rows={3} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="longDescription" render={({ field }) => ( <FormItem><FormLabel>Descrição Longa</FormLabel><FormControl><Textarea placeholder="Forneça uma descrição completa e detalhada do produto." {...field} rows={6} /></FormControl><FormMessage /></FormItem> )} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField control={form.control} name="price" render={({ field }) => ( <FormItem> <FormLabel>Preço (R$)</FormLabel> <FormControl> <Input type="number" step="0.01" {...field} /> </FormControl> {price > 0 && ( <p className="text-sm text-muted-foreground mt-2"> 10x de {formatCurrency(installmentValue)} </p> )} <FormMessage /> </FormItem> )} />
+                    <FormField control={form.control} name="category" render={({ field }) => ( <FormItem> <FormLabel>Categoria</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Selecione..." /> </SelectTrigger> </FormControl> <SelectContent> {categories.map((cat) => ( <SelectItem key={cat} value={cat} className="capitalize"> {cat} </SelectItem> ))} </SelectContent> </Select> <FormMessage /> </FormItem> )} />
+                    <FormField control={form.control} name="stock" render={({ field }) => ( <FormItem> <FormLabel>Estoque</FormLabel> <FormControl> <Input type="number" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
                 </div>
             </div>
 
             <div className="space-y-4">
-                 <FormField
-                  control={form.control}
-                  name="imageUrl"
-                  render={() => (
-                    <FormItem>
-                      <FormLabel>Imagem do Produto</FormLabel>
-                       <FormControl>
-                        <Input type="file" accept="image/*" onChange={handleImageChange} className="file:text-primary file:font-semibold cursor-pointer"/>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="aspect-square w-full rounded-md border-2 border-dashed flex items-center justify-center text-muted-foreground bg-muted/20">
-                    {imagePreview ? (
-                        <div className="relative w-full h-full">
-                            <Image
-                                src={imagePreview}
-                                alt="Pré-visualização do produto"
-                                fill
-                                className="object-contain rounded-md p-2"
-                            />
-                        </div>
-                    ) : (
-                        <p>Pré-visualização da imagem</p>
-                    )}
-                </div>
+                 <FormField control={form.control} name="imageUrls" render={() => ( <FormItem> <FormLabel>Imagens do Produto</FormLabel> <FormControl> <Input type="file" accept="image/*" onChange={handleImageChange} multiple className="file:text-primary file:font-semibold cursor-pointer"/> </FormControl> <FormMessage /> </FormItem> )} />
+                
+                <ScrollArea className="h-80 w-full rounded-md border">
+                    <div className="p-4">
+                        <h4 className="mb-4 font-medium text-sm leading-none">Pré-visualização</h4>
+                         {imagePreviews.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-4">
+                                {imagePreviews.map((src, index) => (
+                                    <div key={index} className="relative group">
+                                        <Image src={src} alt={`Preview ${index}`} width={100} height={100} className="w-full h-auto object-contain rounded-md aspect-square" />
+                                        <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeImage(index)}>
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                         ) : (
+                            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                                <p>Nenhuma imagem selecionada</p>
+                            </div>
+                         )}
+                    </div>
+                </ScrollArea>
             </div>
         </div>
 
