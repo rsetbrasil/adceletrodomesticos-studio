@@ -203,6 +203,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addToCart = (product: Product) => {
+    const imageUrl = (product.imageUrls && product.imageUrls.length > 0) 
+      ? product.imageUrls[0] 
+      : 'https://placehold.co/600x600.png';
+
     setCartItems((prevItems) => {
       const existingItem = prevItems.find((item) => item.id === product.id);
       if (existingItem) {
@@ -212,7 +216,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             : item
         );
       }
-      return [...prevItems, { id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrls[0], quantity: 1 }];
+      return [...prevItems, { id: product.id, name: product.name, price: product.price, imageUrl, quantity: 1 }];
     });
     toast({
         title: "Produto adicionado!",

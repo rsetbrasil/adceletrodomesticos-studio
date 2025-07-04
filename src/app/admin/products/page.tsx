@@ -77,8 +77,13 @@ export default function ManageProductsPage() {
                                     {products.map((product) => (
                                         <TableRow key={product.id}>
                                             <TableCell>
-                                                <div className="relative h-12 w-12 rounded-md overflow-hidden">
-                                                    <Image src={product.imageUrls[0]} alt={product.name} fill className="object-cover" />
+                                                <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
+                                                    <Image 
+                                                        src={(product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/100x100.png'} 
+                                                        alt={product.name} 
+                                                        fill 
+                                                        className="object-contain" 
+                                                    />
                                                 </div>
                                             </TableCell>
                                             <TableCell className="font-medium">{product.name}</TableCell>
