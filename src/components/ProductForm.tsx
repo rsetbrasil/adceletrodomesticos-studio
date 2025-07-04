@@ -20,6 +20,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import type { Product } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto é obrigatório.'),
@@ -108,40 +109,114 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             <div className="space-y-6">
-                <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome do Produto</FormLabel><FormControl><Input placeholder="Ex: Smartphone Pro Z" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Descrição Curta</FormLabel><FormControl><Textarea placeholder="Descreva os detalhes do produto..." {...field} rows={3} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="longDescription" render={({ field }) => ( <FormItem><FormLabel>Descrição Longa</FormLabel><FormControl><Textarea placeholder="Forneça uma descrição completa e detalhada do produto." {...field} rows={6} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome do Produto</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: Smartphone Pro Z" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição Curta</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Descreva os detalhes do produto..." {...field} rows={3} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="longDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição Longa</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Forneça uma descrição completa e detalhada do produto." {...field} rows={6} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <FormField control={form.control} name="price" render={({ field }) => ( <FormItem> <FormLabel>Preço (R$)</FormLabel> <FormControl> <Input type="number" step="0.01" {...field} /> </FormControl> {price > 0 && ( <p className="text-sm text-muted-foreground mt-2"> 10x de {formatCurrency(installmentValue)} </p> )} <FormMessage /> </FormItem> )} />
+                    <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Preço (R$)</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" {...field} />
+                          </FormControl>
+                          {price > 0 && ( <p className="text-sm text-muted-foreground mt-2"> 10x de {formatCurrency(installmentValue)} </p> )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name="category"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Categoria</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione uma categoria" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {categories.map((cat) => (
+                                    <SelectItem key={cat} value={cat} className="capitalize">
+                                        {cat}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="stock"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Estoque</FormLabel>
                           <FormControl>
-                            <select
-                              {...field}
-                              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              <option value="" disabled>Selecione uma categoria</option>
-                              {categories.map((cat) => (
-                                <option key={cat} value={cat} className="capitalize">
-                                  {cat}
-                                </option>
-                              ))}
-                            </select>
+                            <Input type="number" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <FormField control={form.control} name="stock" render={({ field }) => ( <FormItem> <FormLabel>Estoque</FormLabel> <FormControl> <Input type="number" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
                 </div>
             </div>
 
             <div className="space-y-4">
-                 <FormField control={form.control} name="imageUrls" render={() => ( <FormItem> <FormLabel>Imagens do Produto</FormLabel> <FormControl> <Input type="file" accept="image/*" onChange={handleImageChange} multiple className="file:text-primary file:font-semibold cursor-pointer"/> </FormControl> <FormMessage /> </FormItem> )} />
+                 <FormField
+                   control={form.control}
+                   name="imageUrls"
+                   render={() => (
+                     <FormItem>
+                       <FormLabel>Imagens do Produto</FormLabel>
+                       <FormControl>
+                         <Input type="file" accept="image/*" onChange={handleImageChange} multiple className="file:text-primary file:font-semibold cursor-pointer"/>
+                       </FormControl>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
                 
                 <ScrollArea className="h-80 w-full rounded-md border">
                     <div className="p-4">
