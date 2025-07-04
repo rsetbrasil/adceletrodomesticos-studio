@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { useCart } from '@/context/CartContext';
 import { CartSheet } from './CartSheet';
 import { useState } from 'react';
+import Logo from './Logo';
 
 export default function Header() {
   const { cartCount } = useCart();
@@ -15,9 +16,7 @@ export default function Header() {
     <header className="bg-card/80 backdrop-blur-lg border-b sticky top-0 z-40">
       <div className="container mx-auto flex justify-between items-center p-4">
         <Link href="/">
-          <h1 className="text-2xl font-bold text-primary font-headline">
-            ADC MÓVEIS E ELETROS
-          </h1>
+          <Logo />
         </Link>
         <div className="flex items-center gap-4">
             <CartSheet open={isCartOpen} onOpenChange={setIsCartOpen}>
