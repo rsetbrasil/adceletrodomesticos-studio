@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User, ShoppingBag, CreditCard, Printer } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User, ShoppingBag, CreditCard, Printer, Undo2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -82,18 +82,24 @@ export default function OrdersAdminPage() {
     }
   };
 
-  const handleMarkInstallmentAsPaid = (installmentNumber: number) => {
+  const handleToggleInstallmentStatus = (installmentNumber: number) => {
     if (selectedOrder) {
-      updateInstallmentStatus(selectedOrder.id, installmentNumber, 'Pago');
+      const currentInstallment = selectedOrder.installmentDetails?.find(i => i.installmentNumber === installmentNumber);
+      if (!currentInstallment) return;
+
+      const newStatus = currentInstallment.status === 'Pendente' ? 'Pago' : 'Pendente';
+      updateInstallmentStatus(selectedOrder.id, installmentNumber, newStatus);
+      
       setSelectedOrder(prev => {
         if (!prev) return null;
-        const updatedInstallments = (prev.installmentDetails || []).map(inst => 
-            inst.installmentNumber === installmentNumber ? { ...inst, status: 'Pago' as const } : inst
+        const updatedInstallments = (prev.installmentDetails || []).map(inst =>
+          inst.installmentNumber === installmentNumber ? { ...inst, status: newStatus } : inst
         );
         return { ...prev, installmentDetails: updatedInstallments };
       });
     }
-  }
+  };
+
 
   if (!isClient) {
     return (
@@ -267,12 +273,14 @@ export default function OrdersAdminPage() {
                                                           <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
                                                       </TableCell>
                                                       <TableCell className="text-right">
-                                                          {inst.status === 'Pendente' && (
-                                                              <Button size="sm" variant="outline" onClick={() => handleMarkInstallmentAsPaid(inst.installmentNumber)}>
+                                                          <Button size="sm" variant="outline" onClick={() => handleToggleInstallmentStatus(inst.installmentNumber)}>
+                                                              {inst.status === 'Pendente' ? (
                                                                   <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
-                                                                  Pagar
-                                                              </Button>
-                                                          )}
+                                                              ) : (
+                                                                  <Undo2 className="mr-2 h-4 w-4 text-amber-600"/>
+                                                              )}
+                                                              {inst.status === 'Pendente' ? 'Pagar' : 'Estornar'}
+                                                          </Button>
                                                       </TableCell>
                                                   </TableRow>
                                               ))}
@@ -290,15 +298,21 @@ export default function OrdersAdminPage() {
                                       {selectedOrder.installmentDetails && selectedOrder.installmentDetails.length > 0 && selectedOrder.installmentDetails[0].status === 'Pendente' ? (
                                           <div className="flex flex-col items-center gap-4 text-center p-4">
                                               <p>Aguardando confirmação de pagamento de <strong>{formatCurrency(selectedOrder.total)}</strong> via <strong>{selectedOrder.paymentMethod}</strong>.</p>
-                                              <Button size="lg" onClick={() => handleMarkInstallmentAsPaid(1)}>
+                                              <Button size="lg" onClick={() => handleToggleInstallmentStatus(1)}>
                                                   <CheckCircle className="mr-2 h-5 w-5"/>
                                                   Confirmar Recebimento
                                               </Button>
                                           </div>
                                       ) : (
-                                          <div className="flex items-center justify-center gap-2 text-green-600 font-semibold p-4">
-                                              <CheckCircle className="h-6 w-6" />
-                                              <p className="text-base">Pagamento Confirmado</p>
+                                          <div className="flex flex-col items-center justify-center gap-4 text-center p-4">
+                                              <div className="flex items-center justify-center gap-2 text-green-600 font-semibold mb-2">
+                                                <CheckCircle className="h-6 w-6" />
+                                                <p className="text-base">Pagamento Confirmado</p>
+                                              </div>
+                                              <Button variant="outline" size="sm" onClick={() => handleToggleInstallmentStatus(1)}>
+                                                <Undo2 className="mr-2 h-4 w-4"/>
+                                                Estornar Pagamento
+                                              </Button>
                                           </div>
                                       )}
                                   </CardContent>

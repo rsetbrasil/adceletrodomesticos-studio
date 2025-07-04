@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -75,7 +75,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 };
 
 export default function CustomersAdminPage() {
-  const { orders, updateCustomer } = useCart();
+  const { orders, updateCustomer, updateInstallmentStatus } = useCart();
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [imageToView, setImageToView] = useState<string | null>(null);
@@ -114,6 +114,11 @@ export default function CustomersAdminPage() {
       return { allInstallments, totalComprado, totalPago, saldoDevedor };
 
   }, [selectedCustomer, orders]);
+
+  const handleToggleInstallmentStatus = (orderId: string, installmentNumber: number, currentStatus: Installment['status']) => {
+    const newStatus = currentStatus === 'Pendente' ? 'Pago' : 'Pendente';
+    updateInstallmentStatus(orderId, installmentNumber, newStatus);
+  };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || !selectedCustomer) return;
@@ -342,6 +347,18 @@ export default function CustomersAdminPage() {
                                 <TableCell className="text-right">
                                     {isCrediario && (
                                         <div className="flex gap-2 justify-end">
+                                             <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleToggleInstallmentStatus(inst.orderId, inst.installmentNumber, inst.status)}
+                                            >
+                                                {inst.status === 'Pendente' ? (
+                                                    <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                                                ) : (
+                                                    <Undo2 className="mr-2 h-4 w-4 text-amber-600" />
+                                                )}
+                                                {inst.status === 'Pendente' ? 'Pagar' : 'Estornar'}
+                                            </Button>
                                             <Button variant="outline" size="sm" asChild>
                                                 <Link href={`/carnet/${inst.orderId}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
                                                     <Printer className="mr-2 h-4 w-4" />
