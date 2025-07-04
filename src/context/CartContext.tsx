@@ -280,7 +280,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setOrders((prevOrders) =>
       prevOrders.map((order) => {
         if (order.id === orderId) {
-          const updatedInstallments = order.installmentDetails.map((inst) =>
+          const updatedInstallments = (order.installmentDetails || []).map((inst) =>
             inst.installmentNumber === installmentNumber ? { ...inst, status } : inst
           );
           return { ...order, installmentDetails: updatedInstallments };

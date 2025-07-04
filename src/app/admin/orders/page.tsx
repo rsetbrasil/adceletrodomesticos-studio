@@ -95,7 +95,7 @@ export default function OrdersAdminPage() {
       updateInstallmentStatus(selectedOrder.id, installmentNumber, 'Pago');
       setSelectedOrder(prev => {
         if (!prev) return null;
-        const updatedInstallments = prev.installmentDetails.map(inst => 
+        const updatedInstallments = (prev.installmentDetails || []).map(inst => 
             inst.installmentNumber === installmentNumber ? { ...inst, status: 'Pago' as const } : inst
         );
         return { ...prev, installmentDetails: updatedInstallments };
@@ -266,7 +266,7 @@ export default function OrdersAdminPage() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {selectedOrder.installmentDetails.map(inst => (
+                                            {(selectedOrder.installmentDetails || []).map(inst => (
                                                 <TableRow key={inst.installmentNumber}>
                                                     <TableCell>{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
                                                     <TableCell>{format(new Date(inst.dueDate), 'dd/MM/yyyy')}</TableCell>
