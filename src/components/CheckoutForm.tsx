@@ -20,7 +20,6 @@ import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
@@ -172,27 +171,27 @@ export default function CheckoutForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Número de Parcelas</FormLabel>
-                   <Select
-                    onValueChange={(value) => {
-                      const numericValue = Number(value);
-                      field.onChange(numericValue);
-                      setInstallments(numericValue);
-                    }}
-                    defaultValue={String(field.value)}
-                  >
-                    <FormControl>
+                   <FormControl>
+                    <Select
+                      onValueChange={(value) => {
+                        const numericValue = Number(value);
+                        field.onChange(numericValue);
+                        setInstallments(numericValue);
+                      }}
+                      defaultValue={String(field.value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o número de parcelas" />
                       </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {[...Array(12).keys()].map((i) => (
-                        <SelectItem key={i + 1} value={String(i + 1)}>
-                          {i + 1}x de {formatCurrency(total / (i + 1))}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      <SelectContent>
+                        {[...Array(12).keys()].map((i) => (
+                          <SelectItem key={i + 1} value={String(i + 1)}>
+                            {i + 1}x de {formatCurrency(total / (i + 1))}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
