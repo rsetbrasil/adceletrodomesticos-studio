@@ -12,6 +12,8 @@ export default function AdminNav() {
     activeTab = 'customers';
   } else if (pathname.includes('/products')) {
     activeTab = 'products';
+  } else if (pathname.includes('/categories')) {
+    activeTab = 'categories';
   }
 
 
@@ -25,7 +27,10 @@ export default function AdminNav() {
           <Link href="/admin/customers">Gerenciar Clientes</Link>
         </TabsTrigger>
         <TabsTrigger value="products" asChild>
-          <Link href="/admin/products">Cadastrar Produto</Link>
+          <Link href="/admin/products">Gerenciar Produtos</Link>
+        </TabsTrigger>
+         <TabsTrigger value="categories" asChild>
+          <Link href="/admin/categories">Gerenciar Categorias</Link>
         </TabsTrigger>
       </TabsList>
     </Tabs>

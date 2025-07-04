@@ -18,12 +18,20 @@ import { useCart } from '@/context/CartContext';
 import { PackagePlus } from 'lucide-react';
 import { useState } from 'react';
 import Image from 'next/image';
+import type { Product } from '@/lib/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto é obrigatório.'),
   description: z.string().min(10, 'A descrição é obrigatória.'),
   price: z.coerce.number().positive('O preço deve ser um número positivo.'),
-  category: z.string().min(2, 'A categoria é obrigatória.'),
+  category: z.string().min(1, 'A categoria é obrigatória.'),
   stock: z.coerce.number().int().min(0, 'O estoque não pode ser negativo.'),
   imageUrl: z.string().min(1, 'A imagem do produto é obrigatória.'),
 });
@@ -37,13 +45,18 @@ const formatCurrency = (value: number) => {
     }).format(value);
 };
 
-export default function ProductForm() {
-  const { addProduct } = useCart();
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+interface ProductFormProps {
+    productToEdit?: Product | null;
+    onFinished: () => void;
+}
+
+export default function ProductForm({ productToEdit, onFinished }: ProductFormProps) {
+  const { addProduct, updateProduct, categories } = useCart();
+  const [imagePreview, setImagePreview] = useState<string | null>(productToEdit?.imageUrl || null);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: {
+    defaultValues: productToEdit || {
       name: '',
       description: '',
       price: 0,
@@ -70,9 +83,14 @@ export default function ProductForm() {
   };
 
   function onSubmit(values: ProductFormValues) {
-    addProduct(values);
+    if (productToEdit) {
+        updateProduct({ ...productToEdit, ...values });
+    } else {
+        addProduct(values);
+    }
     form.reset();
     setImagePreview(null);
+    onFinished();
   }
 
   return (
@@ -118,7 +136,7 @@ export default function ProductForm() {
                             </FormControl>
                             {price > 0 && (
                             <p className="text-sm text-muted-foreground mt-2">
-                                10x de {formatCurrency(installmentValue)} sem juros
+                                10x de {formatCurrency(installmentValue)}
                             </p>
                             )}
                             <FormMessage />
@@ -131,9 +149,20 @@ export default function ProductForm() {
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Categoria</FormLabel>
-                            <FormControl>
-                            <Input placeholder="Ex: Eletrônicos" {...field} />
-                            </FormControl>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {categories.map((cat) => (
+                                  <SelectItem key={cat} value={cat} className="capitalize">
+                                    {cat}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                         </FormItem>
                         )}
@@ -161,7 +190,7 @@ export default function ProductForm() {
                   render={() => (
                     <FormItem>
                       <FormLabel>Imagem do Produto</FormLabel>
-                      <FormControl>
+                       <FormControl>
                         <Input type="file" accept="image/*" onChange={handleImageChange} className="file:text-primary file:font-semibold cursor-pointer"/>
                       </FormControl>
                       <FormMessage />
@@ -187,7 +216,7 @@ export default function ProductForm() {
 
         <Button type="submit" size="lg" className="w-full">
           <PackagePlus className="mr-2 h-5 w-5" />
-          Cadastrar Produto
+          {productToEdit ? 'Salvar Alterações' : 'Cadastrar Produto'}
         </Button>
       </form>
     </Form>

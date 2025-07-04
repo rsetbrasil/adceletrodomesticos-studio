@@ -20,6 +20,12 @@ interface CartContextType {
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
   products: Product[];
   addProduct: (product: Omit<Product, 'id' | 'data-ai-hint'>) => void;
+  updateProduct: (product: Product) => void;
+  deleteProduct: (productId: string) => void;
+  categories: string[];
+  addCategory: (category: string) => void;
+  updateCategory: (oldCategory: string, newCategory: string) => void;
+  deleteCategory: (category: string) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -29,24 +35,32 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [categories, setCategories] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const storedCart = localStorage.getItem('cartItems');
-      if (storedCart) {
-        setCartItems(JSON.parse(storedCart));
-      }
+      if (storedCart) setCartItems(JSON.parse(storedCart));
+
       const storedOrders = localStorage.getItem('orders');
-      if (storedOrders) {
-        setOrders(JSON.parse(storedOrders));
-      }
+      if (storedOrders) setOrders(JSON.parse(storedOrders));
+
       const storedProducts = localStorage.getItem('products');
       if (storedProducts) {
         setProducts(JSON.parse(storedProducts));
       } else {
         localStorage.setItem('products', JSON.stringify(initialProducts));
+      }
+
+      const storedCategories = localStorage.getItem('categories');
+      if (storedCategories) {
+        setCategories(JSON.parse(storedCategories));
+      } else {
+        const initialCategories = Array.from(new Set(initialProducts.map(p => p.category)));
+        setCategories(initialCategories.sort());
+        localStorage.setItem('categories', JSON.stringify(initialCategories.sort()));
       }
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
@@ -80,20 +94,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [products]);
 
-  // This effect synchronizes state with localStorage changes from other tabs
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem('categories', JSON.stringify(categories));
+    } catch (error) {
+      console.error("Failed to save categories to localStorage", error);
+    }
+  }, [categories]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handleStorageChange = (event: StorageEvent) => {
       try {
-        if (event.key === 'orders' && event.newValue) {
-          setOrders(JSON.parse(event.newValue));
-        }
-        if (event.key === 'cartItems' && event.newValue) {
-          setCartItems(JSON.parse(event.newValue));
-        }
-        if (event.key === 'products' && event.newValue) {
-          setProducts(JSON.parse(event.newValue));
-        }
+        if (event.key === 'orders' && event.newValue) setOrders(JSON.parse(event.newValue));
+        if (event.key === 'cartItems' && event.newValue) setCartItems(JSON.parse(event.newValue));
+        if (event.key === 'products' && event.newValue) setProducts(JSON.parse(event.newValue));
+        if (event.key === 'categories' && event.newValue) setCategories(JSON.parse(event.newValue));
       } catch (error) {
         console.error("Failed to parse localStorage data on change", error);
       }
@@ -117,6 +134,56 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           title: "Produto Cadastrado!",
           description: `O produto "${newProduct.name}" foi adicionado ao catálogo.`,
       });
+  };
+
+  const updateProduct = (updatedProduct: Product) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+    );
+    toast({
+      title: 'Produto Atualizado!',
+      description: `O produto "${updatedProduct.name}" foi atualizado.`,
+    });
+  };
+
+  const deleteProduct = (productId: string) => {
+      setProducts((prevProducts) => prevProducts.filter((p) => p.id !== productId));
+      toast({
+        title: 'Produto Excluído!',
+        description: 'O produto foi removido do catálogo.',
+        variant: 'destructive',
+      });
+  };
+
+  const addCategory = (category: string) => {
+    if (categories.map(c => c.toLowerCase()).includes(category.toLowerCase())) {
+      toast({ title: 'Erro', description: 'Essa categoria já existe.', variant: 'destructive' });
+      return;
+    }
+    setCategories((prev) => [...prev, category].sort());
+    toast({ title: 'Categoria Adicionada!', description: `A categoria "${category}" foi criada.` });
+  };
+
+  const updateCategory = (oldCategory: string, newCategory: string) => {
+    if (categories.map(c => c.toLowerCase()).includes(newCategory.toLowerCase())) {
+        toast({ title: 'Erro', description: 'Essa categoria já existe.', variant: 'destructive' });
+        return;
+    }
+    setCategories((prev) => prev.map((c) => (c === oldCategory ? newCategory : c)).sort());
+    setProducts((prevProducts) =>
+      prevProducts.map((p) => (p.category === oldCategory ? { ...p, category: newCategory } : p))
+    );
+    toast({ title: 'Categoria Atualizada!', description: `Categoria "${oldCategory}" foi renomeada para "${newCategory}".` });
+  };
+
+  const deleteCategory = (categoryToDelete: string) => {
+    const productsInCategory = products.some(p => p.category === categoryToDelete);
+    if (productsInCategory) {
+        toast({ title: 'Erro ao Excluir', description: 'Não é possível excluir uma categoria que contém produtos.', variant: 'destructive' });
+        return;
+    }
+    setCategories((prev) => prev.filter((c) => c !== categoryToDelete));
+    toast({ title: 'Categoria Excluída!', description: `A categoria "${categoryToDelete}" foi removida.`, variant: 'destructive' });
   };
 
   const addToCart = (product: Product) => {
@@ -205,6 +272,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         updateOrderStatus,
         products,
         addProduct,
+        updateProduct,
+        deleteProduct,
+        categories,
+        addCategory,
+        updateCategory,
+        deleteCategory,
       }}
     >
       {children}
