@@ -7,6 +7,7 @@ export type Product = {
   imageUrls: string[];
   category: string;
   stock: number;
+  maxInstallments?: number;
   "data-ai-hint"?: string;
 };
 

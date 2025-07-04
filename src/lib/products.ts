@@ -15,6 +15,7 @@ export const products: Product[] = [
     "data-ai-hint": 'smartphone device',
     category: 'Eletrônicos',
     stock: 15,
+    maxInstallments: 12,
   },
   {
     id: '2',
@@ -29,6 +30,7 @@ export const products: Product[] = [
     "data-ai-hint": 'laptop computer',
     category: 'Eletrônicos',
     stock: 8,
+    maxInstallments: 12,
   },
   {
     id: '3',
@@ -44,6 +46,7 @@ export const products: Product[] = [
     "data-ai-hint": 'running shoe',
     category: 'Moda',
     stock: 30,
+    maxInstallments: 6,
   },
   {
     id: '4',
@@ -57,6 +60,7 @@ export const products: Product[] = [
     "data-ai-hint": 'casual shirt',
     category: 'Moda',
     stock: 50,
+    maxInstallments: 3,
   },
   {
     id: '5',
@@ -71,6 +75,7 @@ export const products: Product[] = [
     "data-ai-hint": 'modern sofa',
     category: 'Casa',
     stock: 5,
+    maxInstallments: 10,
   },
   {
     id: '6',
@@ -84,6 +89,7 @@ export const products: Product[] = [
     "data-ai-hint": 'dining table',
     category: 'Casa',
     stock: 7,
+    maxInstallments: 10,
   },
   {
     id: '7',
@@ -100,6 +106,7 @@ export const products: Product[] = [
     "data-ai-hint": 'wireless headphones',
     category: 'Eletrônicos',
     stock: 22,
+    maxInstallments: 8,
   },
   {
     id: '8',
@@ -114,5 +121,6 @@ export const products: Product[] = [
     "data-ai-hint": 'windbreaker jacket',
     category: 'Moda',
     stock: 18,
+    maxInstallments: 5,
   },
 ];

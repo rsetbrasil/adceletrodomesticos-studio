@@ -48,12 +48,25 @@ const formatCurrency = (value: number) => {
 };
 
 export default function CheckoutForm() {
-  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder } = useCart();
+  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, products } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   const total = getCartTotal();
   
   const [installments, setInstallments] = useState(1);
+  
+  const maxAllowedInstallments = useMemo(() => {
+    if (!cartItems || cartItems.length === 0) return 12;
+
+    const cartProductIds = new Set(cartItems.map(item => item.id));
+    const productsInCart = products.filter(p => cartProductIds.has(p.id));
+
+    if (productsInCart.length === 0) return 12;
+
+    const minInstallments = Math.min(...productsInCart.map(p => p.maxInstallments || 12));
+    
+    return minInstallments > 0 ? minInstallments : 12;
+  }, [cartItems, products]);
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -180,7 +193,7 @@ export default function CheckoutForm() {
                             setInstallments(numValue);
                         }}
                       >
-                        {[...Array(12).keys()].map((i) => (
+                        {[...Array(maxAllowedInstallments).keys()].map((i) => (
                           <option key={i + 1} value={String(i + 1)}>
                             {i + 1}x de {formatCurrency(total / (i + 1))}
                           </option>

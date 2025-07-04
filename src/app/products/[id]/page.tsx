@@ -48,8 +48,9 @@ export default function ProductDetailPage() {
       </div>
     );
   }
-
-  const installmentValue = product.price / 10;
+  
+  const maxInstallments = product.maxInstallments ?? 10;
+  const installmentValue = maxInstallments > 0 ? product.price / maxInstallments : product.price;
 
   return (
     <div className="container mx-auto max-w-6xl py-12 px-4">
@@ -111,9 +112,11 @@ export default function ProductDetailPage() {
             <p className="text-4xl font-bold text-foreground">
               {formatCurrency(product.price)}
             </p>
-            <p className="text-lg text-accent font-semibold">
-              ou 10x de {formatCurrency(installmentValue)} sem juros
-            </p>
+            {maxInstallments > 1 && (
+              <p className="text-lg text-accent font-semibold">
+                ou {maxInstallments}x de {formatCurrency(installmentValue)} sem juros
+              </p>
+            )}
           </div>
           
           <div className="mt-8">

@@ -30,6 +30,7 @@ const productSchema = z.object({
   category: z.string().min(1, 'A categoria é obrigatória.'),
   stock: z.coerce.number().int().min(0, 'O estoque não pode ser negativo.'),
   imageUrls: z.array(z.string()).min(1, 'Pelo menos uma imagem é obrigatória.'),
+  maxInstallments: z.coerce.number().int().min(1, 'O número mínimo de parcelas é 1.'),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -52,7 +53,12 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: productToEdit || {
+    defaultValues: productToEdit ? 
+    {
+      ...productToEdit,
+      maxInstallments: productToEdit.maxInstallments || 10,
+    }
+    : {
       name: '',
       description: '',
       longDescription: '',
@@ -60,11 +66,13 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       category: '',
       stock: 0,
       imageUrls: [],
+      maxInstallments: 10,
     },
   });
 
   const price = form.watch('price');
-  const installmentValue = price > 0 ? price / 10 : 0;
+  const maxInstallments = form.watch('maxInstallments');
+  const installmentValue = price > 0 && maxInstallments > 0 ? price / maxInstallments : 0;
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -148,7 +156,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="price"
@@ -158,7 +166,20 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                           <FormControl>
                             <Input type="number" step="0.01" {...field} />
                           </FormControl>
-                          {price > 0 && ( <p className="text-sm text-muted-foreground mt-2"> 10x de {formatCurrency(installmentValue)} </p> )}
+                          {price > 0 && maxInstallments > 1 && ( <p className="text-sm text-muted-foreground mt-2"> {maxInstallments}x de {formatCurrency(installmentValue)} </p> )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="stock"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Estoque</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -189,12 +210,12 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                     />
                     <FormField
                       control={form.control}
-                      name="stock"
+                      name="maxInstallments"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Estoque</FormLabel>
+                          <FormLabel>Parcelas Máximas</FormLabel>
                           <FormControl>
-                            <Input type="number" {...field} />
+                            <Input type="number" min="1" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
