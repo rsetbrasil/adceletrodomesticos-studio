@@ -27,6 +27,13 @@ const productSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
+const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+};
+
 export default function ProductForm() {
   const { addProduct } = useCart();
 
@@ -40,6 +47,9 @@ export default function ProductForm() {
       stock: 0,
     },
   });
+
+  const price = form.watch('price');
+  const installmentValue = price > 0 ? price / 10 : 0;
 
   function onSubmit(values: ProductFormValues) {
     addProduct(values);
@@ -85,6 +95,11 @@ export default function ProductForm() {
                 <FormControl>
                   <Input type="number" step="0.01" {...field} />
                 </FormControl>
+                {price > 0 && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    10x de {formatCurrency(installmentValue)} sem juros
+                  </p>
+                )}
                 <FormMessage />
               </FormItem>
             )}
