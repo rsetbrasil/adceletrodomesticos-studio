@@ -21,6 +21,7 @@ import Image from 'next/image';
 import type { Product } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const productSchema = z.object({
@@ -121,19 +122,18 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Categoria</FormLabel>
-                          <FormControl>
-                            <select
-                              {...field}
-                              className={cn(
-                                'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 capitalize'
-                              )}
-                            >
-                              <option value="" disabled>Selecione...</option>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione uma categoria" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
                               {categories.map((cat) => (
-                                <option key={cat} value={cat}>{cat}</option>
+                                <SelectItem key={cat} value={cat} className="capitalize">{cat}</SelectItem>
                               ))}
-                            </select>
-                          </FormControl>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
