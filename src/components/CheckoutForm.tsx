@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
@@ -71,8 +71,13 @@ export default function CheckoutForm() {
     return total > 0 && installments > 0 ? total / installments : 0;
   }, [total, installments]);
   
-  if (cartItems.length === 0 && typeof window !== 'undefined') {
+  useEffect(() => {
+    if (cartItems.length === 0) {
       router.push('/');
+    }
+  }, [cartItems, router]);
+
+  if (cartItems.length === 0) {
       return null;
   }
 
