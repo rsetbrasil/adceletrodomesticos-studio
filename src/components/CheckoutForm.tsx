@@ -78,24 +78,13 @@ export default function CheckoutForm() {
   const paymentMethod = form.watch('paymentMethod');
   const installmentsCount = form.watch('installments');
 
-  // Simplified logic to avoid potential syntax issues with complex expressions
-  let maxAllowedInstallments = 12;
-  if (cartItems && cartItems.length > 0) {
-    const cartProductIds = new Set(cartItems.map(item => item.id));
-    const productsInCart = products.filter(p => cartProductIds.has(p.id));
-    if (productsInCart.length > 0) {
-        // Using a simple loop for robustness instead of Math.min with spread operator
-        let min = productsInCart[0].maxInstallments || 12;
-        for (const p of productsInCart) {
-            const currentMax = p.maxInstallments || 12;
-            if (currentMax < min) {
-                min = currentMax;
-            }
-        }
-        maxAllowedInstallments = min;
-    }
-  }
-
+  const maxAllowedInstallments = cartItems.length > 0 
+    ? Math.min(...cartItems.map(item => {
+        const product = products.find(p => p.id === item.id);
+        return product?.maxInstallments || 12;
+      }))
+    : 12;
+  
   const installmentValue = total > 0 && installmentsCount > 0 ? total / installmentsCount : 0;
   
   if (cartItems.length === 0) {
@@ -208,7 +197,7 @@ export default function CheckoutForm() {
                                 form.setValue('installments', 1);
                             }
                         }} 
-                        defaultValue={field.value ?? undefined} 
+                        defaultValue={field.value} 
                         className="flex flex-col space-y-2">
                       <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 has-[:checked]:border-primary">
                         <FormControl><RadioGroupItem value="Crediário" /></FormControl>
@@ -242,7 +231,7 @@ export default function CheckoutForm() {
                     <FormControl>
                       <select
                         {...field}
-                        value={field.value ?? 1}
+                        value={field.value}
                         className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         onChange={(e) => field.onChange(Number(e.target.value))}
                       >
