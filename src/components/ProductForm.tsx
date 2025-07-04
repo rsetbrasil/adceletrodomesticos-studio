@@ -26,7 +26,10 @@ const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto é obrigatório.'),
   description: z.string().min(10, 'A descrição curta é obrigatória.'),
   longDescription: z.string().min(20, 'A descrição longa é obrigatória.'),
-  price: z.coerce.number().positive('O preço deve ser um número positivo.'),
+  price: z.preprocess(
+    (val) => (typeof val === 'string' ? String(val).replace(',', '.') : val),
+    z.coerce.number().positive('O preço deve ser um número positivo.')
+  ),
   category: z.string().min(1, 'A categoria é obrigatória.'),
   stock: z.coerce.number().int().min(0, 'O estoque não pode ser negativo.'),
   imageUrls: z.array(z.string()).min(1, 'Pelo menos uma imagem é obrigatória.'),
@@ -164,7 +167,22 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                         <FormItem>
                           <FormLabel>Preço (R$)</FormLabel>
                           <FormControl>
-                            <Input type="number" step="0.01" {...field} />
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              {...field}
+                              value={String(field.value ?? '').replace('.', ',')}
+                              onChange={(e) => {
+                                let value = e.target.value;
+                                // Allow only numbers and a single comma
+                                value = value.replace(/[^0-9,]/g, '');
+                                const parts = value.split(',');
+                                if (parts.length > 2) {
+                                    value = parts[0] + ',' + parts.slice(1).join('');
+                                }
+                                field.onChange(value);
+                              }}
+                            />
                           </FormControl>
                           {price > 0 && maxInstallments > 1 && ( <p className="text-sm text-muted-foreground mt-2"> {maxInstallments}x de {formatCurrency(installmentValue)} </p> )}
                           <FormMessage />
