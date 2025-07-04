@@ -1,17 +1,14 @@
 import type { Metadata } from 'next';
-import './globals.css';
+import '../globals.css';
 import { AuthProvider } from '@/context/AuthContext';
-import { CartProvider } from '@/context/CartContext';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'ADC MÓVEIS E ELETROS',
-  description: 'ADC MÓVEIS E ELETROS - Sua loja de móveis e eletrodomésticos.',
+  title: 'Login - ADC Móveis',
+  description: 'Acesso ao painel administrativo.',
 };
 
-export default function RootLayout({
+export default function LoginLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -28,14 +25,8 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <CartProvider>
-            <div className="relative flex min-h-screen flex-col bg-background">
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Footer />
-            </div>
+            {children}
             <Toaster />
-          </CartProvider>
         </AuthProvider>
       </body>
     </html>
