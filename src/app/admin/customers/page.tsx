@@ -326,8 +326,7 @@ export default function CustomersAdminPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {customerFinancials.allInstallments.map((inst, index, arr) => {
-                            const isFirstOfOrder = index === 0 || arr[index - 1].orderId !== inst.orderId;
+                            {customerFinancials.allInstallments.map((inst) => {
                             const order = orders.find(o => o.id === inst.orderId);
                             const isCrediario = !order?.paymentMethod || order.paymentMethod === 'Crediário';
 
@@ -341,7 +340,7 @@ export default function CustomersAdminPage() {
                                 <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    {isFirstOfOrder && isCrediario && (
+                                    {isCrediario && (
                                         <Button variant="outline" size="sm" asChild>
                                             <Link href={`/carnet/${inst.orderId}`} target="_blank" rel="noopener noreferrer">
                                                 <Printer className="mr-2 h-4 w-4" />
