@@ -10,14 +10,14 @@ export default function AdminNav() {
   const activeTab = pathname.includes('/products') ? 'products' : 'orders';
 
   return (
-    <Tabs defaultValue={activeTab} className="mb-8">
+    <Tabs value={activeTab} className="mb-8">
       <TabsList>
-        <Link href="/admin/orders" legacyBehavior passHref>
-          <TabsTrigger value="orders">Gerenciar Pedidos</TabsTrigger>
-        </Link>
-        <Link href="/admin/products" legacyBehavior passHref>
-          <TabsTrigger value="products">Cadastrar Produto</TabsTrigger>
-        </Link>
+        <TabsTrigger value="orders" asChild>
+          <Link href="/admin/orders">Gerenciar Pedidos</Link>
+        </TabsTrigger>
+        <TabsTrigger value="products" asChild>
+          <Link href="/admin/products">Cadastrar Produto</Link>
+        </TabsTrigger>
       </TabsList>
     </Tabs>
   );
