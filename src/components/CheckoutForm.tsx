@@ -30,13 +30,23 @@ import type { Order } from '@/lib/types';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
-  cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, 'CPF inválido. Formato: 999.999.999-99'),
+  cpf: z.string().refine((value) => {
+    const justDigits = value.replace(/\D/g, '');
+    return justDigits.length === 11;
+  }, {
+    message: 'CPF inválido. Deve conter 11 dígitos.',
+  }),
   phone: z.string().min(10, 'Telefone é obrigatório.'),
   email: z.string().email('E-mail inválido.'),
   address: z.string().min(5, 'Endereço é obrigatório.'),
   city: z.string().min(2, 'Cidade é obrigatória.'),
   state: z.string().min(2, 'Estado é obrigatório.'),
-  zip: z.string().regex(/^\d{5}-\d{3}$/, 'CEP inválido. Formato: 99999-999'),
+  zip: z.string().refine((value) => {
+    const justDigits = value.replace(/\D/g, '');
+    return justDigits.length === 8;
+  }, {
+    message: 'CEP inválido. Deve conter 8 dígitos.',
+  }),
   installments: z.coerce.number().min(1, 'Selecione o número de parcelas.'),
 });
 
