@@ -171,7 +171,6 @@ export default function CheckoutForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Número de Parcelas</FormLabel>
-                   <FormControl>
                     <Select
                       onValueChange={(value) => {
                         const numericValue = Number(value);
@@ -180,9 +179,11 @@ export default function CheckoutForm() {
                       }}
                       defaultValue={String(field.value)}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o número de parcelas" />
-                      </SelectTrigger>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o número de parcelas" />
+                        </SelectTrigger>
+                      </FormControl>
                       <SelectContent>
                         {[...Array(12).keys()].map((i) => (
                           <SelectItem key={i + 1} value={String(i + 1)}>
@@ -191,7 +192,6 @@ export default function CheckoutForm() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

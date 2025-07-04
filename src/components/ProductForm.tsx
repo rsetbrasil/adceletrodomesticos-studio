@@ -121,18 +121,18 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Categoria</FormLabel>
-                          <FormControl>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione uma categoria" />
-                                </SelectTrigger>
-                              <SelectContent>
-                                {categories.map((cat) => (
-                                  <SelectItem key={cat} value={cat} className="capitalize">{cat}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione uma categoria" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categories.map((cat) => (
+                                <SelectItem key={cat} value={cat} className="capitalize">{cat}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
