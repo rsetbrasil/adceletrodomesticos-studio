@@ -1,0 +1,191 @@
+'use client';
+
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useCart } from '@/context/CartContext';
+import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+import Image from 'next/image';
+import { Separator } from './ui/separator';
+import { useToast } from './ui/use-toast';
+
+const checkoutSchema = z.object({
+  name: z.string().min(3, 'Nome completo é obrigatório.'),
+  cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, 'CPF inválido. Formato: 999.999.999-99'),
+  phone: z.string().min(10, 'Telefone é obrigatório.'),
+  email: z.string().email('E-mail inválido.'),
+  address: z.string().min(5, 'Endereço é obrigatório.'),
+  city: z.string().min(2, 'Cidade é obrigatória.'),
+  state: z.string().min(2, 'Estado é obrigatório.'),
+  zip: z.string().regex(/^\d{5}-\d{3}$/, 'CEP inválido. Formato: 99999-999'),
+  installments: z.coerce.number().min(1, 'Selecione o número de parcelas.'),
+});
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+};
+
+export default function CheckoutForm() {
+  const { cartItems, getCartTotal, clearCart, setLastOrder } = useCart();
+  const router = useRouter();
+  const { toast } = useToast();
+  const total = getCartTotal();
+  
+  const [installments, setInstallments] = useState(1);
+
+  const form = useForm<z.infer<typeof checkoutSchema>>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      name: '',
+      cpf: '',
+      phone: '',
+      email: '',
+      address: '',
+      city: '',
+      state: '',
+      zip: '',
+      installments: 1,
+    },
+  });
+
+  const installmentValue = useMemo(() => {
+    return total > 0 && installments > 0 ? total / installments : 0;
+  }, [total, installments]);
+  
+  if (cartItems.length === 0 && typeof window !== 'undefined') {
+      router.push('/');
+      return null;
+  }
+
+  function onSubmit(values: z.infer<typeof checkoutSchema>) {
+    const orderId = `CF-${Date.now()}`;
+    const order = {
+      id: orderId,
+      customer: {
+        name: values.name,
+        cpf: values.cpf,
+        phone: values.phone,
+        email: values.email,
+        address: values.address,
+        city: values.city,
+        state: values.state,
+        zip: values.zip,
+      },
+      items: cartItems,
+      total,
+      installments: values.installments,
+      installmentValue,
+      date: new Date().toISOString(),
+    };
+    
+    setLastOrder(order);
+    console.log('Admin Notification: New Order Received!', order);
+    clearCart();
+
+    toast({
+        title: "Pedido Realizado com Sucesso!",
+        description: `Seu pedido #${orderId} foi confirmado.`,
+    });
+
+    router.push(`/order-confirmation/${orderId}`);
+  }
+
+  return (
+    <div className="grid md:grid-cols-2 gap-12">
+      <div>
+        <h3 className="text-xl font-semibold mb-4 font-headline">Resumo do Pedido</h3>
+        <div className="space-y-4">
+          {cartItems.map((item) => (
+            <div key={item.id} className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="relative h-16 w-16 rounded-md overflow-hidden">
+                  <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+                </div>
+                <div>
+                  <p className="font-semibold">{item.name}</p>
+                  <p className="text-sm text-muted-foreground">Qtd: {item.quantity}</p>
+                </div>
+              </div>
+              <p className="font-semibold">{formatCurrency(item.price * item.quantity)}</p>
+            </div>
+          ))}
+          <Separator />
+          <div className="flex justify-between font-bold text-lg">
+            <span>Total</span>
+            <span>{formatCurrency(total)}</span>
+          </div>
+        </div>
+      </div>
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <div>
+            <h3 className="text-xl font-semibold mb-4 font-headline">1. Informações do Cliente</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="seu@email.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="address" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="state" render={({ field }) => ( <FormItem><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-xl font-semibold mb-4 font-headline">2. Pagamento Crediário</h3>
+            <FormField
+              control={form.control}
+              name="installments"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Número de Parcelas</FormLabel>
+                  <Select onValueChange={(value) => {
+                      field.onChange(value);
+                      setInstallments(Number(value));
+                  }} defaultValue={String(field.value)}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {[...Array(12).keys()].map((i) => (
+                        <SelectItem key={i + 1} value={String(i + 1)}>
+                          {i + 1}x de {formatCurrency(total / (i+1))}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {installmentValue > 0 && (
+                <div className="mt-4 p-4 bg-muted rounded-lg text-center">
+                    <p className="font-bold text-lg text-accent">{installments}x de {formatCurrency(installmentValue)}</p>
+                </div>
+            )}
+          </div>
+
+          <Button type="submit" size="lg" className="w-full text-lg">Confirmar Pedido</Button>
+        </form>
+      </Form>
+    </div>
+  );
+}
