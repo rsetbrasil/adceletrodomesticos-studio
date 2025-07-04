@@ -29,6 +29,49 @@ const getInstallmentStatusVariant = (status: Installment['status']): 'secondary'
     }
 }
 
+const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if (typeof event.target?.result !== 'string') {
+                return reject(new Error('Falha ao ler o arquivo.'));
+            }
+            const img = document.createElement('img');
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    return reject(new Error('Não foi possível obter o contexto do canvas.'));
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                const dataUrl = canvas.toDataURL(file.type, 0.9);
+                resolve(dataUrl);
+            };
+            img.onerror = (err) => reject(err);
+            img.src = event.target.result as string;
+        };
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(file);
+    });
+};
+
 export default function CustomersAdminPage() {
   const { orders, updateCustomer } = useCart();
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
@@ -75,19 +118,29 @@ export default function CustomersAdminPage() {
 
     for (const file of files) {
       try {
-          const reader = new FileReader();
-          const promise = new Promise<{ name: string; type: 'image' | 'pdf'; url:string }>((resolve, reject) => {
-            reader.onload = (e) => {
-              if (typeof e.target?.result !== 'string') {
-                  return reject(new Error('Falha ao ler o arquivo.'));
-              }
-              const type = file.type.startsWith('image/') ? 'image' : 'pdf';
-              resolve({ name: file.name, type, url: e.target.result });
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-          newAttachments.push(await promise);
+        const isImage = file.type.startsWith('image/');
+        let fileUrl: string;
+
+        if (isImage) {
+            fileUrl = await resizeImage(file);
+        } else {
+            const promise = new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (typeof e.target?.result === 'string') {
+                        resolve(e.target.result);
+                    } else {
+                        reject(new Error('Falha ao ler o arquivo.'));
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            fileUrl = await promise;
+        }
+        
+        const type = isImage ? 'image' : 'pdf';
+        newAttachments.push({ name: file.name, type, url: fileUrl });
       } catch (error) {
           console.error("Erro ao processar arquivo:", error);
       }
