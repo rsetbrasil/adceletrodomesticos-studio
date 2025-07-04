@@ -217,7 +217,7 @@ export default function OrdersAdminPage() {
                               </CardHeader>
                               <CardContent className="space-y-4">
                                   <div>
-                                      <p className="text-sm"><strong>Forma de Pagamento:</strong> <Badge variant="outline">{selectedOrder.paymentMethod}</Badge></p>
+                                      <p className="text-sm"><strong>Forma de Pagamento:</strong> <Badge variant="outline">{selectedOrder.paymentMethod || 'Crediário'}</Badge></p>
                                   </div>
                                   <div className="flex items-end gap-4">
                                       <div className="flex-grow">
@@ -240,7 +240,7 @@ export default function OrdersAdminPage() {
                           </Card>
                           
                           {/* Installment Plan / Payment Confirmation */}
-                          {selectedOrder.paymentMethod === 'Crediário' ? (
+                          {(!selectedOrder.paymentMethod || selectedOrder.paymentMethod === 'Crediário') ? (
                               <Card>
                                   <CardHeader className="flex-row items-center gap-4 space-y-0">
                                       <FileText className="w-8 h-8 text-primary" />
@@ -307,7 +307,7 @@ export default function OrdersAdminPage() {
                       </div>
                   </div>
                     <DialogFooter className="pt-4 border-t">
-                      {selectedOrder.paymentMethod === 'Crediário' && (
+                      {(!selectedOrder.paymentMethod || selectedOrder.paymentMethod === 'Crediário') && (
                           <Button variant="secondary" asChild>
                               <Link href={`/carnet/${selectedOrder.id}`} target="_blank" rel="noopener noreferrer">
                                   <Printer className="mr-2 h-4 w-4" />
