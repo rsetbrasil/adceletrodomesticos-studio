@@ -21,6 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order } from '@/lib/types';
 import { addMonths } from 'date-fns';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -41,6 +42,9 @@ const checkoutSchema = z.object({
   }, {
     message: 'CEP inválido. Deve conter 8 dígitos.',
   }),
+  paymentMethod: z.enum(['Crediário', 'Pix', 'Dinheiro'], {
+    required_error: "Você precisa selecionar uma forma de pagamento.",
+  }),
   installments: z.coerce.number().min(1, 'Selecione o número de parcelas.'),
 });
 
@@ -53,19 +57,13 @@ export default function CheckoutForm() {
   const router = useRouter();
   const { toast } = useToast();
   const total = getCartTotal();
-  
-  const [installments, setInstallments] = useState(1);
-  
+
   const maxAllowedInstallments = useMemo(() => {
     if (!cartItems || cartItems.length === 0) return 12;
-
     const cartProductIds = new Set(cartItems.map(item => item.id));
     const productsInCart = products.filter(p => cartProductIds.has(p.id));
-
     if (productsInCart.length === 0) return 12;
-
     const minInstallments = Math.min(...productsInCart.map(p => p.maxInstallments || 12));
-    
     return minInstallments > 0 ? minInstallments : 12;
   }, [cartItems, products]);
 
@@ -84,9 +82,18 @@ export default function CheckoutForm() {
     },
   });
 
+  const paymentMethod = form.watch('paymentMethod');
+  const installmentsCount = form.watch('installments');
+
+  useEffect(() => {
+    if (paymentMethod !== 'Crediário') {
+      form.setValue('installments', 1);
+    }
+  }, [paymentMethod, form]);
+
   const installmentValue = useMemo(() => {
-    return total > 0 && installments > 0 ? total / installments : 0;
-  }, [total, installments]);
+    return total > 0 && installmentsCount > 0 ? total / installmentsCount : 0;
+  }, [total, installmentsCount]);
   
   useEffect(() => {
     if (cartItems.length === 0) {
@@ -100,10 +107,11 @@ export default function CheckoutForm() {
 
   function onSubmit(values: z.infer<typeof checkoutSchema>) {
     const orderId = `CF-${Date.now()}`;
-    const finalInstallmentValue = total / values.installments;
+    const finalInstallments = values.paymentMethod === 'Crediário' ? values.installments : 1;
+    const finalInstallmentValue = total / finalInstallments;
     const orderDate = new Date();
 
-    const installmentDetails = Array.from({ length: values.installments }, (_, i) => {
+    const installmentDetails = Array.from({ length: finalInstallments }, (_, i) => {
       return {
         installmentNumber: i + 1,
         amount: finalInstallmentValue,
@@ -126,11 +134,11 @@ export default function CheckoutForm() {
       },
       items: cartItems,
       total,
-      installments: values.installments,
+      installments: finalInstallments,
       installmentValue: finalInstallmentValue,
       date: orderDate.toISOString(),
       status: 'Processando',
-      paymentMethod: 'Crediário',
+      paymentMethod: values.paymentMethod,
       installmentDetails,
     };
     
@@ -190,22 +198,48 @@ export default function CheckoutForm() {
           </div>
           
           <div>
-            <h3 className="text-xl font-semibold mb-4 font-headline">2. Pagamento Crediário</h3>
-             <FormField
+            <h3 className="text-xl font-semibold mb-4 font-headline">2. Forma de Pagamento</h3>
+            <FormField
               control={form.control}
-              name="installments"
+              name="paymentMethod"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Número de Parcelas</FormLabel>
-                   <FormControl>
-                     <select
+                <FormItem className="space-y-3">
+                  <FormControl>
+                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-2">
+                      <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 has-[:checked]:border-primary">
+                        <FormControl><RadioGroupItem value="Crediário" /></FormControl>
+                        <FormLabel className="font-normal w-full">Crediário da Loja</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 has-[:checked]:border-primary">
+                        <FormControl><RadioGroupItem value="Pix" /></FormControl>
+                        <FormLabel className="font-normal w-full">Pix</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 has-[:checked]:border-primary">
+                        <FormControl><RadioGroupItem value="Dinheiro" /></FormControl>
+                        <FormLabel className="font-normal w-full">Dinheiro (na entrega/retirada)</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {paymentMethod === 'Crediário' && (
+            <div>
+              <h3 className="text-xl font-semibold mb-4 font-headline">3. Opções de Parcelamento</h3>
+              <FormField
+                control={form.control}
+                name="installments"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Número de Parcelas</FormLabel>
+                    <FormControl>
+                      <select
                         {...field}
                         className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        onChange={(e) => {
-                            const numValue = Number(e.target.value);
-                            field.onChange(numValue);
-                            setInstallments(numValue);
-                        }}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
                       >
                         {[...Array(maxAllowedInstallments).keys()].map((i) => (
                           <option key={i + 1} value={String(i + 1)}>
@@ -213,19 +247,20 @@ export default function CheckoutForm() {
                           </option>
                         ))}
                       </select>
-                   </FormControl>
-                  <FormMessage />
-                </FormItem>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {installmentValue > 0 && (
+                  <div className="mt-4 p-4 bg-muted rounded-lg text-center">
+                      <p className="font-bold text-lg text-accent">{installmentsCount}x de {formatCurrency(installmentValue)}</p>
+                  </div>
               )}
-            />
-            {installmentValue > 0 && (
-                <div className="mt-4 p-4 bg-muted rounded-lg text-center">
-                    <p className="font-bold text-lg text-accent">{installments}x de {formatCurrency(installmentValue)}</p>
-                </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          <Button type="submit" size="lg" className="w-full text-lg">Confirmar Pedido</Button>
+          <Button type="submit" size="lg" className="w-full text-lg">Finalizar Compra</Button>
         </form>
       </Form>
     </div>

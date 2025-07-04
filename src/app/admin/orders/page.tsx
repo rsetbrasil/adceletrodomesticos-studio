@@ -13,14 +13,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
-import {
     Dialog,
     DialogContent,
     DialogHeader,
@@ -30,7 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, PackageSearch, FileText, CheckCircle, Pencil, User, ShoppingBag, CreditCard, Printer } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User, ShoppingBag, CreditCard, Printer } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -164,7 +156,6 @@ export default function OrdersAdminPage() {
             </CardContent>
         </Card>
 
-        {/* Details Modal */}
         <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
             <DialogContent className="max-w-4xl h-[90vh]">
                 {selectedOrder && (
@@ -249,55 +240,82 @@ export default function OrdersAdminPage() {
                                 </CardContent>
                             </Card>
                             
-                            {/* Installment Plan */}
-                            <Card>
-                                <CardHeader className="flex-row items-center gap-4 space-y-0">
-                                    <FileText className="w-8 h-8 text-primary" />
-                                    <CardTitle className="text-lg">Carnê de Pagamento</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Parcela</TableHead>
-                                                <TableHead>Vencimento</TableHead>
-                                                <TableHead>Valor</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead className="text-right">Ação</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {(selectedOrder.installmentDetails || []).map(inst => (
-                                                <TableRow key={inst.installmentNumber}>
-                                                    <TableCell>{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
-                                                    <TableCell>{format(new Date(inst.dueDate), 'dd/MM/yyyy')}</TableCell>
-                                                    <TableCell>{formatCurrency(inst.amount)}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        {inst.status === 'Pendente' && (
-                                                            <Button size="sm" variant="outline" onClick={() => handleMarkInstallmentAsPaid(inst.installmentNumber)}>
-                                                                <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
-                                                                Pagar
-                                                            </Button>
-                                                        )}
-                                                    </TableCell>
+                            {/* Installment Plan / Payment Confirmation */}
+                            {selectedOrder.paymentMethod === 'Crediário' ? (
+                                <Card>
+                                    <CardHeader className="flex-row items-center gap-4 space-y-0">
+                                        <FileText className="w-8 h-8 text-primary" />
+                                        <CardTitle className="text-lg">Carnê de Pagamento</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Parcela</TableHead>
+                                                    <TableHead>Vencimento</TableHead>
+                                                    <TableHead>Valor</TableHead>
+                                                    <TableHead>Status</TableHead>
+                                                    <TableHead className="text-right">Ação</TableHead>
                                                 </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {(selectedOrder.installmentDetails || []).map(inst => (
+                                                    <TableRow key={inst.installmentNumber}>
+                                                        <TableCell>{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
+                                                        <TableCell>{format(new Date(inst.dueDate), 'dd/MM/yyyy')}</TableCell>
+                                                        <TableCell>{formatCurrency(inst.amount)}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            {inst.status === 'Pendente' && (
+                                                                <Button size="sm" variant="outline" onClick={() => handleMarkInstallmentAsPaid(inst.installmentNumber)}>
+                                                                    <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
+                                                                    Pagar
+                                                                </Button>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <Card>
+                                    <CardHeader className="flex-row items-center gap-4 space-y-0">
+                                        <CheckCircle className="w-8 h-8 text-primary" />
+                                        <CardTitle className="text-lg">Confirmação de Pagamento</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {selectedOrder.installmentDetails && selectedOrder.installmentDetails.length > 0 && selectedOrder.installmentDetails[0].status === 'Pendente' ? (
+                                            <div className="flex flex-col items-center gap-4 text-center p-4">
+                                                <p>Aguardando confirmação de pagamento de <strong>{formatCurrency(selectedOrder.total)}</strong> via <strong>{selectedOrder.paymentMethod}</strong>.</p>
+                                                <Button size="lg" onClick={() => handleMarkInstallmentAsPaid(1)}>
+                                                    <CheckCircle className="mr-2 h-5 w-5"/>
+                                                    Confirmar Recebimento
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center justify-center gap-2 text-green-600 font-semibold p-4">
+                                                <CheckCircle className="h-6 w-6" />
+                                                <p className="text-base">Pagamento Confirmado</p>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
                         </div>
                     </div>
                      <DialogFooter className="pt-4 border-t">
-                        <Button variant="secondary" asChild>
-                            <Link href={`/carnet/${selectedOrder.id}`} target="_blank" rel="noopener noreferrer">
-                                <Printer className="mr-2 h-4 w-4" />
-                                Ver Carnê
-                            </Link>
-                        </Button>
+                        {selectedOrder.paymentMethod === 'Crediário' && (
+                            <Button variant="secondary" asChild>
+                                <Link href={`/carnet/${selectedOrder.id}`} target="_blank" rel="noopener noreferrer">
+                                    <Printer className="mr-2 h-4 w-4" />
+                                    Ver Carnê
+                                </Link>
+                            </Button>
+                        )}
                         <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>Fechar</Button>
                     </DialogFooter>
                     </>

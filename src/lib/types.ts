@@ -37,6 +37,8 @@ export type Installment = {
   status: 'Pendente' | 'Pago';
 }
 
+export type PaymentMethod = 'Crediário' | 'Pix' | 'Dinheiro';
+
 export type Order = {
   id: string;
   customer: CustomerInfo;
@@ -46,6 +48,6 @@ export type Order = {
   installmentValue: number;
   date: string;
   status: 'Processando' | 'Enviado' | 'Entregue' | 'Cancelado';
-  paymentMethod: string;
+  paymentMethod: PaymentMethod;
   installmentDetails: Installment[];
 };

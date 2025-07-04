@@ -28,7 +28,17 @@ export default function OrderConfirmationPage() {
     } else {
       // If there's no order in context, or the ID doesn't match,
       // it means the user refreshed the page or came here directly.
-      // Redirect to home.
+      // We can try to find the order in the full list from localStorage
+      const storedOrdersRaw = localStorage.getItem('orders');
+      if (storedOrdersRaw) {
+        const storedOrders = JSON.parse(storedOrdersRaw) as Order[];
+        const foundOrder = storedOrders.find(o => o.id === params.id);
+        if (foundOrder) {
+          setOrder(foundOrder);
+          return;
+        }
+      }
+      
       const timer = setTimeout(() => router.push('/'), 3000);
       return () => clearTimeout(timer);
     }
@@ -61,7 +71,7 @@ export default function OrderConfirmationPage() {
                 {order.items.map((item) => (
                   <div key={item.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="relative h-12 w-12 rounded-md overflow-hidden">
+                      <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
                         <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
                       </div>
                       <p>{item.name} <span className="text-muted-foreground">x{item.quantity}</span></p>
@@ -80,12 +90,14 @@ export default function OrderConfirmationPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Forma de Pagamento:</span>
-                  <span className="font-semibold">Crediário</span>
+                  <span className="font-semibold">{order.paymentMethod}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Parcelas:</span>
-                  <span className="font-semibold text-accent">{order.installments}x de {formatCurrency(order.installmentValue)}</span>
-                </div>
+                {order.paymentMethod === 'Crediário' && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Parcelas:</span>
+                    <span className="font-semibold text-accent">{order.installments}x de {formatCurrency(order.installmentValue)}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
