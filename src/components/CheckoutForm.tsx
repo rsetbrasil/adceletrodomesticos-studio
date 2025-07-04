@@ -20,7 +20,6 @@ import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order } from '@/lib/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -182,20 +181,19 @@ export default function CheckoutForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Número de Parcelas</FormLabel>
-                    <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {[...Array(12).keys()].map((i) => (
-                            <SelectItem key={i + 1} value={String(i + 1)}>
-                                {i + 1}x de {formatCurrency(total / (i + 1))}
-                            </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                   <FormControl>
+                    <select
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {[...Array(12).keys()].map((i) => (
+                          <option key={i + 1} value={String(i + 1)}>
+                              {i + 1}x de {formatCurrency(total / (i + 1))}
+                          </option>
+                      ))}
+                    </select>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
