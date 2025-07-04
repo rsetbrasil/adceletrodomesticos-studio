@@ -24,8 +24,6 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const isServer = typeof window === 'undefined';
-
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
@@ -34,7 +32,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isServer) return;
+    if (typeof window === 'undefined') return;
     try {
       const storedCart = localStorage.getItem('cartItems');
       if (storedCart) {
@@ -56,7 +54,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (isServer) return;
+    if (typeof window === 'undefined') return;
     try {
       localStorage.setItem('cartItems', JSON.stringify(cartItems));
     } catch (error) {
@@ -65,7 +63,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [cartItems]);
   
   useEffect(() => {
-    if (isServer) return;
+    if (typeof window === 'undefined') return;
     try {
       localStorage.setItem('orders', JSON.stringify(orders));
     } catch (error) {
@@ -74,7 +72,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [orders]);
 
   useEffect(() => {
-    if (isServer) return;
+    if (typeof window === 'undefined') return;
     try {
       localStorage.setItem('products', JSON.stringify(products));
     } catch (error) {
@@ -84,7 +82,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // This effect synchronizes state with localStorage changes from other tabs
   useEffect(() => {
-    if (isServer) return;
+    if (typeof window === 'undefined') return;
     const handleStorageChange = (event: StorageEvent) => {
       try {
         if (event.key === 'orders' && event.newValue) {
