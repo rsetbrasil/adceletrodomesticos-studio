@@ -176,26 +176,26 @@ export default function CheckoutForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Número de Parcelas</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(Number(value));
-                      setInstallments(Number(value));
-                    }}
-                    defaultValue={String(field.value)}
-                  >
-                    <FormControl>
+                  <FormControl>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(Number(value));
+                        setInstallments(Number(value));
+                      }}
+                      defaultValue={String(field.value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {[...Array(12).keys()].map((i) => (
-                        <SelectItem key={i + 1} value={String(i + 1)}>
-                          {i + 1}x de {formatCurrency(total / (i + 1))}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      <SelectContent>
+                        {[...Array(12).keys()].map((i) => (
+                          <SelectItem key={i + 1} value={String(i + 1)}>
+                            {i + 1}x de {formatCurrency(total / (i + 1))}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
