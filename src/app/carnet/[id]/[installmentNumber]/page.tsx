@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { Order, Installment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer } from 'lucide-react';
@@ -19,24 +19,32 @@ export default function SingleInstallmentPage() {
   const params = useParams();
   const router = useRouter();
   const { orders } = useCart();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [installment, setInstallment] = useState<Installment | null>(null);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  const { order, installment } = useMemo(() => {
+    if (!isClient || !orders || !params.id || !params.installmentNumber) {
+        return { order: null, installment: null };
+    }
     const orderId = params.id as string;
     const installmentNum = parseInt(params.installmentNumber as string, 10);
     
-    if (orders && orderId && !isNaN(installmentNum)) {
-      const foundOrder = orders.find(o => o.id === orderId);
-      if (foundOrder) {
-        setOrder(foundOrder);
-        const foundInstallment = foundOrder.installmentDetails?.find(i => i.installmentNumber === installmentNum);
-        setInstallment(foundInstallment || null);
-      }
+    if (isNaN(installmentNum)) {
+        return { order: null, installment: null };
     }
-  }, [params.id, params.installmentNumber, orders]);
+
+    const foundOrder = orders.find(o => o.id === orderId);
+    if (!foundOrder) {
+        return { order: null, installment: null };
+    }
+
+    const foundInstallment = foundOrder.installmentDetails?.find(i => i.installmentNumber === installmentNum);
+    
+    return { order: foundOrder, installment: foundInstallment || null };
+  }, [isClient, orders, params.id, params.installmentNumber]);
 
   if (!isClient) {
     return <div className="p-8 text-center">Carregando parcela...</div>;

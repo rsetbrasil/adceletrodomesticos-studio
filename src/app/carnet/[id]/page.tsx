@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { Order } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer } from 'lucide-react';
@@ -19,17 +19,20 @@ export default function CarnetPage() {
   const params = useParams();
   const router = useRouter();
   const { orders } = useCart();
-  const [order, setOrder] = useState<Order | null>(null);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    const orderId = params.id as string;
-    if (orders && orderId) {
-      const foundOrder = orders.find(o => o.id === orderId);
-      setOrder(foundOrder || null);
+  }, []);
+
+  const order = useMemo(() => {
+    if (!isClient || !orders || !params.id) {
+        return null;
     }
-  }, [params.id, orders]);
+    const orderId = params.id as string;
+    return orders.find(o => o.id === orderId) || null;
+  }, [isClient, orders, params.id]);
+
 
   if (!isClient) {
     return <div className="p-8 text-center">Carregando carnê...</div>;
