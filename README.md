@@ -1,4 +1,4 @@
-# CrediFacil
+# ADC MÓVEIS E ELETROS
 
 This is a Next.js application for an online sales system with an online catalog and installment payment options.
 

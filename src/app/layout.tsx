@@ -6,8 +6,8 @@ import Footer from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'CrediFacil',
-  description: 'Seu sistema de vendas online com crediário.',
+  title: 'ADC MÓVEIS E ELETROS',
+  description: 'ADC MÓVEIS E ELETROS - Sua loja de móveis e eletrodomésticos.',
 };
 
 export default function RootLayout({

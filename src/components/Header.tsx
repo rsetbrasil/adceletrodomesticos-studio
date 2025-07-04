@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from './ui/button';
 import { useCart } from '@/context/CartContext';
@@ -14,8 +15,14 @@ export default function Header() {
   return (
     <header className="bg-card/80 backdrop-blur-lg border-b sticky top-0 z-40">
       <div className="container mx-auto flex justify-between items-center p-4">
-        <Link href="/" className="text-2xl font-bold text-primary font-headline">
-          CrediFacil
+        <Link href="/">
+          <Image
+            src="/logo.png"
+            alt="ADC Móveis e Eletros Logo"
+            width={120}
+            height={42}
+            priority
+          />
         </Link>
         <div className="flex items-center gap-4">
             <CartSheet open={isCartOpen} onOpenChange={setIsCartOpen}>
