@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import type { Order, Installment } from '@/lib/types';
+import type { Order, Installment, PaymentMethod } from '@/lib/types';
 import {
   Table,
   TableBody,
@@ -61,7 +61,7 @@ const getInstallmentStatusVariant = (status: Installment['status']): 'secondary'
 }
 
 export default function OrdersAdminPage() {
-  const { orders, updateOrderStatus, updateInstallmentStatus } = useCart();
+  const { orders, updateOrderStatus, updateInstallmentStatus, updateOrderPaymentMethod } = useCart();
   const [isClient, setIsClient] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -69,6 +69,15 @@ export default function OrdersAdminPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    if (selectedOrder) {
+      const updatedOrderInList = orders.find(o => o.id === selectedOrder.id);
+      if (updatedOrderInList && JSON.stringify(updatedOrderInList) !== JSON.stringify(selectedOrder)) {
+        setSelectedOrder(updatedOrderInList);
+      }
+    }
+  }, [orders, selectedOrder]);
 
   const handleOpenDetails = (order: Order) => {
     setSelectedOrder(order);
@@ -78,7 +87,12 @@ export default function OrdersAdminPage() {
   const handleUpdateOrderStatus = (status: Order['status']) => {
     if (selectedOrder) {
       updateOrderStatus(selectedOrder.id, status);
-      setSelectedOrder(prev => prev ? { ...prev, status } : null);
+    }
+  };
+
+  const handleUpdatePaymentMethod = (paymentMethod: PaymentMethod) => {
+    if (selectedOrder) {
+      updateOrderPaymentMethod(selectedOrder.id, paymentMethod);
     }
   };
 
@@ -89,14 +103,6 @@ export default function OrdersAdminPage() {
 
       const newStatus = currentInstallment.status === 'Pendente' ? 'Pago' : 'Pendente';
       updateInstallmentStatus(selectedOrder.id, installmentNumber, newStatus);
-      
-      setSelectedOrder(prev => {
-        if (!prev) return null;
-        const updatedInstallments = (prev.installmentDetails || []).map(inst =>
-          inst.installmentNumber === installmentNumber ? { ...inst, status: newStatus } : inst
-        );
-        return { ...prev, installmentDetails: updatedInstallments };
-      });
     }
   };
 
@@ -221,9 +227,19 @@ export default function OrdersAdminPage() {
                                   <CreditCard className="w-8 h-8 text-primary" />
                                   <CardTitle className="text-lg">Faturamento e Status</CardTitle>
                               </CardHeader>
-                              <CardContent className="space-y-4">
+                              <CardContent className="space-y-6">
                                   <div>
-                                      <p className="text-sm"><strong>Forma de Pagamento:</strong> <Badge variant="outline">{selectedOrder.paymentMethod || 'Crediário'}</Badge></p>
+                                      <label className="text-sm font-medium">Forma de Pagamento</label>
+                                      <Select value={selectedOrder.paymentMethod || 'Crediário'} onValueChange={handleUpdatePaymentMethod}>
+                                          <SelectTrigger>
+                                              <SelectValue placeholder="Alterar forma de pagamento" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                              <SelectItem value="Crediário">Crediário</SelectItem>
+                                              <SelectItem value="Pix">Pix</SelectItem>
+                                              <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                                          </SelectContent>
+                                      </Select>
                                   </div>
                                   <div className="flex items-end gap-4">
                                       <div className="flex-grow">

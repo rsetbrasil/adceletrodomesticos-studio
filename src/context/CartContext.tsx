@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem, Order, Product, Installment, CustomerInfo } from '@/lib/types';
+import type { CartItem, Order, Product, Installment, CustomerInfo, PaymentMethod } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 
@@ -18,6 +18,7 @@ interface CartContextType {
   orders: Order[];
   addOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
+  updateOrderPaymentMethod: (orderId: string, paymentMethod: PaymentMethod) => void;
   updateInstallmentStatus: (orderId: string, installmentNumber: number, status: Installment['status']) => void;
   updateCustomer: (customer: CustomerInfo) => void;
   products: Product[];
@@ -277,6 +278,36 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const updateOrderPaymentMethod = (orderId: string, paymentMethod: PaymentMethod) => {
+    setOrders((prevOrders) =>
+      prevOrders.map((order) => {
+        if (order.id === orderId) {
+          const wasCrediario = !order.paymentMethod || order.paymentMethod === 'Crediário';
+          const updatedOrder = { ...order, paymentMethod };
+
+          // Consolidate installments if changing away from or to Crediário to ensure consistency
+          if (wasCrediario !== (paymentMethod === 'Crediário')) {
+            updatedOrder.installments = 1;
+            updatedOrder.installmentValue = order.total;
+            updatedOrder.installmentDetails = [{
+              installmentNumber: 1,
+              amount: order.total,
+              dueDate: order.installmentDetails?.[0]?.dueDate || order.date,
+              status: 'Pendente' // Assume it becomes pending again
+            }];
+          }
+          
+          return updatedOrder;
+        }
+        return order;
+      })
+    );
+    toast({
+        title: "Forma de Pagamento Atualizada!",
+        description: `A forma de pagamento do pedido #${orderId} foi alterada para "${paymentMethod}".`,
+    });
+  };
+
   const updateInstallmentStatus = (orderId: string, installmentNumber: number, status: Installment['status']) => {
     setOrders((prevOrders) =>
       prevOrders.map((order) => {
@@ -325,6 +356,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         orders,
         addOrder,
         updateOrderStatus,
+        updateOrderPaymentMethod,
         updateInstallmentStatus,
         updateCustomer,
         products,
