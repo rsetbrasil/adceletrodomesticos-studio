@@ -9,6 +9,8 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { generatePixPayload } from '@/lib/pix';
+import PixQRCode from '@/components/PixQRCode';
 
 const formatCurrency = (value: number) => {
   if (typeof value !== 'number') return 'R$ 0,00';
@@ -63,46 +65,59 @@ export default function CarnetPage() {
           </Button>
         </header>
 
-        <main className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-1">
-          {(order.installmentDetails || []).map((installment) => (
-            <div key={installment.installmentNumber} className="bg-background rounded-lg border shadow-sm p-4 break-inside-avoid">
-               <div className="flex justify-between items-start pb-2 border-b">
-                 <Logo />
-                 <div className="text-right">
-                    <p className="font-bold">Vencimento</p>
-                    <p className="text-lg">{format(new Date(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                 </div>
-               </div>
-               <div className="grid grid-cols-2 gap-4 py-4">
-                   <div>
-                       <p className="text-xs text-muted-foreground">CLIENTE</p>
-                       <p className="font-semibold">{order.customer.name}</p>
-                   </div>
-                   <div>
-                       <p className="text-xs text-muted-foreground">CPF</p>
-                       <p className="font-semibold">{order.customer.cpf}</p>
-                   </div>
+        <main className="grid grid-cols-1 md:grid-cols-2 gap-8 print:grid-cols-1 print:gap-8">
+          {(order.installmentDetails || []).map((installment) => {
+             const pixPayload = generatePixPayload(
+              'fb43228c-4740-4c16-a217-21706a782496', // Chave aleatória (EVP) de exemplo
+              'ADC MOVEIS E ELETRO',
+              'SAO PAULO',
+              `${order.id}-${installment.installmentNumber}`,
+              installment.amount
+            );
+
+            return (
+              <div key={installment.installmentNumber} className="bg-background rounded-lg border shadow-sm p-4 break-inside-avoid">
+                <div className="flex justify-between items-start pb-2 border-b">
+                  <Logo />
+                  <div className="text-right">
+                      <p className="font-bold">Vencimento</p>
+                      <p className="text-lg">{format(new Date(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 py-4">
                     <div>
-                       <p className="text-xs text-muted-foreground">Nº DO PEDIDO</p>
-                       <p className="font-mono text-sm">{order.id}</p>
-                   </div>
-                   <div>
-                       <p className="text-xs text-muted-foreground">PARCELA</p>
-                       <p className="font-semibold">{installment.installmentNumber} de {order.installments}</p>
-                   </div>
-               </div>
-               <div className="flex justify-between items-end bg-muted/50 rounded p-4 mt-2">
-                    <div>
-                         <p className="text-xs text-muted-foreground">VALOR DO DOCUMENTO</p>
-                         <p className="text-2xl font-bold text-primary">{formatCurrency(installment.amount)}</p>
+                        <p className="text-xs text-muted-foreground">CLIENTE</p>
+                        <p className="font-semibold">{order.customer.name}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">Pagamento em loja</p>
-               </div>
-               <div className="mt-4 border-t pt-2 text-xs text-muted-foreground">
-                    <p>(=) Valor Cobrado: {formatCurrency(installment.amount)}</p>
-               </div>
-            </div>
-          ))}
+                    <div>
+                        <p className="text-xs text-muted-foreground">CPF</p>
+                        <p className="font-semibold">{order.customer.cpf}</p>
+                    </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Nº DO PEDIDO</p>
+                        <p className="font-mono text-sm">{order.id}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-muted-foreground">PARCELA</p>
+                        <p className="font-semibold">{installment.installmentNumber} de {order.installments}</p>
+                    </div>
+                </div>
+                <div className="flex justify-between items-end bg-muted/50 rounded p-4 mt-2">
+                      <div>
+                          <p className="text-xs text-muted-foreground">VALOR DO DOCUMENTO</p>
+                          <p className="text-2xl font-bold text-primary">{formatCurrency(installment.amount)}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Pagamento em loja ou via PIX</p>
+                </div>
+                <div className="mt-4 border-t pt-2 text-xs text-muted-foreground">
+                      <p>(=) Valor Cobrado: {formatCurrency(installment.amount)}</p>
+                </div>
+                 <div className="mt-6">
+                    <PixQRCode payload={pixPayload} />
+                 </div>
+              </div>
+            );
+          })}
         </main>
       </div>
     </div>
