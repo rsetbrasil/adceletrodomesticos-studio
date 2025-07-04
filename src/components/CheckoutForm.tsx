@@ -15,11 +15,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import type { Order } from '@/lib/types';
+import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
@@ -49,7 +49,7 @@ const formatCurrency = (value: number) => {
 };
 
 export default function CheckoutForm() {
-  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, products } = useCart();
+  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, products, orders } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -73,6 +73,41 @@ export default function CheckoutForm() {
       router.push('/');
     }
   }, [cartItems, router]);
+
+  const customers = useMemo(() => {
+    if (!orders) return [];
+    const customerMap = new Map<string, CustomerInfo>();
+    orders.forEach(order => {
+      if (!customerMap.has(order.customer.cpf)) {
+        customerMap.set(order.customer.cpf, order.customer);
+      }
+    });
+    return Array.from(customerMap.values());
+  }, [orders]);
+
+  const handleCpfBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const cpf = e.target.value.replace(/\D/g, '');
+    if (cpf.length === 11) {
+      const foundCustomer = customers.find(c => c.cpf.replace(/\D/g, '') === cpf);
+      if (foundCustomer) {
+        form.reset({
+          ...form.getValues(), // keep payment method and installments
+          name: foundCustomer.name,
+          cpf: foundCustomer.cpf, // set formatted cpf if available
+          phone: foundCustomer.phone,
+          email: foundCustomer.email,
+          address: foundCustomer.address,
+          city: foundCustomer.city,
+          state: foundCustomer.state,
+          zip: foundCustomer.zip,
+        });
+        toast({
+          title: "Cliente Encontrado!",
+          description: "Seus dados foram preenchidos automaticamente.",
+        });
+      }
+    }
+  };
 
   const total = getCartTotal();
   const paymentMethod = form.watch('paymentMethod');
@@ -171,8 +206,8 @@ export default function CheckoutForm() {
           <div>
             <h3 className="text-xl font-semibold mb-4 font-headline">1. Informações do Cliente</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} onBlur={handleCpfBlur} /></FormControl><FormMessage /></FormItem> )} />
               <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-              <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} /></FormControl><FormMessage /></FormItem> )} />
               <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
               <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="seu@email.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
               <FormField control={form.control} name="address" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
