@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem, Order, Product } from '@/lib/types';
+import type { CartItem, Order, Product, Installment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 
@@ -18,6 +18,7 @@ interface CartContextType {
   orders: Order[];
   addOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
+  updateInstallmentStatus: (orderId: string, installmentNumber: number, status: Installment['status']) => void;
   products: Product[];
   addProduct: (product: Omit<Product, 'id' | 'data-ai-hint'>) => void;
   updateProduct: (product: Product) => void;
@@ -275,6 +276,24 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const updateInstallmentStatus = (orderId: string, installmentNumber: number, status: Installment['status']) => {
+    setOrders((prevOrders) =>
+      prevOrders.map((order) => {
+        if (order.id === orderId) {
+          const updatedInstallments = order.installmentDetails.map((inst) =>
+            inst.installmentNumber === installmentNumber ? { ...inst, status } : inst
+          );
+          return { ...order, installmentDetails: updatedInstallments };
+        }
+        return order;
+      })
+    );
+     toast({
+        title: "Status da Parcela Atualizado!",
+        description: `A parcela ${installmentNumber} do pedido #${orderId} foi marcada como ${status}.`,
+    });
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -290,6 +309,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         orders,
         addOrder,
         updateOrderStatus,
+        updateInstallmentStatus,
         products,
         addProduct,
         updateProduct,

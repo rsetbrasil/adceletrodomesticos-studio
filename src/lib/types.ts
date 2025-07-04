@@ -30,6 +30,13 @@ export type CustomerInfo = {
   zip: string;
 };
 
+export type Installment = {
+  installmentNumber: number;
+  dueDate: string;
+  amount: number;
+  status: 'Pendente' | 'Pago';
+}
+
 export type Order = {
   id: string;
   customer: CustomerInfo;
@@ -39,4 +46,6 @@ export type Order = {
   installmentValue: number;
   date: string;
   status: 'Processando' | 'Enviado' | 'Entregue' | 'Cancelado';
+  paymentMethod: string;
+  installmentDetails: Installment[];
 };

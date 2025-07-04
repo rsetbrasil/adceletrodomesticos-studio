@@ -20,6 +20,7 @@ import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order } from '@/lib/types';
+import { addMonths } from 'date-fns';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -100,6 +101,17 @@ export default function CheckoutForm() {
   function onSubmit(values: z.infer<typeof checkoutSchema>) {
     const orderId = `CF-${Date.now()}`;
     const finalInstallmentValue = total / values.installments;
+    const orderDate = new Date();
+
+    const installmentDetails = Array.from({ length: values.installments }, (_, i) => {
+      return {
+        installmentNumber: i + 1,
+        amount: finalInstallmentValue,
+        dueDate: addMonths(orderDate, i + 1).toISOString(),
+        status: 'Pendente' as const,
+      };
+    });
+
     const order: Order = {
       id: orderId,
       customer: {
@@ -116,8 +128,10 @@ export default function CheckoutForm() {
       total,
       installments: values.installments,
       installmentValue: finalInstallmentValue,
-      date: new Date().toISOString(),
+      date: orderDate.toISOString(),
       status: 'Processando',
+      paymentMethod: 'Crediário',
+      installmentDetails,
     };
     
     addOrder(order);
@@ -177,7 +191,7 @@ export default function CheckoutForm() {
           
           <div>
             <h3 className="text-xl font-semibold mb-4 font-headline">2. Pagamento Crediário</h3>
-            <FormField
+             <FormField
               control={form.control}
               name="installments"
               render={({ field }) => (
