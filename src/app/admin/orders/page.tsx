@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import type { Order, Installment } from '@/lib/types';
 import {
@@ -29,7 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, PackageSearch, FileText, CheckCircle, Pencil, User, ShoppingBag, CreditCard } from 'lucide-react';
+import { MoreHorizontal, PackageSearch, FileText, CheckCircle, Pencil, User, ShoppingBag, CreditCard, Printer } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -290,7 +291,13 @@ export default function OrdersAdminPage() {
                             </Card>
                         </div>
                     </div>
-                     <DialogFooter>
+                     <DialogFooter className="pt-4 border-t">
+                        <Button variant="secondary" asChild>
+                            <Link href={`/carnet/${selectedOrder.id}`} target="_blank" rel="noopener noreferrer">
+                                <Printer className="mr-2 h-4 w-4" />
+                                Ver Carnê
+                            </Link>
+                        </Button>
                         <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>Fechar</Button>
                     </DialogFooter>
                     </>
