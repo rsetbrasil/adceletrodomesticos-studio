@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import type { Order, Installment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer } from 'lucide-react';
@@ -18,15 +18,10 @@ const formatCurrency = (value: number) => {
 export default function SingleInstallmentPage() {
   const params = useParams();
   const router = useRouter();
-  const { orders } = useCart();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const { orders, isLoading } = useCart();
 
   const { order, installment } = useMemo(() => {
-    if (!isClient || !orders || !params.id || !params.installmentNumber) {
+    if (isLoading || !orders || !params.id || !params.installmentNumber) {
         return { order: null, installment: null };
     }
     const orderId = params.id as string;
@@ -44,9 +39,9 @@ export default function SingleInstallmentPage() {
     const foundInstallment = foundOrder.installmentDetails?.find(i => i.installmentNumber === installmentNum);
     
     return { order: foundOrder, installment: foundInstallment || null };
-  }, [isClient, orders, params.id, params.installmentNumber]);
+  }, [isLoading, orders, params.id, params.installmentNumber]);
 
-  if (!isClient) {
+  if (isLoading) {
     return <div className="p-8 text-center">Carregando parcela...</div>;
   }
 

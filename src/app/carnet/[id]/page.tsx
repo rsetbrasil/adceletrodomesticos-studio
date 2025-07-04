@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import type { Order } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer } from 'lucide-react';
@@ -18,23 +18,18 @@ const formatCurrency = (value: number) => {
 export default function CarnetPage() {
   const params = useParams();
   const router = useRouter();
-  const { orders } = useCart();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const { orders, isLoading } = useCart();
 
   const order = useMemo(() => {
-    if (!isClient || !orders || !params.id) {
+    if (isLoading || !orders || !params.id) {
         return null;
     }
     const orderId = params.id as string;
     return orders.find(o => o.id === orderId) || null;
-  }, [isClient, orders, params.id]);
+  }, [isLoading, orders, params.id]);
 
 
-  if (!isClient) {
+  if (isLoading) {
     return <div className="p-8 text-center">Carregando carnê...</div>;
   }
 

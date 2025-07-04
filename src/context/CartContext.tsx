@@ -29,11 +29,13 @@ interface CartContextType {
   addCategory: (category: string) => void;
   updateCategory: (oldCategory: string, newCategory: string) => void;
   deleteCategory: (category: string) => void;
+  isLoading: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
+  const [isLoading, setIsLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -42,7 +44,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+        setIsLoading(false);
+        return;
+    }
     try {
       const storedCart = localStorage.getItem('cartItems');
       if (storedCart) setCartItems(JSON.parse(storedCart));
@@ -67,44 +72,46 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
+    } finally {
+        setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || isLoading) return;
     try {
       localStorage.setItem('cartItems', JSON.stringify(cartItems));
     } catch (error) {
       console.error("Failed to save cart to localStorage", error);
     }
-  }, [cartItems]);
+  }, [cartItems, isLoading]);
   
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || isLoading) return;
     try {
       localStorage.setItem('orders', JSON.stringify(orders));
     } catch (error) {
       console.error("Failed to save orders to localStorage", error);
     }
-  }, [orders]);
+  }, [orders, isLoading]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || isLoading) return;
     try {
       localStorage.setItem('products', JSON.stringify(products));
     } catch (error) {
       console.error("Failed to save products to localStorage", error);
     }
-  }, [products]);
+  }, [products, isLoading]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || isLoading) return;
     try {
       localStorage.setItem('categories', JSON.stringify(categories));
     } catch (error) {
       console.error("Failed to save categories to localStorage", error);
     }
-  }, [categories]);
+  }, [categories, isLoading]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -367,6 +374,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         addCategory,
         updateCategory,
         deleteCategory,
+        isLoading,
       }}
     >
       {children}
