@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileImage, FileText, X } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -294,20 +294,21 @@ export default function CustomersAdminPage() {
                                   <div className="space-y-2">
                                       {selectedCustomer.attachments.map((file, index) => (
                                           <div key={index} className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
-                                              <div className="flex items-center gap-3 overflow-hidden">
-                                                  {file.type === 'image' ? (
-                                                      <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                                                          <Image src={file.url} alt={file.name} width={40} height={40} className="h-10 w-10 rounded-md object-cover" />
-                                                      </a>
-                                                  ) : (
-                                                      <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                                                        <FileText className="h-8 w-8 text-muted-foreground" />
-                                                      </a>
-                                                  )}
-                                                  <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline truncate" title={file.name}>
-                                                      {file.name}
+                                              {file.type === 'image' ? (
+                                                  <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 overflow-hidden group">
+                                                      <Image src={file.url} alt={file.name} width={40} height={40} className="h-10 w-10 rounded-md object-cover flex-shrink-0" />
+                                                      <span className="text-sm font-medium group-hover:underline truncate" title={file.name}>
+                                                          {file.name}
+                                                      </span>
                                                   </a>
-                                              </div>
+                                              ) : (
+                                                  <a href={file.url} download={file.name} className="flex items-center gap-3 overflow-hidden group">
+                                                      <FileText className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                                                      <span className="text-sm font-medium group-hover:underline truncate" title={file.name}>
+                                                          {file.name}
+                                                      </span>
+                                                  </a>
+                                              )}
                                               <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive flex-shrink-0" onClick={() => handleDeleteAttachment(index)}>
                                                   <X className="h-4 w-4" />
                                               </Button>
