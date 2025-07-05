@@ -84,36 +84,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addUser = (data: Omit<User, 'id'>) => {
-    setUsers(prevUsers => {
-        if (prevUsers.some(u => u.username.toLowerCase() === data.username.toLowerCase())) {
-            toast({
-                title: 'Erro ao Criar Usuário',
-                description: 'Este nome de usuário já está em uso.',
-                variant: 'destructive',
-            });
-            return prevUsers;
-        }
-
-        const newUser: User = {
-            ...data,
-            id: `user-${Date.now()}`,
-        };
-        const newUsers = [...prevUsers, newUser];
-        saveDataToLocalStorage('users', newUsers);
+    if (users.some(u => u.username.toLowerCase() === data.username.toLowerCase())) {
         toast({
-            title: 'Usuário Criado!',
-            description: `O usuário ${newUser.name} foi criado com sucesso.`,
+            title: 'Erro ao Criar Usuário',
+            description: 'Este nome de usuário já está em uso.',
+            variant: 'destructive',
         });
-        return newUsers;
+        return;
+    }
+
+    const newUser: User = {
+        ...data,
+        id: `user-${Date.now()}`,
+    };
+    const newUsers = [...users, newUser];
+    setUsers(newUsers);
+    saveDataToLocalStorage('users', newUsers);
+    toast({
+        title: 'Usuário Criado!',
+        description: `O usuário ${newUser.name} foi criado com sucesso.`,
     });
   };
 
   const updateUser = (userId: string, data: Partial<Omit<User, 'id'>>) => {
-    setUsers(prevUsers => {
-        const newUsers = prevUsers.map(u => u.id === userId ? { ...u, ...data } : u);
-        saveDataToLocalStorage('users', newUsers);
-        return newUsers;
-    });
+    const newUsers = users.map(u => u.id === userId ? { ...u, ...data } : u);
+    setUsers(newUsers);
+    saveDataToLocalStorage('users', newUsers);
     toast({
         title: 'Usuário Atualizado!',
         description: 'As informações do usuário foram salvas com sucesso.',
