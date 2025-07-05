@@ -40,6 +40,7 @@ export type Installment = {
   dueDate: string;
   amount: number;
   status: 'Pendente' | 'Pago';
+  paymentDate?: string | null;
 }
 
 export type PaymentMethod = 'Crediário' | 'Pix' | 'Dinheiro';

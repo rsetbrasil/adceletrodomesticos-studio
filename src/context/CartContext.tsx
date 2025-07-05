@@ -335,9 +335,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setOrders((prevOrders) => {
       const newOrders = prevOrders.map((order) => {
         if (order.id === orderId) {
-          const updatedInstallments = (order.installmentDetails || []).map((inst) =>
-            inst.installmentNumber === installmentNumber ? { ...inst, status } : inst
-          );
+          const updatedInstallments = (order.installmentDetails || []).map((inst) => {
+            if (inst.installmentNumber === installmentNumber) {
+              return { 
+                ...inst, 
+                status,
+                paymentDate: status === 'Pago' ? new Date().toISOString() : null,
+              };
+            }
+            return inst;
+          });
           return { ...order, installmentDetails: updatedInstallments };
         }
         return order;
