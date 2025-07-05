@@ -34,6 +34,15 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const saveDataToLocalStorage = (key: string, data: any) => {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+        console.error(`Failed to save ${key} to localStorage`, error);
+    }
+};
+
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -59,7 +68,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if (storedProducts) {
         setProducts(JSON.parse(storedProducts));
       } else {
-        localStorage.setItem('products', JSON.stringify(initialProducts));
+        saveDataToLocalStorage('products', initialProducts)
       }
 
       const storedCategories = localStorage.getItem('categories');
@@ -67,8 +76,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setCategories(JSON.parse(storedCategories));
       } else {
         const initialCategories = Array.from(new Set(initialProducts.map(p => p.category)));
-        setCategories(initialCategories.sort());
-        localStorage.setItem('categories', JSON.stringify(initialCategories.sort()));
+        initialCategories.sort();
+        setCategories(initialCategories);
+        saveDataToLocalStorage('categories', initialCategories);
       }
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
@@ -78,39 +88,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || isLoading) return;
-    try {
-      localStorage.setItem('cartItems', JSON.stringify(cartItems));
-    } catch (error) {
-      console.error("Failed to save cart to localStorage", error);
-    }
+    if (isLoading) return;
+    saveDataToLocalStorage('cartItems', cartItems);
   }, [cartItems, isLoading]);
   
   useEffect(() => {
-    if (typeof window === 'undefined' || isLoading) return;
-    try {
-      localStorage.setItem('orders', JSON.stringify(orders));
-    } catch (error) {
-      console.error("Failed to save orders to localStorage", error);
-    }
+    if (isLoading) return;
+    saveDataToLocalStorage('orders', orders);
   }, [orders, isLoading]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || isLoading) return;
-    try {
-      localStorage.setItem('products', JSON.stringify(products));
-    } catch (error) {
-      console.error("Failed to save products to localStorage", error);
-    }
+    if (isLoading) return;
+    saveDataToLocalStorage('products', products);
   }, [products, isLoading]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || isLoading) return;
-    try {
-      localStorage.setItem('categories', JSON.stringify(categories));
-    } catch (error) {
-      console.error("Failed to save categories to localStorage", error);
-    }
+    if (isLoading) return;
+    saveDataToLocalStorage('categories', categories);
   }, [categories, isLoading]);
 
   useEffect(() => {
@@ -139,7 +133,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         id: `prod-${Date.now()}`,
         'data-ai-hint': productData.name.toLowerCase().split(' ').slice(0, 2).join(' '),
       };
-      setProducts((prevProducts) => [newProduct, ...prevProducts]);
+      setProducts((prevProducts) => {
+        const newProducts = [newProduct, ...prevProducts];
+        saveDataToLocalStorage('products', newProducts);
+        return newProducts;
+      });
       toast({
           title: "Produto Cadastrado!",
           description: `O produto "${newProduct.name}" foi adicionado ao catálogo.`,
@@ -156,14 +154,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const newProducts = prevProducts.map((p) =>
         p.id === finalProduct.id ? finalProduct : p
       );
-      // Synchronously update localStorage to ensure data is fresh for new tabs.
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('products', JSON.stringify(newProducts));
-        } catch (error) {
-          console.error("Failed to save products to localStorage", error);
-        }
-      }
+      saveDataToLocalStorage('products', newProducts);
       return newProducts;
     });
     toast({
@@ -173,7 +164,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteProduct = (productId: string) => {
-      setProducts((prevProducts) => prevProducts.filter((p) => p.id !== productId));
+      setProducts((prevProducts) => {
+        const newProducts = prevProducts.filter((p) => p.id !== productId);
+        saveDataToLocalStorage('products', newProducts);
+        return newProducts;
+      });
       toast({
         title: 'Produto Excluído!',
         description: 'O produto foi removido do catálogo.',
@@ -186,7 +181,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: 'Erro', description: 'Essa categoria já existe.', variant: 'destructive' });
       return;
     }
-    setCategories((prev) => [...prev, category].sort());
+    setCategories((prev) => {
+        const newCategories = [...prev, category].sort();
+        saveDataToLocalStorage('categories', newCategories);
+        return newCategories;
+    });
     toast({ title: 'Categoria Adicionada!', description: `A categoria "${category}" foi criada.` });
   };
 
@@ -195,10 +194,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: 'Erro', description: 'Essa categoria já existe.', variant: 'destructive' });
         return;
     }
-    setCategories((prev) => prev.map((c) => (c === oldCategory ? newCategory : c)).sort());
-    setProducts((prevProducts) =>
-      prevProducts.map((p) => (p.category === oldCategory ? { ...p, category: newCategory } : p))
-    );
+    setCategories((prev) => {
+        const newCategories = prev.map((c) => (c === oldCategory ? newCategory : c)).sort();
+        saveDataToLocalStorage('categories', newCategories);
+        return newCategories;
+    });
+    setProducts((prevProducts) => {
+        const newProducts = prevProducts.map((p) => (p.category === oldCategory ? { ...p, category: newCategory } : p));
+        saveDataToLocalStorage('products', newProducts);
+        return newProducts;
+    });
     toast({ title: 'Categoria Atualizada!', description: `Categoria "${oldCategory}" foi renomeada para "${newCategory}".` });
   };
 
@@ -208,7 +213,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: 'Erro ao Excluir', description: 'Não é possível excluir uma categoria que contém produtos.', variant: 'destructive' });
         return;
     }
-    setCategories((prev) => prev.filter((c) => c !== categoryToDelete));
+    setCategories((prev) => {
+        const newCategories = prev.filter((c) => c !== categoryToDelete);
+        saveDataToLocalStorage('categories', newCategories);
+        return newCategories;
+    });
     toast({ title: 'Categoria Excluída!', description: `A categoria "${categoryToDelete}" foi removida.`, variant: 'destructive' });
   };
 
@@ -270,15 +279,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const addOrder = (order: Order) => {
-    setOrders((prevOrders) => [order, ...prevOrders]);
+    setOrders((prevOrders) => {
+      const newOrders = [order, ...prevOrders];
+      saveDataToLocalStorage('orders', newOrders);
+      return newOrders;
+    });
   };
 
   const updateOrderStatus = (orderId: string, status: Order['status']) => {
-    setOrders((prevOrders) =>
-      prevOrders.map((order) =>
+    setOrders((prevOrders) => {
+      const newOrders = prevOrders.map((order) =>
         order.id === orderId ? { ...order, status } : order
-      )
-    );
+      );
+      saveDataToLocalStorage('orders', newOrders);
+      return newOrders;
+    });
     toast({
         title: "Status do Pedido Atualizado!",
         description: `O pedido #${orderId} agora está como "${status}".`,
@@ -286,13 +301,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateOrderPaymentMethod = (orderId: string, paymentMethod: PaymentMethod) => {
-    setOrders((prevOrders) =>
-      prevOrders.map((order) => {
+    setOrders((prevOrders) => {
+      const newOrders = prevOrders.map((order) => {
         if (order.id === orderId) {
           const wasCrediario = !order.paymentMethod || order.paymentMethod === 'Crediário';
           const updatedOrder = { ...order, paymentMethod };
 
-          // Consolidate installments if changing away from or to Crediário to ensure consistency
           if (wasCrediario !== (paymentMethod === 'Crediário')) {
             updatedOrder.installments = 1;
             updatedOrder.installmentValue = order.total;
@@ -300,15 +314,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
               installmentNumber: 1,
               amount: order.total,
               dueDate: order.installmentDetails?.[0]?.dueDate || order.date,
-              status: 'Pendente' // Assume it becomes pending again
+              status: 'Pendente' as const
             }];
           }
           
           return updatedOrder;
         }
         return order;
-      })
-    );
+      });
+      saveDataToLocalStorage('orders', newOrders);
+      return newOrders;
+    });
     toast({
         title: "Forma de Pagamento Atualizada!",
         description: `A forma de pagamento do pedido #${orderId} foi alterada para "${paymentMethod}".`,
@@ -316,8 +332,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateInstallmentStatus = (orderId: string, installmentNumber: number, status: Installment['status']) => {
-    setOrders((prevOrders) =>
-      prevOrders.map((order) => {
+    setOrders((prevOrders) => {
+      const newOrders = prevOrders.map((order) => {
         if (order.id === orderId) {
           const updatedInstallments = (order.installmentDetails || []).map((inst) =>
             inst.installmentNumber === installmentNumber ? { ...inst, status } : inst
@@ -325,19 +341,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           return { ...order, installmentDetails: updatedInstallments };
         }
         return order;
-      })
-    );
+      });
+      saveDataToLocalStorage('orders', newOrders);
+      return newOrders;
+    });
   };
 
   const updateCustomer = (updatedCustomer: CustomerInfo) => {
-    setOrders((prevOrders) =>
-      prevOrders.map((order) => {
+    setOrders((prevOrders) => {
+      const newOrders = prevOrders.map((order) => {
         if (order.customer.cpf === updatedCustomer.cpf) {
           return { ...order, customer: updatedCustomer };
         }
         return order;
-      })
-    );
+      });
+      saveDataToLocalStorage('orders', newOrders);
+      return newOrders;
+    });
     toast({
       title: "Cliente Atualizado!",
       description: `Os dados de ${updatedCustomer.name} foram salvos.`,
