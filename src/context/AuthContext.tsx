@@ -4,12 +4,23 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from '@/lib/types';
-import { users as appUsers } from '@/lib/users';
+import { initialUsers } from '@/lib/users';
+
+const saveDataToLocalStorage = (key: string, data: any) => {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+        console.error(`Failed to save ${key} to localStorage`, error);
+    }
+};
 
 interface AuthContextType {
   user: User | null;
+  users: User[];
   login: (user: string, pass: string) => void;
   logout: () => void;
+  updateUser: (userId: string, data: Partial<Omit<User, 'id'>>) => void;
   isLoading: boolean;
   isAuthenticated: boolean;
 }
@@ -18,31 +29,39 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>(initialUsers);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for auth state in localStorage on initial load
+    // Check for auth state and user list in localStorage on initial load
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
+
+      const storedUsers = localStorage.getItem('users');
+      if (storedUsers) {
+        setUsers(JSON.parse(storedUsers));
+      } else {
+        saveDataToLocalStorage('users', initialUsers);
+      }
     } catch (error) {
-        console.error("Failed to read auth state from localStorage", error);
+        console.error("Failed to read state from localStorage", error);
     } finally {
         setIsLoading(false);
     }
   }, []);
 
   const login = (username: string, pass: string) => {
-    const foundUser = appUsers.find(u => u.username === username && u.password === pass);
+    const foundUser = users.find(u => u.username === username && u.password === pass);
     
     if (foundUser) {
-      const { password, ...userToStore } = foundUser; // Don't store password in state/localStorage
+      const { password, ...userToStore } = foundUser;
       setUser(userToStore);
-      localStorage.setItem('user', JSON.stringify(userToStore));
+      saveDataToLocalStorage('user', userToStore);
       router.push('/admin/orders');
       toast({
         title: 'Login bem-sucedido!',
@@ -63,8 +82,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   };
 
+  const updateUser = (userId: string, data: Partial<Omit<User, 'id'>>) => {
+    setUsers(prevUsers => {
+        const newUsers = prevUsers.map(u => u.id === userId ? { ...u, ...data } : u);
+        saveDataToLocalStorage('users', newUsers);
+        return newUsers;
+    });
+    toast({
+        title: 'Usuário Atualizado!',
+        description: 'As informações do usuário foram salvas com sucesso.',
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, users, login, logout, updateUser, isLoading, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

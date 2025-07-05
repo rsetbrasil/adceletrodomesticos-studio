@@ -61,7 +61,9 @@ export type Order = {
 export type UserRole = 'admin' | 'gerente' | 'vendedor';
 
 export type User = {
+  id: string;
   username: string;
+  password?: string; // Made optional for storing in session without password
   name: string;
   role: UserRole;
 };

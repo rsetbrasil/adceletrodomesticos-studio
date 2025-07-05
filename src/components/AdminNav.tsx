@@ -18,6 +18,8 @@ export default function AdminNav() {
     activeTab = 'categories';
   } else if (pathname.includes('/financeiro')) {
     activeTab = 'financeiro';
+  } else if (pathname.includes('/users')) {
+    activeTab = 'users';
   }
 
   return (
@@ -41,6 +43,11 @@ export default function AdminNav() {
               <Link href="/admin/financeiro">Financeiro</Link>
             </TabsTrigger>
           </>
+        )}
+        {user?.role === 'admin' && (
+            <TabsTrigger value="users" asChild>
+              <Link href="/admin/users">Usuários</Link>
+            </TabsTrigger>
         )}
       </TabsList>
     </Tabs>
