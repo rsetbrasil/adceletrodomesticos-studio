@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AdminNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   let activeTab = 'orders';
   if (pathname.includes('/customers')) {
@@ -18,10 +20,9 @@ export default function AdminNav() {
     activeTab = 'financeiro';
   }
 
-
   return (
-    <Tabs value={activeTab} className="mb-8">
-      <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
+    <Tabs value={activeTab} className="mb-8 overflow-x-auto">
+      <TabsList className="sm:inline-flex">
         <TabsTrigger value="orders" asChild>
           <Link href="/admin/orders">Pedidos</Link>
         </TabsTrigger>
@@ -31,12 +32,16 @@ export default function AdminNav() {
         <TabsTrigger value="products" asChild>
           <Link href="/admin/products">Produtos</Link>
         </TabsTrigger>
-         <TabsTrigger value="categories" asChild>
-          <Link href="/admin/categories">Categorias</Link>
-        </TabsTrigger>
-         <TabsTrigger value="financeiro" asChild>
-          <Link href="/admin/financeiro">Financeiro</Link>
-        </TabsTrigger>
+        {user?.role !== 'vendedor' && (
+          <>
+            <TabsTrigger value="categories" asChild>
+              <Link href="/admin/categories">Categorias</Link>
+            </TabsTrigger>
+            <TabsTrigger value="financeiro" asChild>
+              <Link href="/admin/financeiro">Financeiro</Link>
+            </TabsTrigger>
+          </>
+        )}
       </TabsList>
     </Tabs>
   );

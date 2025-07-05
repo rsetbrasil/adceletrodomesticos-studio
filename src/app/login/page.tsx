@@ -33,7 +33,7 @@ export default function LoginPage() {
                 <Input
                 id="username"
                 type="text"
-                placeholder="admin"
+                placeholder="admin, gerente ou vendedor"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -44,7 +44,7 @@ export default function LoginPage() {
                 <Input
                 id="password"
                 type="password"
-                placeholder="admin"
+                placeholder="senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

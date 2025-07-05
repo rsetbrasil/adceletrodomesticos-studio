@@ -3,18 +3,21 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import type { User } from '@/lib/types';
+import { users as appUsers } from '@/lib/users';
 
 interface AuthContextType {
-  isAuthenticated: boolean;
+  user: User | null;
   login: (user: string, pass: string) => void;
   logout: () => void;
   isLoading: boolean;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
@@ -22,9 +25,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Check for auth state in localStorage on initial load
     try {
-      const storedAuth = localStorage.getItem('isAuthenticated');
-      if (storedAuth === 'true') {
-        setIsAuthenticated(true);
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
       }
     } catch (error) {
         console.error("Failed to read auth state from localStorage", error);
@@ -33,15 +36,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = (user: string, pass: string) => {
-    // Hardcoded credentials for the prototype
-    if (user === 'admin' && pass === 'admin') {
-      setIsAuthenticated(true);
-      localStorage.setItem('isAuthenticated', 'true');
+  const login = (username: string, pass: string) => {
+    const foundUser = appUsers.find(u => u.username === username && u.password === pass);
+    
+    if (foundUser) {
+      const { password, ...userToStore } = foundUser; // Don't store password in state/localStorage
+      setUser(userToStore);
+      localStorage.setItem('user', JSON.stringify(userToStore));
       router.push('/admin/orders');
       toast({
         title: 'Login bem-sucedido!',
-        description: 'Bem-vindo ao painel administrativo.',
+        description: `Bem-vindo(a), ${userToStore.name}.`,
       });
     } else {
       toast({
@@ -53,13 +58,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem('isAuthenticated');
+    setUser(null);
+    localStorage.removeItem('user');
     router.push('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

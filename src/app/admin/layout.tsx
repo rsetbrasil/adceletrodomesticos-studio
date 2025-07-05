@@ -8,7 +8,7 @@ import AdminNav from "@/components/AdminNav";
 import { Button } from "@/components/ui/button";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-    const { isAuthenticated, isLoading, logout } = useAuth();
+    const { user, isAuthenticated, isLoading, logout } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
@@ -17,7 +17,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }
     }, [isLoading, isAuthenticated, router]);
 
-    if (isLoading || !isAuthenticated) {
+    if (isLoading || !isAuthenticated || !user) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-background">
                 <p>Verificando autenticação...</p>
@@ -35,10 +35,16 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         <p className="text-muted-foreground">Gerencie sua loja de forma fácil e rápida.</p>
                     </div>
                 </div>
-                <Button variant="outline" onClick={logout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sair
-                </Button>
+                 <div className="flex items-center gap-4">
+                    <div className="text-right">
+                        <p className="font-semibold">{user.name}</p>
+                        <p className="text-sm text-muted-foreground capitalize">{user.role}</p>
+                    </div>
+                    <Button variant="outline" onClick={logout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sair
+                    </Button>
+                </div>
             </header>
             <AdminNav />
             <main>{children}</main>

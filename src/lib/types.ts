@@ -57,3 +57,11 @@ export type Order = {
   paymentMethod: PaymentMethod;
   installmentDetails: Installment[];
 };
+
+export type UserRole = 'admin' | 'gerente' | 'vendedor';
+
+export type User = {
+  username: string;
+  name: string;
+  role: UserRole;
+};
