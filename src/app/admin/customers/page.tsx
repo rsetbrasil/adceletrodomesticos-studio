@@ -15,6 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -76,6 +77,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 
 export default function CustomersAdminPage() {
   const { orders, updateCustomer, updateInstallmentStatus } = useCart();
+  const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [imageToView, setImageToView] = useState<string | null>(null);
@@ -118,6 +120,29 @@ export default function CustomersAdminPage() {
   const handleToggleInstallmentStatus = (orderId: string, installmentNumber: number, currentStatus: Installment['status']) => {
     const newStatus = currentStatus === 'Pendente' ? 'Pago' : 'Pendente';
     updateInstallmentStatus(orderId, installmentNumber, newStatus);
+
+    if (newStatus === 'Pago' && selectedCustomer) {
+      const order = orders.find(o => o.id === orderId);
+      const installment = order?.installmentDetails?.find(i => i.installmentNumber === installmentNumber);
+      if (order && installment) {
+          const customerName = selectedCustomer.name.split(' ')[0];
+          const phone = selectedCustomer.phone.replace(/\D/g, '');
+          const message = `Olá ${customerName}, confirmamos o recebimento do pagamento da sua parcela nº ${installment.installmentNumber} (pedido ${order.id}), no valor de ${formatCurrency(installment.amount)}, com vencimento em ${format(new Date(installment.dueDate), "dd/MM/yyyy", { locale: ptBR })}.\n\nObrigado!\n*ADC MÓVEIS E ELETROS*`;
+          
+          const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+          window.open(whatsappUrl, '_blank');
+          
+          toast({
+              title: "Parcela Paga!",
+              description: "Redirecionando para o WhatsApp para enviar o comprovante.",
+          });
+      }
+    } else {
+        toast({
+          title: "Status da Parcela Atualizado!",
+          description: `A parcela ${installmentNumber} do pedido #${orderId} foi marcada como ${newStatus}.`,
+      });
+    }
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {

@@ -28,6 +28,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 
 
 const formatCurrency = (value: number) => {
@@ -62,6 +63,7 @@ const getInstallmentStatusVariant = (status: Installment['status']): 'secondary'
 
 export default function OrdersAdminPage() {
   const { orders, updateOrderStatus, updateInstallmentStatus, updateOrderPaymentMethod } = useCart();
+  const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -103,6 +105,31 @@ export default function OrdersAdminPage() {
 
       const newStatus = currentInstallment.status === 'Pendente' ? 'Pago' : 'Pendente';
       updateInstallmentStatus(selectedOrder.id, installmentNumber, newStatus);
+
+      if (newStatus === 'Pago') {
+          const customerName = selectedOrder.customer.name.split(' ')[0];
+          const phone = selectedOrder.customer.phone.replace(/\D/g, '');
+          
+          let message: string;
+          if (selectedOrder.paymentMethod !== 'Crediário') {
+               message = `Olá ${customerName}, confirmamos o recebimento do seu pagamento (pedido ${selectedOrder.id}), no valor de ${formatCurrency(selectedOrder.total)}.\n\nObrigado!\n*ADC MÓVEIS E ELETROS*`;
+          } else {
+               message = `Olá ${customerName}, confirmamos o recebimento do pagamento da sua parcela nº ${currentInstallment.installmentNumber} (pedido ${selectedOrder.id}), no valor de ${formatCurrency(currentInstallment.amount)}, com vencimento em ${format(new Date(currentInstallment.dueDate), 'dd/MM/yyyy', { locale: ptBR })}.\n\nObrigado!\n*ADC MÓVEIS E ELETROS*`;
+          }
+
+          const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+          window.open(whatsappUrl, '_blank');
+
+          toast({
+              title: "Pagamento Confirmado!",
+              description: "Redirecionando para o WhatsApp para enviar o comprovante.",
+          });
+      } else {
+          toast({
+              title: "Status Atualizado!",
+              description: `O pagamento do pedido #${selectedOrder.id} foi marcado como estornado.`,
+          });
+      }
     }
   };
 

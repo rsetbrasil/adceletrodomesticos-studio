@@ -327,10 +327,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return order;
       })
     );
-     toast({
-        title: "Status da Parcela Atualizado!",
-        description: `A parcela ${installmentNumber} do pedido #${orderId} foi marcada como ${status}.`,
-    });
   };
 
   const updateCustomer = (updatedCustomer: CustomerInfo) => {
