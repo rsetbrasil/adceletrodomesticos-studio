@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, Users, KeyRound, UserCog } from 'lucide-react';
+import { PlusCircle, Edit, Users, KeyRound, UserCog } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,9 +17,9 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-
-const userFormSchema = z.object({
+const userEditFormSchema = z.object({
     name: z.string().min(3, 'O nome é obrigatório.'),
     password: z.string().optional(),
     confirmPassword: z.string().optional(),
@@ -36,16 +36,40 @@ const userFormSchema = z.object({
     path: ['confirmPassword'],
 });
 
+const userCreateFormSchema = z.object({
+    name: z.string().min(3, 'O nome é obrigatório.'),
+    username: z.string().min(3, 'O nome de usuário é obrigatório.'),
+    role: z.enum(['admin', 'gerente', 'vendedor'], { required_error: 'O perfil é obrigatório.' }),
+    password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres.'),
+    confirmPassword: z.string(),
+}).refine(data => data.password === data.confirmPassword, {
+    message: 'As senhas não correspondem.',
+    path: ['confirmPassword'],
+});
+
+
 export default function ManageUsersPage() {
-    const { user: currentUser, users, updateUser } = useAuth();
+    const { user: currentUser, users, updateUser, addUser } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
 
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [userToEdit, setUserToEdit] = useState<User | null>(null);
 
-    const form = useForm<z.infer<typeof userFormSchema>>({
-        resolver: zodResolver(userFormSchema),
+    const editForm = useForm<z.infer<typeof userEditFormSchema>>({
+        resolver: zodResolver(userEditFormSchema),
+    });
+
+    const createForm = useForm<z.infer<typeof userCreateFormSchema>>({
+        resolver: zodResolver(userCreateFormSchema),
+        defaultValues: {
+            name: '',
+            username: '',
+            password: '',
+            confirmPassword: '',
+            role: 'vendedor',
+        }
     });
 
     useEffect(() => {
@@ -57,11 +81,11 @@ export default function ManageUsersPage() {
 
     const handleOpenEditDialog = (user: User) => {
         setUserToEdit(user);
-        form.reset({ name: user.name, password: '', confirmPassword: '' });
+        editForm.reset({ name: user.name, password: '', confirmPassword: '' });
         setIsEditDialogOpen(true);
     };
 
-    const handleSaveChanges = (values: z.infer<typeof userFormSchema>) => {
+    const handleEditUser = (values: z.infer<typeof userEditFormSchema>) => {
         if (!userToEdit) return;
         
         const dataToUpdate: Partial<User> = { name: values.name };
@@ -72,6 +96,13 @@ export default function ManageUsersPage() {
         updateUser(userToEdit.id, dataToUpdate);
         setIsEditDialogOpen(false);
     };
+
+    const handleCreateUser = (values: z.infer<typeof userCreateFormSchema>) => {
+        const { confirmPassword, ...userData } = values;
+        addUser(userData);
+        createForm.reset();
+        setIsAddDialogOpen(false);
+    }
 
     if (currentUser?.role !== 'admin') {
         return (
@@ -84,11 +115,17 @@ export default function ManageUsersPage() {
     return (
         <>
             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <UserCog className="h-6 w-6" /> Gerenciar Usuários
-                    </CardTitle>
-                    <CardDescription>Edite as informações e senhas dos usuários do sistema.</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="flex items-center gap-2">
+                            <UserCog className="h-6 w-6" /> Gerenciar Usuários
+                        </CardTitle>
+                        <CardDescription>Crie, edite as informações e senhas dos usuários do sistema.</CardDescription>
+                    </div>
+                     <Button onClick={() => setIsAddDialogOpen(true)}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Criar Usuário
+                    </Button>
                 </CardHeader>
                 <CardContent>
                      <div className="rounded-md border">
@@ -123,6 +160,91 @@ export default function ManageUsersPage() {
                 </CardContent>
             </Card>
 
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Criar Novo Usuário</DialogTitle>
+                        <DialogDescription>
+                            Preencha os dados para criar um novo acesso ao sistema.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Form {...createForm}>
+                        <form onSubmit={createForm.handleSubmit(handleCreateUser)} className="space-y-4 py-4">
+                            <FormField
+                                control={createForm.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Nome Completo</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={createForm.control}
+                                name="username"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Nome de Usuário</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                              control={createForm.control}
+                              name="role"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Perfil de Acesso</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione um perfil" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="vendedor">Vendedor</SelectItem>
+                                        <SelectItem value="gerente">Gerente</SelectItem>
+                                        <SelectItem value="admin">Admin</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                                control={createForm.control}
+                                name="password"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Senha</FormLabel>
+                                        <FormControl><Input type="password" placeholder="Mínimo 6 caracteres" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={createForm.control}
+                                name="confirmPassword"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Confirmar Senha</FormLabel>
+                                        <FormControl><Input type="password" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
+                                <Button type="submit">Criar Usuário</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
@@ -131,10 +253,10 @@ export default function ManageUsersPage() {
                             Altere o nome ou defina uma nova senha para <span className="font-bold">{userToEdit?.username}</span>.
                         </DialogDescription>
                     </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(handleSaveChanges)} className="space-y-6 py-4">
+                    <Form {...editForm}>
+                        <form onSubmit={editForm.handleSubmit(handleEditUser)} className="space-y-6 py-4">
                             <FormField
-                                control={form.control}
+                                control={editForm.control}
                                 name="name"
                                 render={({ field }) => (
                                     <FormItem>
@@ -149,7 +271,7 @@ export default function ManageUsersPage() {
                             <div className="space-y-2 pt-4 border-t">
                                  <p className="text-sm font-medium text-muted-foreground flex items-center gap-2"><KeyRound className="h-4 w-4" /> Alterar Senha (Opcional)</p>
                                 <FormField
-                                    control={form.control}
+                                    control={editForm.control}
                                     name="password"
                                     render={({ field }) => (
                                         <FormItem>
@@ -162,7 +284,7 @@ export default function ManageUsersPage() {
                                     )}
                                 />
                                 <FormField
-                                    control={form.control}
+                                    control={editForm.control}
                                     name="confirmPassword"
                                     render={({ field }) => (
                                         <FormItem>

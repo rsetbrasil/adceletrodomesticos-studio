@@ -20,6 +20,7 @@ interface AuthContextType {
   users: User[];
   login: (user: string, pass: string) => void;
   logout: () => void;
+  addUser: (data: Omit<User, 'id'>) => void;
   updateUser: (userId: string, data: Partial<Omit<User, 'id'>>) => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -82,6 +83,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   };
 
+  const addUser = (data: Omit<User, 'id'>) => {
+    setUsers(prevUsers => {
+        if (prevUsers.some(u => u.username.toLowerCase() === data.username.toLowerCase())) {
+            toast({
+                title: 'Erro ao Criar Usuário',
+                description: 'Este nome de usuário já está em uso.',
+                variant: 'destructive',
+            });
+            return prevUsers;
+        }
+
+        const newUser: User = {
+            ...data,
+            id: `user-${Date.now()}`,
+        };
+        const newUsers = [...prevUsers, newUser];
+        saveDataToLocalStorage('users', newUsers);
+        toast({
+            title: 'Usuário Criado!',
+            description: `O usuário ${newUser.name} foi criado com sucesso.`,
+        });
+        return newUsers;
+    });
+  };
+
   const updateUser = (userId: string, data: Partial<Omit<User, 'id'>>) => {
     setUsers(prevUsers => {
         const newUsers = prevUsers.map(u => u.id === userId ? { ...u, ...data } : u);
@@ -95,7 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, users, login, logout, updateUser, isLoading, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, users, login, logout, addUser, updateUser, isLoading, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );
