@@ -5,7 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { useMemo, useRef } from 'react';
 import type { Order, Installment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Printer, Send } from 'lucide-react';
+import { Printer, Send, CheckCircle } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -49,7 +49,7 @@ export default function SingleInstallmentPage() {
   }, [isLoading, orders, params.id, params.installmentNumber]);
 
   const pixPayload = useMemo(() => {
-    if (!order || !installment) return null;
+    if (!order || !installment || installment.status === 'Pago') return null;
     
     // ATENÇÃO: Estes dados são exemplos. Em uma aplicação real,
     // a chave PIX e os dados do lojista devem vir de uma configuração segura.
@@ -130,12 +130,14 @@ export default function SingleInstallmentPage() {
     );
   }
 
+  const isPaid = installment.status === 'Pago';
+
   return (
     <div className="bg-muted/30 print:bg-white py-8">
       <div className="container mx-auto px-4 max-w-2xl">
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8 print-hidden gap-4">
           <div className="text-center">
-             <h1 className="text-2xl font-bold">Comprovante de Parcela</h1>
+             <h1 className="text-2xl font-bold">{isPaid ? 'Comprovante de Pagamento' : 'Boleto de Parcela'}</h1>
              <p className="text-muted-foreground">Pedido: {order.id}</p>
           </div>
            <div className="flex gap-2">
@@ -182,7 +184,13 @@ export default function SingleInstallmentPage() {
                          <p className="text-xs text-muted-foreground">VALOR DO DOCUMENTO</p>
                          <p className="text-2xl font-bold text-primary">{formatCurrency(installment.amount)}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">Pagamento em loja ou via PIX</p>
+                     {isPaid ? (
+                        <div className="text-right">
+                           <p className="font-bold text-green-600">PAGO</p>
+                        </div>
+                    ) : (
+                        <p className="text-xs text-muted-foreground">Pagamento em loja ou via PIX</p>
+                    )}
                </div>
                <div className="mt-4 border-t pt-2 text-xs text-muted-foreground">
                     <p>(=) Valor Cobrado: {formatCurrency(installment.amount)}</p>
@@ -190,7 +198,15 @@ export default function SingleInstallmentPage() {
             </div>
 
             <div className="break-inside-avoid pt-6">
-              {pixPayload && <PixQRCode payload={pixPayload} />}
+              {isPaid ? (
+                <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-green-600 rounded-lg bg-green-500/10 text-green-700">
+                  <CheckCircle className="h-12 w-12 mb-4" />
+                  <h2 className="text-xl font-bold">PAGAMENTO CONFIRMADO</h2>
+                  <p className="text-sm">Esta parcela foi liquidada.</p>
+                </div>
+              ) : (
+                pixPayload && <PixQRCode payload={pixPayload} />
+              )}
             </div>
         </main>
       </div>
