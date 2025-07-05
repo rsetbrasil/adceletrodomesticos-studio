@@ -107,23 +107,11 @@ export default function OrdersAdminPage() {
       updateInstallmentStatus(selectedOrder.id, installmentNumber, newStatus);
 
       if (newStatus === 'Pago') {
-          const customerName = selectedOrder.customer.name.split(' ')[0];
-          const phone = selectedOrder.customer.phone.replace(/\D/g, '');
-          
-          let message: string;
-          if (selectedOrder.paymentMethod !== 'Crediário') {
-               message = `Olá ${customerName}, confirmamos o recebimento do seu pagamento (pedido ${selectedOrder.id}), no valor de ${formatCurrency(selectedOrder.total)}.\n\nObrigado!\n*ADC MÓVEIS E ELETROS*`;
-          } else {
-               message = `Olá ${customerName}, confirmamos o recebimento do pagamento da sua parcela nº ${currentInstallment.installmentNumber} (pedido ${selectedOrder.id}), no valor de ${formatCurrency(currentInstallment.amount)}, com vencimento em ${format(new Date(currentInstallment.dueDate), 'dd/MM/yyyy', { locale: ptBR })}.\n\nObrigado!\n*ADC MÓVEIS E ELETROS*`;
-          }
-
-          const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
-          window.open(whatsappUrl, '_blank');
-
-          toast({
-              title: "Pagamento Confirmado!",
-              description: "Redirecionando para o WhatsApp para enviar o comprovante.",
-          });
+        window.open(`/carnet/${selectedOrder.id}/${installmentNumber}`, '_blank');
+        toast({
+            title: "Pagamento Confirmado!",
+            description: "Abrindo comprovante para gerar o PDF e enviar ao cliente.",
+        });
       } else {
           toast({
               title: "Status Atualizado!",

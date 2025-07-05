@@ -121,22 +121,12 @@ export default function CustomersAdminPage() {
     const newStatus = currentStatus === 'Pendente' ? 'Pago' : 'Pendente';
     updateInstallmentStatus(orderId, installmentNumber, newStatus);
 
-    if (newStatus === 'Pago' && selectedCustomer) {
-      const order = orders.find(o => o.id === orderId);
-      const installment = order?.installmentDetails?.find(i => i.installmentNumber === installmentNumber);
-      if (order && installment) {
-          const customerName = selectedCustomer.name.split(' ')[0];
-          const phone = selectedCustomer.phone.replace(/\D/g, '');
-          const message = `Olá ${customerName}, confirmamos o recebimento do pagamento da sua parcela nº ${installment.installmentNumber} (pedido ${order.id}), no valor de ${formatCurrency(installment.amount)}, com vencimento em ${format(new Date(installment.dueDate), "dd/MM/yyyy", { locale: ptBR })}.\n\nObrigado!\n*ADC MÓVEIS E ELETROS*`;
-          
-          const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
-          window.open(whatsappUrl, '_blank');
-          
-          toast({
-              title: "Parcela Paga!",
-              description: "Redirecionando para o WhatsApp para enviar o comprovante.",
-          });
-      }
+    if (newStatus === 'Pago') {
+        window.open(`/carnet/${orderId}/${installmentNumber}`, '_blank');
+        toast({
+            title: "Parcela Paga!",
+            description: "Abrindo comprovante para gerar o PDF e enviar ao cliente.",
+        });
     } else {
         toast({
           title: "Status da Parcela Atualizado!",

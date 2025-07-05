@@ -58,14 +58,14 @@ export default function PixQRCode({ payload }: PixQRCodeProps) {
             <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8 print-hidden"
+                className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8 print-hidden pdf-hidden"
                 onClick={handleCopy}
             >
                 <Copy className="h-4 w-4" />
             </Button>
         </div>
       </div>
-      <p className="text-xs text-muted-foreground text-center mt-2 print-hidden">
+      <p className="text-xs text-muted-foreground text-center mt-2 print-hidden pdf-hidden">
         Abra o app do seu banco, escolha a opção PIX, selecione "Ler QR Code" ou "PIX Copia e Cola" e finalize o pagamento.
       </p>
     </div>
