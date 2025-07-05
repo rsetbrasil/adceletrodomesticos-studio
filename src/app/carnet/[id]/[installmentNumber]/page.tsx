@@ -112,9 +112,9 @@ export default function SingleInstallmentPage() {
     window.open(whatsappUrl, '_blank');
 
     toast({
-        title: "PDF Pronto para Envio!",
-        description: "O PDF foi baixado. Anexe o arquivo na conversa do WhatsApp que foi aberta.",
-        duration: 8000
+        title: "Passo 1/2: PDF Gerado!",
+        description: "Seu PDF foi baixado. Agora, anexe o arquivo na conversa do WhatsApp que abriu.",
+        duration: 10000
     });
   };
 
@@ -143,7 +143,7 @@ export default function SingleInstallmentPage() {
            <div className="flex gap-2">
             <Button onClick={handleGeneratePdfAndSend} className="pdf-hidden">
                 <Send className="mr-2 h-4 w-4" />
-                Baixar PDF e Enviar
+                Gerar PDF e Abrir WhatsApp
             </Button>
             <Button variant="outline" onClick={() => window.print()} className="pdf-hidden">
                 <Printer className="mr-2 h-4 w-4" />
@@ -186,10 +186,10 @@ export default function SingleInstallmentPage() {
                     </div>
                      {isPaid ? (
                         <div className="text-right">
-                           <p className="font-bold text-lg text-green-600">PAGO</p>
-                           {installment.paymentDate && (
-                            <p className="text-sm">
-                              {format(new Date(installment.paymentDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            <p className="font-bold text-lg text-green-600">PAGO</p>
+                            {installment.paymentDate && (
+                            <p className="text-sm text-foreground">
+                                {format(new Date(installment.paymentDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                             </p>
                            )}
                         </div>
