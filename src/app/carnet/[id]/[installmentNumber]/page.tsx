@@ -186,9 +186,11 @@ export default function SingleInstallmentPage() {
                     </div>
                      {isPaid ? (
                         <div className="text-right">
-                           <p className="font-bold text-green-600">PAGO</p>
+                           <p className="font-bold text-lg text-green-600">PAGO</p>
                            {installment.paymentDate && (
-                            <p className="text-xs text-muted-foreground">em {format(new Date(installment.paymentDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                            <p className="text-sm">
+                              {format(new Date(installment.paymentDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
                            )}
                         </div>
                     ) : (
