@@ -176,9 +176,14 @@ export default function CheckoutForm() {
 
   function onSubmit(values: z.infer<typeof checkoutSchema>) {
     const lastOrderNumber = orders
-      .filter(o => o.id.startsWith('PED-'))
-      .map(o => parseInt(o.id.split('-')[1], 10))
-      .reduce((max, current) => (current > max ? current : max), 0);
+      .map(o => {
+          if (!o.id.startsWith('PED-')) return 0;
+          const numberPart = o.id.split('-')[1];
+          const number = parseInt(numberPart, 10);
+          return isNaN(number) ? 0 : number;
+      })
+      .reduce((max, current) => Math.max(max, current), 0);
+      
     const orderId = `PED-${lastOrderNumber + 1}`;
     
     const finalInstallments = values.installments;
