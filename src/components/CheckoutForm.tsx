@@ -61,8 +61,8 @@ export default function CheckoutForm() {
       phone: '',
       email: '',
       address: '',
-      city: '',
-      state: '',
+      city: 'Fortaleza',
+      state: 'CE',
       zip: '',
       installments: 1,
     },
@@ -108,6 +108,49 @@ export default function CheckoutForm() {
       }
     }
   };
+
+  const handleZipBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const zip = e.target.value.replace(/\D/g, '');
+
+    if (zip.length !== 8) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${zip}/json/`);
+      if (!response.ok) {
+        throw new Error('Falha ao buscar CEP.');
+      }
+      const data = await response.json();
+
+      if (data.erro) {
+        toast({
+          title: "CEP não encontrado",
+          description: "Por favor, verifique o CEP e tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      form.setValue('address', data.logradouro || '');
+      form.setValue('city', data.localidade || '');
+      form.setValue('state', data.uf || '');
+      
+      toast({
+        title: "Endereço Encontrado!",
+        description: "Seu endereço foi preenchido automaticamente.",
+      });
+
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+      toast({
+        title: "Erro de Rede",
+        description: "Não foi possível buscar o CEP. Verifique sua conexão.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   const total = getCartTotal();
   const paymentMethod = form.watch('paymentMethod');
@@ -210,10 +253,10 @@ export default function CheckoutForm() {
               <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
               <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
               <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="seu@email.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
-              <FormField control={form.control} name="address" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} onBlur={handleZipBlur} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={form.control} name="address" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Rua, número e bairro" {...field} /></FormControl><FormMessage /></FormItem> )} />
               <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
               <FormField control={form.control} name="state" render={({ field }) => ( <FormItem><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-              <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} /></FormControl><FormMessage /></FormItem> )} />
             </div>
           </div>
           
