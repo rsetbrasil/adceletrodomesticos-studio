@@ -296,7 +296,10 @@ export default function CustomersAdminPage() {
                         </div>
                         <div className="flex items-start col-span-full gap-2 mt-2">
                             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                            <span>{selectedCustomer.address}, {selectedCustomer.city}, {selectedCustomer.state} - {selectedCustomer.zip}</span>
+                            <div>
+                                <p>{`${selectedCustomer.address}, ${selectedCustomer.number}${selectedCustomer.complement ? ` - ${selectedCustomer.complement}` : ''}`}</p>
+                                <p className="text-muted-foreground">{`${selectedCustomer.neighborhood}, ${selectedCustomer.city}/${selectedCustomer.state} - CEP: ${selectedCustomer.zip}`}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -482,7 +485,7 @@ export default function CustomersAdminPage() {
                         Faça alterações nos dados cadastrais do cliente aqui. Clique em salvar quando terminar.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-6 py-4">
+                <div className="grid gap-4 py-4">
                     <div className="grid md:grid-cols-2 gap-4">
                         <div>
                             <Label htmlFor="name">Nome Completo</Label>
@@ -503,22 +506,34 @@ export default function CustomersAdminPage() {
                             <Input id="email" name="email" type="email" value={editedInfo.email || ''} onChange={handleInputChange} />
                         </div>
                     </div>
-                    <div>
-                        <Label htmlFor="address">Endereço</Label>
-                        <Input id="address" name="address" value={editedInfo.address || ''} onChange={handleInputChange} />
-                    </div>
-                    <div className="grid md:grid-cols-3 gap-4">
-                        <div>
+                    <div className="grid md:grid-cols-6 gap-4">
+                         <div className="md:col-span-2">
+                            <Label htmlFor="zip">CEP</Label>
+                            <Input id="zip" name="zip" value={editedInfo.zip || ''} onChange={handleInputChange} />
+                        </div>
+                        <div className="md:col-span-4">
+                             <Label htmlFor="address">Endereço</Label>
+                             <Input id="address" name="address" value={editedInfo.address || ''} onChange={handleInputChange} />
+                        </div>
+                        <div className="md:col-span-2">
+                             <Label htmlFor="number">Número</Label>
+                             <Input id="number" name="number" value={editedInfo.number || ''} onChange={handleInputChange} />
+                        </div>
+                        <div className="md:col-span-4">
+                            <Label htmlFor="complement">Complemento</Label>
+                            <Input id="complement" name="complement" value={editedInfo.complement || ''} onChange={handleInputChange} />
+                        </div>
+                        <div className="md:col-span-2">
+                            <Label htmlFor="neighborhood">Bairro</Label>
+                            <Input id="neighborhood" name="neighborhood" value={editedInfo.neighborhood || ''} onChange={handleInputChange} />
+                        </div>
+                        <div className="md:col-span-2">
                             <Label htmlFor="city">Cidade</Label>
                             <Input id="city" name="city" value={editedInfo.city || ''} onChange={handleInputChange} />
                         </div>
-                        <div>
+                         <div className="md:col-span-2">
                             <Label htmlFor="state">Estado</Label>
                             <Input id="state" name="state" value={editedInfo.state || ''} onChange={handleInputChange} />
-                        </div>
-                        <div>
-                            <Label htmlFor="zip">CEP</Label>
-                            <Input id="zip" name="zip" value={editedInfo.zip || ''} onChange={handleInputChange} />
                         </div>
                     </div>
                 </div>

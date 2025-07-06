@@ -24,10 +24,13 @@ export type CustomerInfo = {
   cpf: string;
   phone: string;
   email: string;
+  zip: string;
   address: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
   city: string;
   state: string;
-  zip: string;
   attachments?: {
     name: string;
     type: 'image' | 'pdf';

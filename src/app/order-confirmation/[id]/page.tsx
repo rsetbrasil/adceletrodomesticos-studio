@@ -142,8 +142,8 @@ export default function OrderConfirmationPage() {
             <h3 className="font-semibold text-lg mb-4">Informações de Entrega</h3>
             <div className="text-sm text-muted-foreground">
               <p className="font-semibold text-foreground">{order.customer.name}</p>
-              <p>{order.customer.address}</p>
-              <p>{order.customer.city}, {order.customer.state} - {order.customer.zip}</p>
+              <p>{`${order.customer.address}, ${order.customer.number}`}{order.customer.complement ? `, ${order.customer.complement}` : ''}</p>
+              <p>{`${order.customer.neighborhood}, ${order.customer.city}, ${order.customer.state} - ${order.customer.zip}`}</p>
               <p>Email: {order.customer.email}</p>
               <p>Telefone: {order.customer.phone}</p>
             </div>

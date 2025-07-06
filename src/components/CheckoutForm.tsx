@@ -31,13 +31,16 @@ const checkoutSchema = z.object({
   }, 'CPF inválido. Deve conter 11 dígitos.'),
   phone: z.string().min(10, 'Telefone é obrigatório.'),
   email: z.string().email('E-mail inválido.'),
-  address: z.string().min(5, 'Endereço é obrigatório.'),
-  city: z.string().min(2, 'Cidade é obrigatória.'),
-  state: z.string().min(2, 'Estado é obrigatório.'),
   zip: z.string().refine((value) => {
     const justDigits = value.replace(/\D/g, '');
     return justDigits.length === 8;
   }, 'CEP inválido. Deve conter 8 dígitos.'),
+  address: z.string().min(3, 'Endereço é obrigatório.'),
+  number: z.string().min(1, 'Número é obrigatório.'),
+  complement: z.string().optional(),
+  neighborhood: z.string().min(2, 'Bairro é obrigatório.'),
+  city: z.string().min(2, 'Cidade é obrigatória.'),
+  state: z.string().min(2, 'Estado é obrigatório.'),
   paymentMethod: z.enum(['Crediário', 'Pix', 'Dinheiro'], {
     required_error: "Você precisa selecionar uma forma de pagamento.",
   }),
@@ -60,10 +63,13 @@ export default function CheckoutForm() {
       cpf: '',
       phone: '',
       email: '',
+      zip: '',
       address: '',
+      number: '',
+      complement: '',
+      neighborhood: '',
       city: 'Fortaleza',
       state: 'CE',
-      zip: '',
       installments: 1,
     },
   });
@@ -93,13 +99,16 @@ export default function CheckoutForm() {
         form.reset({
           ...form.getValues(), // keep payment method and installments
           name: foundCustomer.name,
-          cpf: foundCustomer.cpf, // set formatted cpf if available
+          cpf: foundCustomer.cpf,
           phone: foundCustomer.phone,
           email: foundCustomer.email,
+          zip: foundCustomer.zip,
           address: foundCustomer.address,
+          number: foundCustomer.number,
+          complement: foundCustomer.complement || '',
+          neighborhood: foundCustomer.neighborhood,
           city: foundCustomer.city,
           state: foundCustomer.state,
-          zip: foundCustomer.zip,
         });
         toast({
           title: "Cliente Encontrado!",
@@ -133,6 +142,7 @@ export default function CheckoutForm() {
       }
 
       form.setValue('address', data.logradouro || '');
+      form.setValue('neighborhood', data.bairro || '');
       form.setValue('city', data.localidade || '');
       form.setValue('state', data.uf || '');
       
@@ -190,10 +200,13 @@ export default function CheckoutForm() {
         cpf: values.cpf,
         phone: values.phone,
         email: values.email,
+        zip: values.zip,
         address: values.address,
+        number: values.number,
+        complement: values.complement,
+        neighborhood: values.neighborhood,
         city: values.city,
         state: values.state,
-        zip: values.zip,
       },
       items: cartItems,
       total,
@@ -248,15 +261,23 @@ export default function CheckoutForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <div>
             <h3 className="text-xl font-semibold mb-4 font-headline">1. Informações do Cliente</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} onBlur={handleCpfBlur} /></FormControl><FormMessage /></FormItem> )} />
-              <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-              <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
-              <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="seu@email.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
-              <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} onBlur={handleZipBlur} /></FormControl><FormMessage /></FormItem> )} />
-              <FormField control={form.control} name="address" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Rua, número e bairro" {...field} /></FormControl><FormMessage /></FormItem> )} />
-              <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-              <FormField control={form.control} name="state" render={({ field }) => ( <FormItem><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} onBlur={handleCpfBlur} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="seu@email.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                </div>
+                <h4 className="text-lg font-semibold pt-4">Endereço de Entrega</h4>
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                    <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} onBlur={handleZipBlur} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="address" render={({ field }) => ( <FormItem className="md:col-span-4"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Rua, Av." {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="number" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>Número</FormLabel><FormControl><Input placeholder="123" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="complement" render={({ field }) => ( <FormItem className="md:col-span-4"><FormLabel>Complemento (opcional)</FormLabel><FormControl><Input placeholder="Apto, bloco, casa, etc." {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="neighborhood" render={({ field }) => ( <FormItem className="md:col-span-3"><FormLabel>Bairro</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="city" render={({ field }) => ( <FormItem className="md:col-span-3"><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="state" render={({ field }) => ( <FormItem className="md:col-span-6"><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                </div>
             </div>
           </div>
           
