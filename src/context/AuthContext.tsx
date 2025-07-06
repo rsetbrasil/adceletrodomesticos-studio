@@ -20,7 +20,7 @@ interface AuthContextType {
   users: User[];
   login: (user: string, pass: string) => void;
   logout: () => void;
-  addUser: (data: Omit<User, 'id'>) => void;
+  addUser: (data: Omit<User, 'id'>) => boolean;
   updateUser: (userId: string, data: Partial<Omit<User, 'id'>>) => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -83,14 +83,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   };
 
-  const addUser = (data: Omit<User, 'id'>) => {
+  const addUser = (data: Omit<User, 'id'>): boolean => {
     if (users.some(u => u.username.toLowerCase() === data.username.toLowerCase())) {
-        toast({
-            title: 'Erro ao Criar Usuário',
-            description: 'Este nome de usuário já está em uso.',
-            variant: 'destructive',
-        });
-        return;
+        return false;
     }
 
     const newUser: User = {
@@ -100,20 +95,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const newUsers = [...users, newUser];
     setUsers(newUsers);
     saveDataToLocalStorage('users', newUsers);
-    toast({
-        title: 'Usuário Criado!',
-        description: `O usuário ${newUser.name} foi criado com sucesso.`,
-    });
+    return true;
   };
 
   const updateUser = (userId: string, data: Partial<Omit<User, 'id'>>) => {
     const newUsers = users.map(u => u.id === userId ? { ...u, ...data } : u);
     setUsers(newUsers);
     saveDataToLocalStorage('users', newUsers);
-    toast({
-        title: 'Usuário Atualizado!',
-        description: 'As informações do usuário foram salvas com sucesso.',
-    });
   };
 
   return (

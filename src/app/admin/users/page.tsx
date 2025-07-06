@@ -94,14 +94,31 @@ export default function ManageUsersPage() {
         }
 
         updateUser(userToEdit.id, dataToUpdate);
+        toast({
+            title: 'Usuário Atualizado!',
+            description: 'As informações do usuário foram salvas com sucesso.',
+        });
         setIsEditDialogOpen(false);
     };
 
     const handleCreateUser = (values: z.infer<typeof userCreateFormSchema>) => {
         const { confirmPassword, ...userData } = values;
-        addUser(userData);
-        createForm.reset();
-        setIsAddDialogOpen(false);
+        const success = addUser(userData);
+
+        if (success) {
+            toast({
+                title: 'Usuário Criado!',
+                description: `O usuário ${userData.name} foi criado com sucesso.`,
+            });
+            createForm.reset();
+            setIsAddDialogOpen(false);
+        } else {
+            toast({
+                title: 'Erro ao Criar Usuário',
+                description: 'Este nome de usuário já está em uso.',
+                variant: 'destructive',
+            });
+        }
     }
 
     if (currentUser?.role !== 'admin') {
