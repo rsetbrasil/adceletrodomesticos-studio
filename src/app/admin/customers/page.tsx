@@ -403,6 +403,7 @@ export default function CustomersAdminPage() {
                                                         <TableBody>
                                                             {order.installmentDetails.map((inst) => {
                                                                 const isCrediario = !order.paymentMethod || order.paymentMethod === 'Crediário';
+<<<<<<< HEAD
                                                                 const now = new Date();
                                                                 now.setHours(0, 0, 0, 0); // Set to start of today to compare dates only
                                                                 const dueDate = new Date(inst.dueDate);
@@ -439,6 +440,15 @@ export default function CustomersAdminPage() {
                                                                         <TableCell className="text-right">{formatCurrency(inst.amount)}</TableCell>
                                                                         <TableCell className="text-center">
                                                                             <Badge variant={statusVariant}>{statusText}</Badge>
+=======
+                                                                return (
+                                                                    <TableRow key={`${order.id}-${inst.installmentNumber}`}>
+                                                                        <TableCell>{inst.installmentNumber} / {order.installments}</TableCell>
+                                                                        <TableCell>{format(new Date(inst.dueDate), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                                                                        <TableCell className="text-right">{formatCurrency(inst.amount)}</TableCell>
+                                                                        <TableCell className="text-center">
+                                                                            <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
+>>>>>>> 15d7b6c (em cliente, pedido quando o cliente pagar todas ficar como pago quitado.)
                                                                         </TableCell>
                                                                         <TableCell className="text-right">
                                                                             {isCrediario && (
