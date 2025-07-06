@@ -16,6 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -87,6 +89,21 @@ export default function CustomersAdminPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'outline' | 'destructive' => {
+    switch (status) {
+      case 'Processando':
+        return 'secondary';
+      case 'Enviado':
+        return 'default';
+      case 'Entregue':
+        return 'outline';
+      case 'Cancelado':
+        return 'destructive';
+      default:
+        return 'secondary';
+    }
+  };
 
   const customers = useMemo(() => {
     if (!isClient || !orders) return [];
@@ -99,23 +116,29 @@ export default function CustomersAdminPage() {
     return Array.from(customerMap.values());
   }, [orders, isClient]);
   
+  const customerOrders = useMemo(() => {
+      if (!selectedCustomer) return [];
+      return orders
+        .filter(o => o.customer.cpf === selectedCustomer.cpf && o.status !== 'Cancelado')
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [selectedCustomer, orders]);
+
   const customerFinancials = useMemo(() => {
       if (!selectedCustomer) {
-          return { allInstallments: [], totalComprado: 0, totalPago: 0, saldoDevedor: 0 };
+          return { totalComprado: 0, totalPago: 0, saldoDevedor: 0 };
       }
-      const customerOrders = orders.filter(order => order.customer.cpf === selectedCustomer.cpf && order.status !== 'Cancelado');
       
       const allInstallments = customerOrders.flatMap(order => 
-        (order.installmentDetails || []).map(inst => ({...inst, orderId: order.id, installmentsCount: order.installments}))
+        (order.installmentDetails || [])
       );
       
       const totalComprado = customerOrders.reduce((acc, order) => acc + order.total, 0);
       const totalPago = allInstallments.filter(inst => inst.status === 'Pago').reduce((acc, inst) => acc + inst.amount, 0);
       const saldoDevedor = totalComprado - totalPago;
 
-      return { allInstallments, totalComprado, totalPago, saldoDevedor };
+      return { totalComprado, totalPago, saldoDevedor };
 
-  }, [selectedCustomer, orders]);
+  }, [selectedCustomer, customerOrders]);
 
   const handleToggleInstallmentStatus = (orderId: string, installmentNumber: number, currentStatus: Installment['status']) => {
     const newStatus = currentStatus === 'Pendente' ? 'Pago' : 'Pendente';
@@ -130,7 +153,7 @@ export default function CustomersAdminPage() {
     } else {
         toast({
           title: "Status da Parcela Atualizado!",
-          description: `A parcela ${installmentNumber} do pedido #${orderId} foi marcada como ${newStatus}.`,
+          description: `A parcela ${installmentNumber} do pedido ${orderId} foi marcada como ${newStatus}.`,
       });
     }
   };
@@ -335,70 +358,97 @@ export default function CustomersAdminPage() {
                             </CardContent>
                         </Card>
                     </div>
-                    {customerFinancials.allInstallments.length > 0 ? (
-                    <div className="rounded-md border">
-                        <Table>
-                        <TableHeader>
-                            <TableRow>
-                            <TableHead>Pedido ID</TableHead>
-                            <TableHead>Parcela</TableHead>
-                            <TableHead>Vencimento</TableHead>
-                            <TableHead className="text-right">Valor</TableHead>
-                            <TableHead className="text-center">Status</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {customerFinancials.allInstallments.map((inst) => {
-                            const order = orders.find(o => o.id === inst.orderId);
-                            const isCrediario = !order?.paymentMethod || order.paymentMethod === 'Crediário';
-
-                            return (
-                            <TableRow key={`${inst.orderId}-${inst.installmentNumber}`}>
-                                <TableCell className="font-mono text-xs">{inst.orderId}</TableCell>
-                                <TableCell>{inst.installmentNumber} / {inst.installmentsCount}</TableCell>
-                                <TableCell>{format(new Date(inst.dueDate), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(inst.amount)}</TableCell>
-                                <TableCell className="text-center">
-                                <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    {isCrediario && (
-                                        <div className="flex gap-2 justify-end">
-                                             <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleToggleInstallmentStatus(inst.orderId, inst.installmentNumber, inst.status)}
-                                            >
-                                                {inst.status === 'Pendente' ? (
-                                                    <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                                                ) : (
-                                                    <Undo2 className="mr-2 h-4 w-4 text-amber-600" />
-                                                )}
-                                                {inst.status === 'Pendente' ? 'Pagar' : 'Estornar'}
-                                            </Button>
-                                            <Button variant="outline" size="sm" asChild>
-                                                <Link href={`/carnet/${inst.orderId}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
-                                                    <Printer className="mr-2 h-4 w-4" />
-                                                    Ver Parcela
-                                                </Link>
-                                            </Button>
-                                            <Button variant="ghost" size="sm" asChild>
-                                                <Link href={`/carnet/${inst.orderId}`} target="_blank" rel="noopener noreferrer">
-                                                    <FileText className="mr-2 h-4 w-4" />
-                                                    Carnê Completo
-                                                </Link>
-                                            </Button>
+                    {customerOrders.length > 0 ? (
+                    <Accordion type="single" collapsible className="w-full space-y-2">
+                        {customerOrders.map((order) => (
+                            <AccordionItem value={order.id} key={order.id} className="border-b-0 rounded-lg border bg-background">
+                                <AccordionTrigger className="p-4 hover:no-underline rounded-t-lg data-[state=open]:bg-muted/50 data-[state=open]:rounded-b-none">
+                                    <div className="flex justify-between items-center w-full">
+                                        <div className="text-left">
+                                            <p className="font-bold">Pedido: <span className="font-mono">{order.id}</span></p>
+                                            <p className="text-sm text-muted-foreground">{format(new Date(order.date), "dd/MM/yyyy", { locale: ptBR })}</p>
                                         </div>
-                                    )}
-                                </TableCell>
-                            </TableRow>
-                            )})}
-                        </TableBody>
-                        </Table>
-                    </div>
+                                        <div className="text-right">
+                                            <p className="font-bold">{formatCurrency(order.total)}</p>
+                                            <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                                        </div>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="p-4 pt-0">
+                                        {(order.installmentDetails && order.installmentDetails.length > 0) ? (
+                                            <div className="border rounded-md">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            <TableHead>Parcela</TableHead>
+                                                            <TableHead>Vencimento</TableHead>
+                                                            <TableHead className="text-right">Valor</TableHead>
+                                                            <TableHead className="text-center">Status</TableHead>
+                                                            <TableHead className="text-right">Ações</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {order.installmentDetails.map((inst) => {
+                                                            const isCrediario = !order.paymentMethod || order.paymentMethod === 'Crediário';
+                                                            return (
+                                                                <TableRow key={`${order.id}-${inst.installmentNumber}`}>
+                                                                    <TableCell>{inst.installmentNumber} / {order.installments}</TableCell>
+                                                                    <TableCell>{format(new Date(inst.dueDate), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                                                                    <TableCell className="text-right">{formatCurrency(inst.amount)}</TableCell>
+                                                                    <TableCell className="text-center">
+                                                                        <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
+                                                                    </TableCell>
+                                                                    <TableCell className="text-right">
+                                                                        {isCrediario && (
+                                                                            <div className="flex gap-2 justify-end">
+                                                                                <Button
+                                                                                    variant="outline"
+                                                                                    size="sm"
+                                                                                    onClick={() => handleToggleInstallmentStatus(order.id, inst.installmentNumber, inst.status)}
+                                                                                >
+                                                                                    {inst.status === 'Pendente' ? (
+                                                                                        <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                                                                                    ) : (
+                                                                                        <Undo2 className="mr-2 h-4 w-4 text-amber-600" />
+                                                                                    )}
+                                                                                    {inst.status === 'Pendente' ? 'Pagar' : 'Estornar'}
+                                                                                </Button>
+                                                                                <Button variant="outline" size="sm" asChild>
+                                                                                    <Link href={`/carnet/${order.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
+                                                                                        <Printer className="mr-2 h-4 w-4" />
+                                                                                        Ver Parcela
+                                                                                    </Link>
+                                                                                </Button>
+                                                                            </div>
+                                                                        )}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            );
+                                                        })}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                        ) : (
+                                            <p className="text-muted-foreground text-sm text-center py-4">Este pedido foi pago por {order.paymentMethod} e não possui parcelas.</p>
+                                        )}
+                                         {order.paymentMethod === 'Crediário' && (
+                                            <div className="text-right mt-3">
+                                                <Button variant="ghost" size="sm" asChild>
+                                                    <Link href={`/carnet/${order.id}`} target="_blank" rel="noopener noreferrer">
+                                                        <FileText className="mr-2 h-4 w-4" />
+                                                        Ver Carnê Completo do Pedido
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                         )}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
                     ) : (
-                    <p className="text-muted-foreground text-sm">Nenhum crediário encontrado para este cliente.</p>
+                    <p className="text-muted-foreground text-sm text-center py-8">Nenhum pedido encontrado para este cliente.</p>
                     )}
                 </div>
 

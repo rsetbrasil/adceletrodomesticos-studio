@@ -175,7 +175,11 @@ export default function CheckoutForm() {
   }
 
   function onSubmit(values: z.infer<typeof checkoutSchema>) {
-    const orderId = `CF-${Date.now()}`;
+    const lastOrderNumber = orders
+      .filter(o => o.id.startsWith('PED-'))
+      .map(o => parseInt(o.id.split('-')[1], 10))
+      .reduce((max, current) => (current > max ? current : max), 0);
+    const orderId = `PED-${lastOrderNumber + 1}`;
     
     const finalInstallments = values.installments;
     const finalInstallmentValue = total / finalInstallments;
