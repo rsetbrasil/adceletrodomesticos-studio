@@ -20,6 +20,7 @@ interface CartContextType {
   addOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
   updateInstallmentStatus: (orderId: string, installmentNumber: number, status: Installment['status']) => void;
+  updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date) => void;
   updateCustomer: (customer: CustomerInfo) => void;
   updateOrderDetails: (orderId: string, details: Partial<Order>) => void;
   products: Product[];
@@ -349,6 +350,32 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const updateInstallmentDueDate = (orderId: string, installmentNumber: number, newDueDate: Date) => {
+    setOrders((prevOrders) => {
+      const newOrders = prevOrders.map((order) => {
+        if (order.id === orderId) {
+          const updatedInstallments = (order.installmentDetails || []).map((inst) => {
+            if (inst.installmentNumber === installmentNumber) {
+              return {
+                ...inst,
+                dueDate: newDueDate.toISOString(),
+              };
+            }
+            return inst;
+          });
+          return { ...order, installmentDetails: updatedInstallments };
+        }
+        return order;
+      });
+      saveDataToLocalStorage('orders', newOrders);
+      return newOrders;
+    });
+    toast({
+        title: "Vencimento Atualizado!",
+        description: `A data de vencimento da parcela ${installmentNumber} do pedido #${orderId} foi alterada.`,
+    });
+  };
+
   const updateCustomer = (updatedCustomer: CustomerInfo) => {
     setOrders((prevOrders) => {
       const newOrders = prevOrders.map((order) => {
@@ -396,6 +423,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         addOrder,
         updateOrderStatus,
         updateInstallmentStatus,
+        updateInstallmentDueDate,
         updateCustomer,
         updateOrderDetails,
         products,

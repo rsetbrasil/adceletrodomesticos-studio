@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User, ShoppingBag, CreditCard, Printer, Undo2, Save } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -30,6 +30,8 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 
 const formatCurrency = (value: number) => {
@@ -52,12 +54,13 @@ const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'o
 };
 
 export default function OrdersAdminPage() {
-  const { orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails } = useCart();
+  const { orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails, updateInstallmentDueDate } = useCart();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [installmentsInput, setInstallmentsInput] = useState(1);
+  const [openDueDatePopover, setOpenDueDatePopover] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -163,6 +166,13 @@ export default function OrdersAdminPage() {
       }
     }
   };
+
+  const handleDueDateChange = (orderId: string, installmentNumber: number, date: Date | undefined) => {
+    if (date) {
+        updateInstallmentDueDate(orderId, installmentNumber, date);
+    }
+    setOpenDueDatePopover(null);
+  }
 
 
   if (!isClient) {
@@ -370,7 +380,28 @@ export default function OrdersAdminPage() {
                                                     return (
                                                     <TableRow key={inst.installmentNumber}>
                                                         <TableCell>{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
-                                                        <TableCell>{format(new Date(inst.dueDate), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                                                        <TableCell>
+                                                            <Popover open={openDueDatePopover === `${selectedOrder?.id}-${inst.installmentNumber}`} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? `${selectedOrder?.id}-${inst.installmentNumber}` : null)}>
+                                                                <PopoverTrigger asChild>
+                                                                    <Button
+                                                                        variant={"outline"}
+                                                                        className="w-[150px] justify-start text-left font-normal text-xs"
+                                                                        disabled={inst.status === 'Pago'}
+                                                                    >
+                                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                        {format(new Date(inst.dueDate), 'dd/MM/yyyy')}
+                                                                    </Button>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent className="w-auto p-0">
+                                                                    <Calendar
+                                                                        mode="single"
+                                                                        selected={new Date(inst.dueDate)}
+                                                                        onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)}
+                                                                        initialFocus
+                                                                    />
+                                                                </PopoverContent>
+                                                            </Popover>
+                                                        </TableCell>
                                                         <TableCell>{formatCurrency(inst.amount)}</TableCell>
                                                         <TableCell>
                                                             <Badge variant={statusVariant}>{statusText}</Badge>
