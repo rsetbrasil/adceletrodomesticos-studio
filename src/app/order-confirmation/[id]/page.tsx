@@ -48,7 +48,7 @@ export default function OrderConfirmationPage() {
   }, [lastOrder, params.id, router]);
 
   const pixPayload = useMemo(() => {
-    if (!order || (order.paymentMethod !== 'Pix' && order.paymentMethod !== 'Crediário')) return null;
+    if (!order) return null;
 
     // ATENÇÃO: Estes dados são exemplos. Em uma aplicação real,
     // a chave PIX e os dados do lojista devem vir de uma configuração segura.
@@ -59,8 +59,8 @@ export default function OrderConfirmationPage() {
     let amount = order.total;
     let txid = order.id;
 
-    // If it's a "Crediário", generate PIX for the first installment
-    if (order.paymentMethod === 'Crediário' && order.installmentDetails && order.installmentDetails.length > 0) {
+    // Generate PIX for the first installment of the "Crediário"
+    if (order.installmentDetails && order.installmentDetails.length > 0) {
       amount = order.installmentDetails[0].amount;
       txid = `${order.id}-${order.installmentDetails[0].installmentNumber}`;
     }
@@ -116,22 +116,19 @@ export default function OrderConfirmationPage() {
                   <span className="text-muted-foreground">Forma de Pagamento:</span>
                   <span className="font-semibold">{order.paymentMethod}</span>
                 </div>
-                {order.paymentMethod === 'Crediário' && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Parcelas:</span>
-                      <span className="font-semibold text-accent">{order.installments}x de {formatCurrency(order.installmentValue)}</span>
-                    </div>
-                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Próximo Vencimento:</span>
-                      <span className="font-semibold">{order.installmentDetails && order.installmentDetails.length > 0 ? format(new Date(order.installmentDetails[0].dueDate), 'dd/MM/yyyy') : '-'}</span>
-                    </div>
-                  </>
-                )}
+                
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Parcelas:</span>
+                  <span className="font-semibold text-accent">{order.installments}x de {formatCurrency(order.installmentValue)}</span>
+                </div>
+                  <div className="flex justify-between">
+                  <span className="text-muted-foreground">Próximo Vencimento:</span>
+                  <span className="font-semibold">{order.installmentDetails && order.installmentDetails.length > 0 ? format(new Date(order.installmentDetails[0].dueDate), 'dd/MM/yyyy') : '-'}</span>
+                </div>
               </div>
-               { (order.paymentMethod === 'Pix' || order.paymentMethod === 'Crediário') && pixPayload && (
+               {pixPayload && (
                  <div className="mt-6">
-                    <p className="font-semibold mb-2 text-primary">{order.paymentMethod === 'Pix' ? 'Pague com PIX para confirmar' : 'Pague a 1ª parcela com PIX'}</p>
+                    <p className="font-semibold mb-2 text-primary">Pague a 1ª parcela com PIX</p>
                     <PixQRCode payload={pixPayload} />
                  </div>
               )}

@@ -46,7 +46,7 @@ export type Installment = {
   paymentDate?: string | null;
 }
 
-export type PaymentMethod = 'Crediário' | 'Pix' | 'Dinheiro';
+export type PaymentMethod = 'Crediário';
 
 export type Order = {
   id: string;

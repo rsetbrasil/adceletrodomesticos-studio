@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import type { Order, Installment, PaymentMethod } from '@/lib/types';
+import type { Order, Installment } from '@/lib/types';
 import {
   Table,
   TableBody,
@@ -29,6 +29,7 @@ import { ptBR } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
 
 
 const formatCurrency = (value: number) => {
@@ -62,7 +63,7 @@ const getInstallmentStatusVariant = (status: Installment['status']): 'secondary'
 }
 
 export default function OrdersAdminPage() {
-  const { orders, updateOrderStatus, updateInstallmentStatus, updateOrderPaymentMethod } = useCart();
+  const { orders, updateOrderStatus, updateInstallmentStatus } = useCart();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -89,12 +90,6 @@ export default function OrdersAdminPage() {
   const handleUpdateOrderStatus = (status: Order['status']) => {
     if (selectedOrder) {
       updateOrderStatus(selectedOrder.id, status);
-    }
-  };
-
-  const handleUpdatePaymentMethod = (paymentMethod: PaymentMethod) => {
-    if (selectedOrder) {
-      updateOrderPaymentMethod(selectedOrder.id, paymentMethod);
     }
   };
 
@@ -245,16 +240,7 @@ export default function OrdersAdminPage() {
                               <CardContent className="space-y-6">
                                   <div>
                                       <label className="text-sm font-medium">Forma de Pagamento</label>
-                                      <Select value={selectedOrder.paymentMethod || 'Crediário'} onValueChange={handleUpdatePaymentMethod}>
-                                          <SelectTrigger>
-                                              <SelectValue placeholder="Alterar forma de pagamento" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                              <SelectItem value="Crediário">Crediário</SelectItem>
-                                              <SelectItem value="Pix">Pix</SelectItem>
-                                              <SelectItem value="Dinheiro">Dinheiro</SelectItem>
-                                          </SelectContent>
-                                      </Select>
+                                      <Input value={selectedOrder.paymentMethod} disabled />
                                   </div>
                                   <div className="flex items-end gap-4">
                                       <div className="flex-grow">
@@ -276,90 +262,56 @@ export default function OrdersAdminPage() {
                               </CardContent>
                           </Card>
                           
-                          {/* Installment Plan / Payment Confirmation */}
-                          {(!selectedOrder.paymentMethod || selectedOrder.paymentMethod === 'Crediário') ? (
-                              <Card>
-                                  <CardHeader className="flex-row items-center gap-4 space-y-0">
-                                      <FileText className="w-8 h-8 text-primary" />
-                                      <CardTitle className="text-lg">Carnê de Pagamento</CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                      <Table>
-                                          <TableHeader>
-                                              <TableRow>
-                                                  <TableHead>Parcela</TableHead>
-                                                  <TableHead>Vencimento</TableHead>
-                                                  <TableHead>Valor</TableHead>
-                                                  <TableHead>Status</TableHead>
-                                                  <TableHead className="text-right">Ação</TableHead>
+                          <Card>
+                              <CardHeader className="flex-row items-center gap-4 space-y-0">
+                                  <FileText className="w-8 h-8 text-primary" />
+                                  <CardTitle className="text-lg">Carnê de Pagamento</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                  <Table>
+                                      <TableHeader>
+                                          <TableRow>
+                                              <TableHead>Parcela</TableHead>
+                                              <TableHead>Vencimento</TableHead>
+                                              <TableHead>Valor</TableHead>
+                                              <TableHead>Status</TableHead>
+                                              <TableHead className="text-right">Ação</TableHead>
+                                          </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                          {(selectedOrder.installmentDetails || []).map(inst => (
+                                              <TableRow key={inst.installmentNumber}>
+                                                  <TableCell>{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
+                                                  <TableCell>{format(new Date(inst.dueDate), 'dd/MM/yyyy')}</TableCell>
+                                                  <TableCell>{formatCurrency(inst.amount)}</TableCell>
+                                                  <TableCell>
+                                                      <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
+                                                  </TableCell>
+                                                  <TableCell className="text-right">
+                                                      <Button size="sm" variant="outline" onClick={() => handleToggleInstallmentStatus(inst.installmentNumber)}>
+                                                          {inst.status === 'Pendente' ? (
+                                                              <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
+                                                          ) : (
+                                                              <Undo2 className="mr-2 h-4 w-4 text-amber-600"/>
+                                                          )}
+                                                          {inst.status === 'Pendente' ? 'Pagar' : 'Estornar'}
+                                                      </Button>
+                                                  </TableCell>
                                               </TableRow>
-                                          </TableHeader>
-                                          <TableBody>
-                                              {(selectedOrder.installmentDetails || []).map(inst => (
-                                                  <TableRow key={inst.installmentNumber}>
-                                                      <TableCell>{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
-                                                      <TableCell>{format(new Date(inst.dueDate), 'dd/MM/yyyy')}</TableCell>
-                                                      <TableCell>{formatCurrency(inst.amount)}</TableCell>
-                                                      <TableCell>
-                                                          <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
-                                                      </TableCell>
-                                                      <TableCell className="text-right">
-                                                          <Button size="sm" variant="outline" onClick={() => handleToggleInstallmentStatus(inst.installmentNumber)}>
-                                                              {inst.status === 'Pendente' ? (
-                                                                  <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
-                                                              ) : (
-                                                                  <Undo2 className="mr-2 h-4 w-4 text-amber-600"/>
-                                                              )}
-                                                              {inst.status === 'Pendente' ? 'Pagar' : 'Estornar'}
-                                                          </Button>
-                                                      </TableCell>
-                                                  </TableRow>
-                                              ))}
-                                          </TableBody>
-                                      </Table>
-                                  </CardContent>
-                              </Card>
-                          ) : (
-                              <Card>
-                                  <CardHeader className="flex-row items-center gap-4 space-y-0">
-                                      <CheckCircle className="w-8 h-8 text-primary" />
-                                      <CardTitle className="text-lg">Confirmação de Pagamento</CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                      {selectedOrder.installmentDetails && selectedOrder.installmentDetails.length > 0 && selectedOrder.installmentDetails[0].status === 'Pendente' ? (
-                                          <div className="flex flex-col items-center gap-4 text-center p-4">
-                                              <p>Aguardando confirmação de pagamento de <strong>{formatCurrency(selectedOrder.total)}</strong> via <strong>{selectedOrder.paymentMethod}</strong>.</p>
-                                              <Button size="lg" onClick={() => handleToggleInstallmentStatus(1)}>
-                                                  <CheckCircle className="mr-2 h-5 w-5"/>
-                                                  Confirmar Recebimento
-                                              </Button>
-                                          </div>
-                                      ) : (
-                                          <div className="flex flex-col items-center justify-center gap-4 text-center p-4">
-                                              <div className="flex items-center justify-center gap-2 text-green-600 font-semibold mb-2">
-                                                <CheckCircle className="h-6 w-6" />
-                                                <p className="text-base">Pagamento Confirmado</p>
-                                              </div>
-                                              <Button variant="outline" size="sm" onClick={() => handleToggleInstallmentStatus(1)}>
-                                                <Undo2 className="mr-2 h-4 w-4"/>
-                                                Estornar Pagamento
-                                              </Button>
-                                          </div>
-                                      )}
-                                  </CardContent>
-                              </Card>
-                          )}
+                                          ))}
+                                      </TableBody>
+                                  </Table>
+                              </CardContent>
+                          </Card>
                       </div>
                   </div>
                     <DialogFooter className="pt-4 border-t">
-                      {(!selectedOrder.paymentMethod || selectedOrder.paymentMethod === 'Crediário') && (
-                          <Button variant="secondary" asChild>
-                              <Link href={`/carnet/${selectedOrder.id}`} target="_blank" rel="noopener noreferrer">
-                                  <Printer className="mr-2 h-4 w-4" />
-                                  Ver Carnê
-                              </Link>
-                          </Button>
-                      )}
+                      <Button variant="secondary" asChild>
+                          <Link href={`/carnet/${selectedOrder.id}`} target="_blank" rel="noopener noreferrer">
+                              <Printer className="mr-2 h-4 w-4" />
+                              Ver Carnê
+                          </Link>
+                      </Button>
                       <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>Fechar</Button>
                   </DialogFooter>
                   </>

@@ -21,7 +21,6 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -41,9 +40,6 @@ const checkoutSchema = z.object({
   neighborhood: z.string().min(2, 'Bairro é obrigatório.'),
   city: z.string().min(2, 'Cidade é obrigatória.'),
   state: z.string().min(2, 'Estado é obrigatório.'),
-  paymentMethod: z.enum(['Crediário', 'Pix', 'Dinheiro'], {
-    required_error: "Você precisa selecionar uma forma de pagamento.",
-  }),
   installments: z.coerce.number().min(1, 'Selecione o número de parcelas.'),
 });
 
@@ -163,7 +159,6 @@ export default function CheckoutForm() {
 
 
   const total = getCartTotal();
-  const paymentMethod = form.watch('paymentMethod');
   const installmentsCount = form.watch('installments');
 
   const maxAllowedInstallments = cartItems.length > 0 
@@ -182,7 +177,7 @@ export default function CheckoutForm() {
   function onSubmit(values: z.infer<typeof checkoutSchema>) {
     const orderId = `CF-${Date.now()}`;
     
-    const finalInstallments = values.paymentMethod === 'Crediário' ? values.installments : 1;
+    const finalInstallments = values.installments;
     const finalInstallmentValue = total / finalInstallments;
     const orderDate = new Date();
 
@@ -214,7 +209,7 @@ export default function CheckoutForm() {
       installmentValue: finalInstallmentValue,
       date: orderDate.toISOString(),
       status: 'Processando',
-      paymentMethod: values.paymentMethod,
+      paymentMethod: 'Crediário',
       installmentDetails,
     };
     
@@ -282,76 +277,37 @@ export default function CheckoutForm() {
           </div>
           
           <div>
-            <h3 className="text-xl font-semibold mb-4 font-headline">2. Forma de Pagamento</h3>
+            <h3 className="text-xl font-semibold mb-4 font-headline">2. Opções de Parcelamento (Crediário)</h3>
             <FormField
               control={form.control}
-              name="paymentMethod"
+              name="installments"
               render={({ field }) => (
-                <FormItem className="space-y-3">
+                <FormItem>
+                  <FormLabel>Número de Parcelas</FormLabel>
                   <FormControl>
-                    <RadioGroup 
-                        onValueChange={(value) => {
-                            field.onChange(value);
-                            if (value !== 'Crediário') {
-                                form.setValue('installments', 1);
-                            }
-                        }} 
-                        defaultValue={field.value} 
-                        className="flex flex-col space-y-2">
-                      <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 has-[:checked]:border-primary">
-                        <FormControl><RadioGroupItem value="Crediário" /></FormControl>
-                        <FormLabel className="font-normal w-full">Crediário da Loja</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 has-[:checked]:border-primary">
-                        <FormControl><RadioGroupItem value="Pix" /></FormControl>
-                        <FormLabel className="font-normal w-full">Pix</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 has-[:checked]:border-primary">
-                        <FormControl><RadioGroupItem value="Dinheiro" /></FormControl>
-                        <FormLabel className="font-normal w-full">Dinheiro (na entrega/retirada)</FormLabel>
-                      </FormItem>
-                    </RadioGroup>
+                    <select
+                      {...field}
+                      value={field.value}
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    >
+                      {[...Array(maxAllowedInstallments).keys()].map((i) => (
+                        <option key={i + 1} value={String(i + 1)}>
+                          {i + 1}x de {formatCurrency(total / (i + 1))}
+                        </option>
+                      ))}
+                    </select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            {installmentValue > 0 && (
+                <div className="mt-4 p-4 bg-muted rounded-lg text-center">
+                    <p className="font-bold text-lg text-accent">{installmentsCount}x de {formatCurrency(installmentValue)}</p>
+                </div>
+            )}
           </div>
-
-          {paymentMethod === 'Crediário' && (
-            <div>
-              <h3 className="text-xl font-semibold mb-4 font-headline">3. Opções de Parcelamento</h3>
-              <FormField
-                control={form.control}
-                name="installments"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Número de Parcelas</FormLabel>
-                    <FormControl>
-                      <select
-                        {...field}
-                        value={field.value}
-                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      >
-                        {[...Array(maxAllowedInstallments).keys()].map((i) => (
-                          <option key={i + 1} value={String(i + 1)}>
-                            {i + 1}x de {formatCurrency(total / (i + 1))}
-                          </option>
-                        ))}
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {installmentValue > 0 && (
-                  <div className="mt-4 p-4 bg-muted rounded-lg text-center">
-                      <p className="font-bold text-lg text-accent">{installmentsCount}x de {formatCurrency(installmentValue)}</p>
-                  </div>
-              )}
-            </div>
-          )}
 
           <Button type="submit" size="lg" className="w-full text-lg">Finalizar Compra</Button>
         </form>
