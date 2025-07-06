@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import type { CartItem, Order, Product, Installment, CustomerInfo, PaymentMethod } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
+import { addMonths } from 'date-fns';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -20,6 +21,7 @@ interface CartContextType {
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
   updateInstallmentStatus: (orderId: string, installmentNumber: number, status: Installment['status']) => void;
   updateCustomer: (customer: CustomerInfo) => void;
+  updateOrderDetails: (orderId: string, details: Partial<Order>) => void;
   products: Product[];
   addProduct: (product: Omit<Product, 'id' | 'data-ai-hint'>) => void;
   updateProduct: (product: Product) => void;
@@ -339,6 +341,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const updateOrderDetails = (orderId: string, details: Partial<Order>) => {
+    setOrders((prevOrders) => {
+        const newOrders = prevOrders.map((order) =>
+            order.id === orderId ? { ...order, ...details } : order
+        );
+        saveDataToLocalStorage('orders', newOrders);
+        return newOrders;
+    });
+    toast({
+        title: "Pedido Atualizado!",
+        description: `Os detalhes do pedido #${orderId} foram atualizados.`,
+    });
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -356,6 +372,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         updateOrderStatus,
         updateInstallmentStatus,
         updateCustomer,
+        updateOrderDetails,
         products,
         addProduct,
         updateProduct,

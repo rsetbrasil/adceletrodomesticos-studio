@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import type { Order, Installment } from '@/lib/types';
+import type { Order, Installment, PaymentMethod } from '@/lib/types';
 import {
   Table,
   TableBody,
@@ -22,9 +22,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User, ShoppingBag, CreditCard, Printer, Undo2 } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User, ShoppingBag, CreditCard, Printer, Undo2, Save } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -63,11 +63,12 @@ const getInstallmentStatusVariant = (status: Installment['status']): 'secondary'
 }
 
 export default function OrdersAdminPage() {
-  const { orders, updateOrderStatus, updateInstallmentStatus } = useCart();
+  const { orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails } = useCart();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [installmentsInput, setInstallmentsInput] = useState(1);
 
   useEffect(() => {
     setIsClient(true);
@@ -79,11 +80,13 @@ export default function OrdersAdminPage() {
       if (updatedOrderInList && JSON.stringify(updatedOrderInList) !== JSON.stringify(selectedOrder)) {
         setSelectedOrder(updatedOrderInList);
       }
+      setInstallmentsInput(updatedOrderInList?.installments || 1);
     }
   }, [orders, selectedOrder]);
 
   const handleOpenDetails = (order: Order) => {
     setSelectedOrder(order);
+    setInstallmentsInput(order.installments);
     setIsDetailModalOpen(true);
   }
 
@@ -91,6 +94,62 @@ export default function OrdersAdminPage() {
     if (selectedOrder) {
       updateOrderStatus(selectedOrder.id, status);
     }
+  };
+
+  const handleUpdatePaymentMethod = (paymentMethod: PaymentMethod) => {
+    if (!selectedOrder) return;
+    
+    let newDetails: Partial<Order> = { paymentMethod };
+    
+    if (paymentMethod === 'Crediário') {
+        const currentInstallments = selectedOrder.installments > 0 ? selectedOrder.installments : 1;
+        const newInstallmentValue = selectedOrder.total / currentInstallments;
+        const newInstallmentDetails = Array.from({ length: currentInstallments }, (_, i) => ({
+            installmentNumber: i + 1,
+            amount: newInstallmentValue,
+            dueDate: addMonths(new Date(selectedOrder.date), i + 1).toISOString(),
+            status: 'Pendente' as const,
+            paymentDate: null,
+        }));
+        newDetails = { 
+            ...newDetails,
+            installments: currentInstallments,
+            installmentValue: newInstallmentValue,
+            installmentDetails: newInstallmentDetails
+        };
+        setInstallmentsInput(currentInstallments);
+    } else {
+        newDetails = { ...newDetails, installments: 1, installmentValue: selectedOrder.total, installmentDetails: [] };
+    }
+    
+    updateOrderDetails(selectedOrder.id, newDetails);
+  };
+
+  const handleUpdateInstallments = () => {
+    if (!selectedOrder || selectedOrder.paymentMethod !== 'Crediário' || !installmentsInput) return;
+    
+    const newInstallmentsCount = Number(installmentsInput);
+    if (isNaN(newInstallmentsCount) || newInstallmentsCount < 1 || newInstallmentsCount > 24) {
+        toast({ title: "Erro", description: "Por favor, insira um número de parcelas válido (1-24).", variant: "destructive" });
+        return;
+    }
+
+    const newInstallmentValue = selectedOrder.total / newInstallmentsCount;
+    const newInstallmentDetails = Array.from({ length: newInstallmentsCount }, (_, i) => ({
+        installmentNumber: i + 1,
+        amount: newInstallmentValue,
+        dueDate: addMonths(new Date(selectedOrder.date), i + 1).toISOString(),
+        status: 'Pendente' as const,
+        paymentDate: null,
+    }));
+    
+    const newDetails: Partial<Order> = {
+        installments: newInstallmentsCount,
+        installmentValue: newInstallmentValue,
+        installmentDetails: newInstallmentDetails
+    };
+    
+    updateOrderDetails(selectedOrder.id, newDetails);
   };
 
   const handleToggleInstallmentStatus = (installmentNumber: number) => {
@@ -238,9 +297,38 @@ export default function OrdersAdminPage() {
                                   <CardTitle className="text-lg">Faturamento e Status</CardTitle>
                               </CardHeader>
                               <CardContent className="space-y-6">
-                                  <div>
-                                      <label className="text-sm font-medium">Forma de Pagamento</label>
-                                      <Input value={selectedOrder.paymentMethod} disabled />
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                                        <div className="flex-grow">
+                                            <label className="text-sm font-medium">Forma de Pagamento</label>
+                                            <Select value={selectedOrder.paymentMethod} onValueChange={(value) => handleUpdatePaymentMethod(value as PaymentMethod)}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Alterar forma de pagamento" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Crediário">Crediário</SelectItem>
+                                                    <SelectItem value="Pix">Pix</SelectItem>
+                                                    <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                      {selectedOrder.paymentMethod === 'Crediário' && (
+                                          <div>
+                                              <label className="text-sm font-medium">Parcelas</label>
+                                              <div className="flex gap-2">
+                                                  <Input 
+                                                      type="number" 
+                                                      value={installmentsInput} 
+                                                      onChange={(e) => setInstallmentsInput(Number(e.target.value))}
+                                                      min="1" max="24"
+                                                      className="w-24"
+                                                      onKeyDown={(e) => e.key === 'Enter' && handleUpdateInstallments()}
+                                                  />
+                                                  <Button size="sm" onClick={handleUpdateInstallments}>
+                                                    <Save className="mr-2 h-4 w-4" /> Salvar
+                                                  </Button>
+                                              </div>
+                                          </div>
+                                      )}
                                   </div>
                                   <div className="flex items-end gap-4">
                                       <div className="flex-grow">
@@ -262,56 +350,66 @@ export default function OrdersAdminPage() {
                               </CardContent>
                           </Card>
                           
-                          <Card>
-                              <CardHeader className="flex-row items-center gap-4 space-y-0">
-                                  <FileText className="w-8 h-8 text-primary" />
-                                  <CardTitle className="text-lg">Carnê de Pagamento</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                  <Table>
-                                      <TableHeader>
-                                          <TableRow>
-                                              <TableHead>Parcela</TableHead>
-                                              <TableHead>Vencimento</TableHead>
-                                              <TableHead>Valor</TableHead>
-                                              <TableHead>Status</TableHead>
-                                              <TableHead className="text-right">Ação</TableHead>
-                                          </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                          {(selectedOrder.installmentDetails || []).map(inst => (
-                                              <TableRow key={inst.installmentNumber}>
-                                                  <TableCell>{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
-                                                  <TableCell>{format(new Date(inst.dueDate), 'dd/MM/yyyy')}</TableCell>
-                                                  <TableCell>{formatCurrency(inst.amount)}</TableCell>
-                                                  <TableCell>
-                                                      <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
-                                                  </TableCell>
-                                                  <TableCell className="text-right">
-                                                      <Button size="sm" variant="outline" onClick={() => handleToggleInstallmentStatus(inst.installmentNumber)}>
-                                                          {inst.status === 'Pendente' ? (
-                                                              <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
-                                                          ) : (
-                                                              <Undo2 className="mr-2 h-4 w-4 text-amber-600"/>
-                                                          )}
-                                                          {inst.status === 'Pendente' ? 'Pagar' : 'Estornar'}
-                                                      </Button>
-                                                  </TableCell>
-                                              </TableRow>
-                                          ))}
-                                      </TableBody>
-                                  </Table>
-                              </CardContent>
-                          </Card>
+                          {selectedOrder.paymentMethod === 'Crediário' && (
+                              <Card>
+                                <CardHeader className="flex-row items-center gap-4 space-y-0">
+                                    <FileText className="w-8 h-8 text-primary" />
+                                    <CardTitle className="text-lg">Carnê de Pagamento</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {(selectedOrder.installmentDetails || []).length > 0 ? (
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Parcela</TableHead>
+                                                    <TableHead>Vencimento</TableHead>
+                                                    <TableHead>Valor</TableHead>
+                                                    <TableHead>Status</TableHead>
+                                                    <TableHead className="text-right">Ação</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {(selectedOrder.installmentDetails || []).map(inst => (
+                                                    <TableRow key={inst.installmentNumber}>
+                                                        <TableCell>{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
+                                                        <TableCell>{format(new Date(inst.dueDate), 'dd/MM/yyyy')}</TableCell>
+                                                        <TableCell>{formatCurrency(inst.amount)}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button size="sm" variant="outline" onClick={() => handleToggleInstallmentStatus(inst.installmentNumber)}>
+                                                                {inst.status === 'Pendente' ? (
+                                                                    <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
+                                                                ) : (
+                                                                    <Undo2 className="mr-2 h-4 w-4 text-amber-600"/>
+                                                                )}
+                                                                {inst.status === 'Pendente' ? 'Pagar' : 'Estornar'}
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    ) : (
+                                        <p className="text-sm text-center text-muted-foreground py-4">
+                                            Nenhuma parcela encontrada. Salve o número de parcelas para gerá-las.
+                                        </p>
+                                    )}
+                                </CardContent>
+                              </Card>
+                          )}
                       </div>
                   </div>
                     <DialogFooter className="pt-4 border-t">
-                      <Button variant="secondary" asChild>
-                          <Link href={`/carnet/${selectedOrder.id}`} target="_blank" rel="noopener noreferrer">
-                              <Printer className="mr-2 h-4 w-4" />
-                              Ver Carnê
-                          </Link>
-                      </Button>
+                      {selectedOrder.paymentMethod === 'Crediário' && (
+                        <Button variant="secondary" asChild>
+                            <Link href={`/carnet/${selectedOrder.id}`} target="_blank" rel="noopener noreferrer">
+                                <Printer className="mr-2 h-4 w-4" />
+                                Ver Carnê
+                            </Link>
+                        </Button>
+                      )}
                       <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>Fechar</Button>
                   </DialogFooter>
                   </>
