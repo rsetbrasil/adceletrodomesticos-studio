@@ -51,17 +51,6 @@ const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'o
   }
 };
 
-const getInstallmentStatusVariant = (status: Installment['status']): 'secondary' | 'default' => {
-    switch (status) {
-        case 'Pendente':
-            return 'secondary';
-        case 'Pago':
-            return 'default';
-        default:
-            return 'secondary';
-    }
-}
-
 export default function OrdersAdminPage() {
   const { orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails } = useCart();
   const { toast } = useToast();
@@ -369,13 +358,22 @@ export default function OrdersAdminPage() {
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {(selectedOrder.installmentDetails || []).map(inst => (
+                                                {(selectedOrder.installmentDetails || []).map(inst => {
+                                                    const now = new Date();
+                                                    now.setHours(0, 0, 0, 0); // Set to start of today to compare dates only
+                                                    const dueDate = new Date(inst.dueDate);
+                                                    const isOverdue = inst.status === 'Pendente' && dueDate < now;
+
+                                                    const statusText = isOverdue ? 'Atrasado' : inst.status;
+                                                    const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
+                                                    
+                                                    return (
                                                     <TableRow key={inst.installmentNumber}>
                                                         <TableCell>{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
-                                                        <TableCell>{format(new Date(inst.dueDate), 'dd/MM/yyyy')}</TableCell>
+                                                        <TableCell>{format(new Date(inst.dueDate), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                                                         <TableCell>{formatCurrency(inst.amount)}</TableCell>
                                                         <TableCell>
-                                                            <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
+                                                            <Badge variant={statusVariant}>{statusText}</Badge>
                                                         </TableCell>
                                                         <TableCell className="text-right">
                                                             <Button size="sm" variant="outline" onClick={() => handleToggleInstallmentStatus(inst.installmentNumber)}>
@@ -388,7 +386,7 @@ export default function OrdersAdminPage() {
                                                             </Button>
                                                         </TableCell>
                                                     </TableRow>
-                                                ))}
+                                                )})}
                                             </TableBody>
                                         </Table>
                                     ) : (

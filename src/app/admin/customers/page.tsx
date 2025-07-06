@@ -23,17 +23,6 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-const getInstallmentStatusVariant = (status: Installment['status']): 'secondary' | 'default' => {
-    switch (status) {
-        case 'Pendente':
-            return 'secondary';
-        case 'Pago':
-            return 'default';
-        default:
-            return 'secondary';
-    }
-}
-
 const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -404,13 +393,21 @@ export default function CustomersAdminPage() {
                                                         <TableBody>
                                                             {order.installmentDetails.map((inst) => {
                                                                 const isCrediario = !order.paymentMethod || order.paymentMethod === 'Crediário';
+                                                                const now = new Date();
+                                                                now.setHours(0, 0, 0, 0); // Set to start of today to compare dates only
+                                                                const dueDate = new Date(inst.dueDate);
+                                                                const isOverdue = inst.status === 'Pendente' && dueDate < now;
+                                                                
+                                                                const statusText = isOverdue ? 'Atrasado' : inst.status;
+                                                                const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
+                                                                
                                                                 return (
                                                                     <TableRow key={`${order.id}-${inst.installmentNumber}`}>
                                                                         <TableCell>{inst.installmentNumber} / {order.installments}</TableCell>
                                                                         <TableCell>{format(new Date(inst.dueDate), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                                                                         <TableCell className="text-right">{formatCurrency(inst.amount)}</TableCell>
                                                                         <TableCell className="text-center">
-                                                                            <Badge variant={getInstallmentStatusVariant(inst.status)}>{inst.status}</Badge>
+                                                                            <Badge variant={statusVariant}>{statusText}</Badge>
                                                                         </TableCell>
                                                                         <TableCell className="text-right">
                                                                             {isCrediario && (
