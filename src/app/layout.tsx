@@ -3,6 +3,7 @@
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
+import { SettingsProvider } from '@/context/SettingsContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
@@ -35,16 +36,18 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <AuthProvider>
           <CartProvider>
-            {isSpecialRoute || isAdminRoute ? (
-              <>{children}</>
-            ) : (
-              <div className="relative flex min-h-screen flex-col bg-background">
-                <Header />
-                <main className="flex-1">{children}</main>
-                <Footer />
-              </div>
-            )}
-            <Toaster />
+            <SettingsProvider>
+              {isSpecialRoute || isAdminRoute ? (
+                <>{children}</>
+              ) : (
+                <div className="relative flex min-h-screen flex-col bg-background">
+                  <Header />
+                  <main className="flex-1">{children}</main>
+                  <Footer />
+                </div>
+              )}
+              <Toaster />
+            </SettingsProvider>
           </CartProvider>
         </AuthProvider>
       </body>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useCart } from '@/context/CartContext';
+import { useSettings } from '@/context/SettingsContext';
 import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ const formatCurrency = (value: number) => {
 
 export default function OrderConfirmationPage() {
   const { lastOrder } = useCart();
+  const { settings } = useSettings();
   const router = useRouter();
   const params = useParams();
   const [order, setOrder] = useState<Order | null>(null);
@@ -48,13 +50,9 @@ export default function OrderConfirmationPage() {
   }, [lastOrder, params.id, router]);
 
   const pixPayload = useMemo(() => {
-    if (!order) return null;
+    if (!order || !settings.pixKey) return null;
 
-    // ATENÇÃO: Estes dados são exemplos. Em uma aplicação real,
-    // a chave PIX e os dados do lojista devem vir de uma configuração segura.
-    const pixKey = 'fb43228c-4740-4c16-a217-21706a782496'; // Chave aleatória (EVP) de exemplo
-    const merchantName = 'ADC MOVEIS E ELETRO';
-    const merchantCity = 'SAO PAULO';
+    const { pixKey, storeName, storeCity } = settings;
     
     let amount = order.total;
     let txid = order.id;
@@ -65,8 +63,8 @@ export default function OrderConfirmationPage() {
       txid = `${order.id}-${order.installmentDetails[0].installmentNumber}`;
     }
     
-    return generatePixPayload(pixKey, merchantName, merchantCity, txid, amount);
-  }, [order]);
+    return generatePixPayload(pixKey, storeName, storeCity, txid, amount);
+  }, [order, settings]);
 
   if (!order) {
     return (

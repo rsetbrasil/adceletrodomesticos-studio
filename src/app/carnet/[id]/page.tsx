@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
+import { useSettings } from '@/context/SettingsContext';
 import { useMemo } from 'react';
 import type { Order } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ export default function CarnetPage() {
   const params = useParams();
   const router = useRouter();
   const { orders, isLoading } = useCart();
+  const { settings } = useSettings();
 
   const order = useMemo(() => {
     if (isLoading || !orders || !params.id) {
@@ -68,9 +70,9 @@ export default function CarnetPage() {
         <main className="grid grid-cols-1 md:grid-cols-2 gap-8 print:grid-cols-1 print:gap-8">
           {(order.installmentDetails || []).map((installment) => {
              const pixPayload = generatePixPayload(
-              'fb43228c-4740-4c16-a217-21706a782496', // Chave aleatória (EVP) de exemplo
-              'ADC MOVEIS E ELETRO',
-              'SAO PAULO',
+              settings.pixKey,
+              settings.storeName,
+              settings.storeCity,
               `${order.id}-${installment.installmentNumber}`,
               installment.amount
             );

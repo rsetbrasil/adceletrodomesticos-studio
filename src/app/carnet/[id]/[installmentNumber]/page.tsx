@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
+import { useSettings } from '@/context/SettingsContext';
 import { useMemo, useRef } from 'react';
 import type { Order, Installment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ const formatCurrency = (value: number) => {
 export default function SingleInstallmentPage() {
   const params = useParams();
   const { orders, isLoading } = useCart();
+  const { settings } = useSettings();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -49,17 +51,13 @@ export default function SingleInstallmentPage() {
   }, [isLoading, orders, params.id, params.installmentNumber]);
 
   const pixPayload = useMemo(() => {
-    if (!order || !installment || installment.status === 'Pago') return null;
+    if (!order || !installment || installment.status === 'Pago' || !settings.pixKey) return null;
     
-    // ATENÇÃO: Estes dados são exemplos. Em uma aplicação real,
-    // a chave PIX e os dados do lojista devem vir de uma configuração segura.
-    const pixKey = 'fb43228c-4740-4c16-a217-21706a782496'; // Chave aleatória (EVP) de exemplo
-    const merchantName = 'ADC MOVEIS E ELETRO';
-    const merchantCity = 'SAO PAULO';
+    const { pixKey, storeName, storeCity } = settings;
     const txid = `${order.id}-${installment.installmentNumber}`;
     
-    return generatePixPayload(pixKey, merchantName, merchantCity, txid, installment.amount);
-  }, [order, installment]);
+    return generatePixPayload(pixKey, storeName, storeCity, txid, installment.amount);
+  }, [order, installment, settings]);
 
   const handleGeneratePdfAndSend = async () => {
     const input = receiptRef.current;
@@ -106,7 +104,7 @@ export default function SingleInstallmentPage() {
 
     const customerName = order.customer.name.split(' ')[0];
     const phone = order.customer.phone.replace(/\D/g, '');
-    const message = `Olá ${customerName}, segue o comprovante de pagamento da sua parcela nº ${installment.installmentNumber} (pedido ${order.id}), no valor de ${formatCurrency(installment.amount)}.\n\nObrigado!\n*ADC MÓVEIS E ELETROS*`;
+    const message = `Olá ${customerName}, segue o comprovante de pagamento da sua parcela nº ${installment.installmentNumber} (pedido ${order.id}), no valor de ${formatCurrency(installment.amount)}.\n\nObrigado!\n*${settings.storeName}*`;
     
     const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
