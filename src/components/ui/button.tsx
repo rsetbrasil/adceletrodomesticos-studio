@@ -12,6 +12,8 @@ const buttonVariants = cva(
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        "destructive-outline":
+          "border border-destructive bg-transparent text-destructive hover:bg-destructive/10",
         outline:
           "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
         secondary:
@@ -44,17 +46,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, outline, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
 
-    // If 'outline' prop is true and variant is 'destructive', apply special classes
-    const finalClassName = outline && variant === 'destructive' 
-      ? cn(
-          "border border-destructive text-destructive bg-transparent hover:bg-destructive/10",
-          buttonVariants({ size, className })
-        )
-      : cn(buttonVariants({ variant, size, className }));
+    // If 'outline' prop is true and variant is 'destructive', set a new specific variant
+    const finalVariant = outline && variant === 'destructive' ? 'destructive-outline' as const : variant;
 
     return (
       <Comp
-        className={finalClassName}
+        className={cn(buttonVariants({ variant: finalVariant, size, className }))}
         ref={ref}
         {...props}
       />
