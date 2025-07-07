@@ -36,15 +36,25 @@ const buttonVariants = cva(
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
-  asChild?: boolean
+  asChild?: boolean,
+  outline?: boolean,
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, outline, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
+
+    // If 'outline' prop is true and variant is 'destructive', apply special classes
+    const finalClassName = outline && variant === 'destructive' 
+      ? cn(
+          "border border-destructive text-destructive bg-transparent hover:bg-destructive/10",
+          buttonVariants({ size, className })
+        )
+      : cn(buttonVariants({ variant, size, className }));
+
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={finalClassName}
         ref={ref}
         {...props}
       />

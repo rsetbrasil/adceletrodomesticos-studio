@@ -28,6 +28,8 @@ interface SettingsContextType {
     settings: StoreSettings;
     updateSettings: (newSettings: StoreSettings) => void;
     isLoading: boolean;
+    restoreSettings: (settings: StoreSettings) => void;
+    resetSettings: () => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -64,9 +66,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             description: "As informações da loja foram atualizadas com sucesso.",
         });
     };
+    
+    const restoreSettings = (settingsToRestore: StoreSettings) => {
+        setSettings(settingsToRestore);
+        saveDataToLocalStorage('settings', settingsToRestore);
+    };
+
+    const resetSettings = () => {
+        setSettings(initialSettings);
+        saveDataToLocalStorage('settings', initialSettings);
+    };
 
     return (
-        <SettingsContext.Provider value={{ settings, updateSettings, isLoading }}>
+        <SettingsContext.Provider value={{ settings, updateSettings, isLoading, restoreSettings, resetSettings }}>
             {children}
         </SettingsContext.Provider>
     );

@@ -18,12 +18,14 @@ const saveDataToLocalStorage = (key: string, data: any) => {
 interface AuthContextType {
   user: User | null;
   users: User[];
+  initialUsers: User[];
   login: (user: string, pass: string) => void;
   logout: () => void;
   addUser: (data: Omit<User, 'id'>) => boolean;
   updateUser: (userId: string, data: Partial<Omit<User, 'id'>>) => void;
   isLoading: boolean;
   isAuthenticated: boolean;
+  restoreUsers: (users: User[]) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -103,9 +105,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUsers(newUsers);
     saveDataToLocalStorage('users', newUsers);
   };
+  
+  const restoreUsers = (usersToRestore: User[]) => {
+      setUsers(usersToRestore);
+      saveDataToLocalStorage('users', usersToRestore);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, users, login, logout, addUser, updateUser, isLoading, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, users, initialUsers, login, logout, addUser, updateUser, isLoading, isAuthenticated: !!user, restoreUsers }}>
       {children}
     </AuthContext.Provider>
   );

@@ -32,6 +32,9 @@ interface CartContextType {
   updateCategory: (oldCategory: string, newCategory: string) => void;
   deleteCategory: (category: string) => void;
   isLoading: boolean;
+  restoreCartData: (data: { products: Product[], orders: Order[], categories: string[] }) => void;
+  resetOrders: () => void;
+  resetAllCartData: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -153,6 +156,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
+  
+  const restoreCartData = (data: { products: Product[], orders: Order[], categories: string[] }) => {
+    setProducts(data.products || initialProducts);
+    setOrders(data.orders || []);
+    setCategories(data.categories || Array.from(new Set(initialProducts.map(p => p.category))).sort());
+  };
+
+  const resetOrders = () => {
+    setOrders([]);
+  };
+  
+  const resetAllCartData = () => {
+    setProducts(initialProducts);
+    setOrders([]);
+    setCategories(Array.from(new Set(initialProducts.map(p => p.category))).sort());
+    setCartItems([]);
+  };
 
   const addProduct = (productData: Omit<Product, 'id' | 'data-ai-hint'>) => {
       const newProduct: Product = {
@@ -435,6 +455,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         updateCategory,
         deleteCategory,
         isLoading,
+        restoreCartData,
+        resetOrders,
+        resetAllCartData,
       }}
     >
       {children}
