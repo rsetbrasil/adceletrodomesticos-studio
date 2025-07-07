@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 const settingsSchema = z.object({
   storeName: z.string().min(3, 'O nome da loja é obrigatório.'),
   storeCity: z.string().min(3, 'A cidade da loja é obrigatória.'),
-  pixKey: z.string().min(5, 'A chave PIX é obrigatória.'),
+  pixKey: z.string().min(1, 'A chave PIX é obrigatória.'),
 });
 
 export default function ConfiguracaoPage() {
