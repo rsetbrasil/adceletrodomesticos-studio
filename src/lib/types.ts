@@ -6,6 +6,7 @@ export type Product = {
   price: number;
   imageUrls: string[];
   category: string;
+  subcategory?: string;
   stock: number;
   maxInstallments?: number;
   "data-ai-hint"?: string;
@@ -69,4 +70,9 @@ export type User = {
   password?: string; // Made optional for storing in session without password
   name: string;
   role: UserRole;
+};
+
+export type Category = {
+  name: string;
+  subcategories: string[];
 };

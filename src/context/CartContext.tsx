@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem, Order, Product, Installment, CustomerInfo, PaymentMethod } from '@/lib/types';
+import type { CartItem, Order, Product, Installment, CustomerInfo, PaymentMethod, Category } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 import { addMonths } from 'date-fns';
@@ -27,12 +27,15 @@ interface CartContextType {
   addProduct: (product: Omit<Product, 'id' | 'data-ai-hint'>) => void;
   updateProduct: (product: Product) => void;
   deleteProduct: (productId: string) => void;
-  categories: string[];
-  addCategory: (category: string) => void;
-  updateCategory: (oldCategory: string, newCategory: string) => void;
-  deleteCategory: (category: string) => void;
+  categories: Category[];
+  addCategory: (categoryName: string) => void;
+  deleteCategory: (categoryName: string) => void;
+  updateCategoryName: (oldName: string, newName: string) => void;
+  addSubcategory: (categoryName: string, subcategoryName: string) => void;
+  updateSubcategory: (categoryName: string, oldSub: string, newSub: string) => void;
+  deleteSubcategory: (categoryName: string, subcategoryName: string) => void;
   isLoading: boolean;
-  restoreCartData: (data: { products: Product[], orders: Order[], categories: string[] }) => void;
+  restoreCartData: (data: { products: Product[], orders: Order[], categories: Category[] }) => void;
   resetOrders: () => void;
   resetAllCartData: () => void;
 }
@@ -48,13 +51,27 @@ const saveDataToLocalStorage = (key: string, data: any) => {
     }
 };
 
+const getInitialCategories = (): Category[] => {
+    const mainCategories = Array.from(new Set(initialProducts.map(p => p.category)));
+    
+    return mainCategories.map(catName => {
+        const subcategories = Array.from(new Set(
+            initialProducts
+                .filter(p => p.category === catName && p.subcategory)
+                .map(p => p.subcategory!)
+        )).sort();
+        return { name: catName, subcategories };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+};
+
+
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -105,10 +122,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if (storedCategories) {
         setCategories(JSON.parse(storedCategories));
       } else {
-        const initialCategories = Array.from(new Set(initialProducts.map(p => p.category)));
-        initialCategories.sort();
-        setCategories(initialCategories);
-        saveDataToLocalStorage('categories', initialCategories);
+        const initialCats = getInitialCategories();
+        setCategories(initialCats);
+        saveDataToLocalStorage('categories', initialCats);
       }
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
@@ -157,10 +173,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
   
-  const restoreCartData = (data: { products: Product[], orders: Order[], categories: string[] }) => {
+  const restoreCartData = (data: { products: Product[], orders: Order[], categories: Category[] }) => {
     setProducts(data.products || initialProducts);
     setOrders(data.orders || []);
-    setCategories(data.categories || Array.from(new Set(initialProducts.map(p => p.category))).sort());
+    setCategories(data.categories || getInitialCategories());
   };
 
   const resetOrders = () => {
@@ -170,7 +186,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const resetAllCartData = () => {
     setProducts(initialProducts);
     setOrders([]);
-    setCategories(Array.from(new Set(initialProducts.map(p => p.category))).sort());
+    setCategories(getInitialCategories());
     setCartItems([]);
   };
 
@@ -223,50 +239,97 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       });
   };
 
-  const addCategory = (category: string) => {
-    if (categories.map(c => c.toLowerCase()).includes(category.toLowerCase())) {
-      toast({ title: 'Erro', description: 'Essa categoria já existe.', variant: 'destructive' });
-      return;
-    }
-    setCategories((prev) => {
-        const newCategories = [...prev, category].sort();
-        saveDataToLocalStorage('categories', newCategories);
+  // Category Management
+  const addCategory = (name: string) => {
+    setCategories(prev => {
+        if (prev.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+            toast({ title: "Erro", description: "Essa categoria já existe.", variant: "destructive" });
+            return prev;
+        }
+        const newCategories = [...prev, { name, subcategories: [] }].sort((a,b) => a.name.localeCompare(b.name));
+        toast({ title: "Categoria Adicionada!" });
         return newCategories;
     });
-    toast({ title: 'Categoria Adicionada!', description: `A categoria "${category}" foi criada.` });
   };
 
-  const updateCategory = (oldCategory: string, newCategory: string) => {
-    if (categories.map(c => c.toLowerCase()).includes(newCategory.toLowerCase())) {
-        toast({ title: 'Erro', description: 'Essa categoria já existe.', variant: 'destructive' });
-        return;
-    }
-    setCategories((prev) => {
-        const newCategories = prev.map((c) => (c === oldCategory ? newCategory : c)).sort();
-        saveDataToLocalStorage('categories', newCategories);
+  const updateCategoryName = (oldName: string, newName: string) => {
+    setCategories(prev => {
+        if (prev.some(c => c.name.toLowerCase() === newName.toLowerCase() && oldName.toLowerCase() !== newName.toLowerCase())) {
+            toast({ title: "Erro", description: "Uma categoria com esse novo nome já existe.", variant: "destructive" });
+            return prev;
+        }
+        const newCategories = prev.map(c => c.name === oldName ? { ...c, name: newName } : c).sort((a,b) => a.name.localeCompare(b.name));
+        // Also update products
+        setProducts(prods => prods.map(p => p.category === oldName ? { ...p, category: newName } : p));
+        toast({ title: "Categoria Renomeada!" });
         return newCategories;
     });
-    setProducts((prevProducts) => {
-        const newProducts = prevProducts.map((p) => (p.category === oldCategory ? { ...p, category: newCategory } : p));
-        saveDataToLocalStorage('products', newProducts);
-        return newProducts;
-    });
-    toast({ title: 'Categoria Atualizada!', description: `Categoria "${oldCategory}" foi renomeada para "${newCategory}".` });
   };
 
-  const deleteCategory = (categoryToDelete: string) => {
-    const productsInCategory = products.some(p => p.category === categoryToDelete);
-    if (productsInCategory) {
-        toast({ title: 'Erro ao Excluir', description: 'Não é possível excluir uma categoria que contém produtos.', variant: 'destructive' });
+  const deleteCategory = (name: string) => {
+    if (products.some(p => p.category === name)) {
+        toast({ title: "Erro", description: "Não é possível excluir categorias que contêm produtos.", variant: "destructive" });
         return;
     }
-    setCategories((prev) => {
-        const newCategories = prev.filter((c) => c !== categoryToDelete);
-        saveDataToLocalStorage('categories', newCategories);
+    setCategories(prev => {
+        const newCategories = prev.filter(c => c.name !== name);
+        toast({ title: "Categoria Excluída!", variant: "destructive" });
         return newCategories;
     });
-    toast({ title: 'Categoria Excluída!', description: `A categoria "${categoryToDelete}" foi removida.`, variant: 'destructive' });
   };
+
+  const addSubcategory = (categoryName: string, subcategoryName: string) => {
+    setCategories(prev => {
+        const category = prev.find(c => c.name === categoryName);
+        if (category?.subcategories.some(s => s.toLowerCase() === subcategoryName.toLowerCase())) {
+            toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
+            return prev;
+        }
+        const newCategories = prev.map(c => 
+            c.name === categoryName 
+                ? { ...c, subcategories: [...c.subcategories, subcategoryName].sort() } 
+                : c
+        );
+        toast({ title: "Subcategoria Adicionada!" });
+        return newCategories;
+    });
+  };
+
+  const updateSubcategory = (categoryName: string, oldSub: string, newSub: string) => {
+    setCategories(prev => {
+        const category = prev.find(c => c.name === categoryName);
+        if (category?.subcategories.some(s => s.toLowerCase() === newSub.toLowerCase() && oldSub.toLowerCase() !== newSub.toLowerCase())) {
+            toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
+            return prev;
+        }
+        const newCategories = prev.map(c => 
+            c.name === categoryName 
+                ? { ...c, subcategories: c.subcategories.map(s => s === oldSub ? newSub : s).sort() } 
+                : c
+        );
+        // Also update products
+        setProducts(prods => prods.map(p => (p.category === categoryName && p.subcategory === oldSub) ? { ...p, subcategory: newSub } : p));
+        toast({ title: "Subcategoria Renomeada!" });
+        return newCategories;
+    });
+  };
+
+  const deleteSubcategory = (categoryName: string, subcategoryName: string) => {
+    if (products.some(p => p.category === categoryName && p.subcategory === subcategoryName)) {
+        toast({ title: "Erro", description: "Não é possível excluir subcategorias que contêm produtos.", variant: "destructive" });
+        return;
+    }
+    setCategories(prev => {
+        const newCategories = prev.map(c => 
+            c.name === categoryName 
+                ? { ...c, subcategories: c.subcategories.filter(s => s !== subcategoryName) } 
+                : c
+        );
+        toast({ title: "Subcategoria Excluída!", variant: "destructive" });
+        return newCategories;
+    });
+  };
+
 
   const addToCart = (product: Product) => {
     const imageUrl = (product.imageUrls && product.imageUrls.length > 0) 
@@ -452,8 +515,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         deleteProduct,
         categories,
         addCategory,
-        updateCategory,
         deleteCategory,
+        updateCategoryName,
+        addSubcategory,
+        updateSubcategory,
+        deleteSubcategory,
         isLoading,
         restoreCartData,
         resetOrders,

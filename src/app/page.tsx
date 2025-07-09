@@ -7,22 +7,25 @@ import ProductCard from '@/components/ProductCard';
 import ProductFilters from '@/components/ProductFilters';
 
 export default function Home() {
-  const { products: allProducts } = useCart();
+  const { products: allProducts, categories } = useCart();
   const [filters, setFilters] = useState({
     category: 'all',
+    subcategory: 'all',
     search: '',
     sort: 'relevance',
   });
 
-  const categories = useMemo(() => {
-    const allCategories = allProducts.map((p) => p.category);
-    return ['all', ...Array.from(new Set(allCategories))];
-  }, [allProducts]);
-
   const handleFilterChange = (
     newFilters: Partial<typeof filters>
   ) => {
-    setFilters((prevFilters) => ({ ...prevFilters, ...newFilters }));
+    setFilters((prevFilters) => {
+        const updated = { ...prevFilters, ...newFilters };
+        // Reset subcategory if parent category changes
+        if (newFilters.category && newFilters.category !== prevFilters.category) {
+            updated.subcategory = 'all';
+        }
+        return updated;
+    });
   };
 
   const filteredAndSortedProducts = useMemo(() => {
@@ -30,6 +33,10 @@ export default function Home() {
 
     if (filters.category !== 'all') {
       filtered = filtered.filter((p) => p.category === filters.category);
+    }
+    
+    if (filters.subcategory !== 'all') {
+        filtered = filtered.filter((p) => p.subcategory === filters.subcategory);
     }
 
     if (filters.search) {

@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/context/CartContext';
 import { PackagePlus, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import type { Product } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
@@ -31,6 +31,7 @@ const productSchema = z.object({
     z.coerce.number().positive('O preço deve ser um número positivo.')
   ),
   category: z.string().min(1, 'A categoria é obrigatória.'),
+  subcategory: z.string().optional(),
   stock: z.coerce.number().int().min(0, 'O estoque não pode ser negativo.'),
   imageUrls: z.array(z.string()).min(1, 'Pelo menos uma imagem é obrigatória.'),
   maxInstallments: z.coerce.number().int().min(1, 'O número mínimo de parcelas é 1.'),
@@ -67,6 +68,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       longDescription: '',
       price: 0,
       category: '',
+      subcategory: '',
       stock: 0,
       imageUrls: [],
       maxInstallments: 10,
@@ -75,7 +77,13 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
 
   const price = form.watch('price');
   const maxInstallments = form.watch('maxInstallments');
+  const selectedCategory = form.watch('category');
   const installmentValue = price > 0 && maxInstallments > 0 ? price / maxInstallments : 0;
+  
+  const subcategories = useMemo(() => {
+    const category = categories.find(c => c.name === selectedCategory);
+    return category ? category.subcategories : [];
+  }, [selectedCategory, categories]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -208,7 +216,13 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Categoria</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select 
+                            onValueChange={(value) => {
+                                field.onChange(value);
+                                form.setValue('subcategory', ''); // Reset subcategory on change
+                            }} 
+                            defaultValue={field.value}
+                           >
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione uma categoria" />
@@ -216,8 +230,36 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                             </FormControl>
                             <SelectContent>
                                 {categories.map((cat) => (
-                                    <SelectItem key={cat} value={cat} className="capitalize">
-                                        {cat}
+                                    <SelectItem key={cat.name} value={cat.name} className="capitalize">
+                                        {cat.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="subcategory"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Subcategoria</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            value={field.value}
+                            disabled={subcategories.length === 0}
+                          >
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione uma subcategoria" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {subcategories.map((sub) => (
+                                    <SelectItem key={sub} value={sub} className="capitalize">
+                                        {sub}
                                     </SelectItem>
                                 ))}
                             </SelectContent>

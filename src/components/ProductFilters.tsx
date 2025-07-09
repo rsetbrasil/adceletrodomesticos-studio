@@ -9,12 +9,15 @@ import {
   SelectValue,
 } from './ui/select';
 import { Search } from 'lucide-react';
+import type { Category } from '@/lib/types';
+import { useMemo } from 'react';
 
 interface ProductFiltersProps {
-  categories: string[];
-  onFilterChange: (filters: { category?: string; search?: string; sort?: string }) => void;
+  categories: Category[];
+  onFilterChange: (filters: { category?: string; subcategory?: string; search?: string; sort?: string }) => void;
   currentFilters: {
     category: string;
+    subcategory: string;
     search: string;
     sort: string;
   };
@@ -25,6 +28,15 @@ export default function ProductFilters({
   onFilterChange,
   currentFilters
 }: ProductFiltersProps) {
+  
+  const subcategories = useMemo(() => {
+    if (currentFilters.category === 'all') {
+      return [];
+    }
+    const selectedCategory = categories.find(c => c.name === currentFilters.category);
+    return selectedCategory ? selectedCategory.subcategories : [];
+  }, [currentFilters.category, categories]);
+
   return (
     <div className="bg-card p-4 rounded-lg shadow-sm mb-8 flex flex-col md:flex-row gap-4 items-center">
       <div className="relative w-full md:flex-1">
@@ -36,27 +48,47 @@ export default function ProductFilters({
           onChange={(e) => onFilterChange({ search: e.target.value })}
         />
       </div>
-      <div className="flex gap-4 w-full md:w-auto">
+      <div className="flex gap-4 w-full md:w-auto flex-wrap">
         <Select
             value={currentFilters.category}
             onValueChange={(value) => onFilterChange({ category: value })}
         >
-          <SelectTrigger className="w-full md:w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Categoria" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">Todas as Categorias</SelectItem>
             {categories.map((category) => (
-              <SelectItem key={category} value={category} className="capitalize">
-                {category === 'all' ? 'Todas as Categorias' : category}
+              <SelectItem key={category.name} value={category.name} className="capitalize">
+                {category.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+
+        <Select
+            value={currentFilters.subcategory}
+            onValueChange={(value) => onFilterChange({ subcategory: value })}
+            disabled={subcategories.length === 0}
+        >
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Subcategoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as Subcategorias</SelectItem>
+            {subcategories.map((sub) => (
+              <SelectItem key={sub} value={sub} className="capitalize">
+                {sub}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
         <Select
             value={currentFilters.sort}
             onValueChange={(value) => onFilterChange({ sort: value })}
         >
-          <SelectTrigger className="w-full md:w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Ordenar por" />
           </SelectTrigger>
           <SelectContent>

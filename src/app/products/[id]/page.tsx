@@ -102,7 +102,10 @@ export default function ProductDetailPage() {
             </Carousel>
         </div>
         <div className="flex flex-col">
-          <Badge variant="secondary" className="capitalize w-fit mb-2">{product.category}</Badge>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="secondary" className="capitalize w-fit">{product.category}</Badge>
+            {product.subcategory && <Badge variant="outline" className="capitalize w-fit">{product.subcategory}</Badge>}
+          </div>
           <h1 className="text-3xl lg:text-4xl font-bold font-headline text-primary">{product.name}</h1>
           <p className="text-muted-foreground mt-4 text-lg">{product.description}</p>
           
