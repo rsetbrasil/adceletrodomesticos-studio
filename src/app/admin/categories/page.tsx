@@ -83,8 +83,8 @@ export default function ManageCategoriesPage() {
                 <CardContent>
                     {categories.length > 0 ? (
                         <div className="space-y-2">
-                            {categories.map((category) => (
-                                <Collapsible key={category.name} className="border rounded-lg">
+                            {categories.map((category, index) => (
+                                <Collapsible key={`${category.name}-${index}`} className="border rounded-lg">
                                     <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 rounded-t-lg data-[state=open]:rounded-b-none group">
                                         <div className="flex items-center gap-2">
                                             <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
