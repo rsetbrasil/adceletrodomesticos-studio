@@ -85,23 +85,23 @@ export default function ManageCategoriesPage() {
                         <div className="space-y-2">
                             {categories.map((category, index) => (
                                 <Collapsible key={`${category.name}-${index}`} className="border rounded-lg">
-                                    <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 rounded-t-lg data-[state=open]:rounded-b-none group">
-                                        <div className="flex items-center gap-2">
+                                    <div className="flex items-center justify-between w-full p-4 hover:bg-muted/50 rounded-t-lg data-[state=open]:rounded-b-none group">
+                                        <CollapsibleTrigger className="flex items-center gap-2">
                                             <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
                                             <span className="font-semibold">{category.name}</span>
-                                        </div>
+                                        </CollapsibleTrigger>
                                         <div className="flex items-center gap-2">
-                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openDialog('editCategory', { oldName: category.name })}}>
+                                            <Button variant="ghost" size="sm" onClick={() => openDialog('editCategory', { oldName: category.name })}>
                                                 <Edit className="mr-2 h-4 w-4"/> Editar Nome
                                             </Button>
-                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openDialog('addSubcategory', { categoryName: category.name })}}>
+                                            <Button variant="ghost" size="sm" onClick={() => openDialog('addSubcategory', { categoryName: category.name })}>
                                                 <PlusCircle className="mr-2 h-4 w-4"/> Adicionar Subcategoria
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); deleteCategory(category.name)}}>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteCategory(category.name)}>
                                                 <Trash className="h-4 w-4" />
                                             </Button>
                                         </div>
-                                    </CollapsibleTrigger>
+                                    </div>
                                     <CollapsibleContent>
                                         <div className="p-4 pt-0">
                                             {category.subcategories && category.subcategories.length > 0 ? (
