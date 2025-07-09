@@ -85,7 +85,7 @@ export default function ManageCategoriesPage() {
                         <div className="space-y-2">
                             {categories.map((category) => (
                                 <Collapsible key={category.name} className="border rounded-lg">
-                                    <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 rounded-t-lg data-[state=open]:rounded-b-none">
+                                    <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 rounded-t-lg data-[state=open]:rounded-b-none group">
                                         <div className="flex items-center gap-2">
                                             <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
                                             <span className="font-semibold">{category.name}</span>
@@ -104,7 +104,7 @@ export default function ManageCategoriesPage() {
                                     </CollapsibleTrigger>
                                     <CollapsibleContent>
                                         <div className="p-4 pt-0">
-                                            {category.subcategories.length > 0 ? (
+                                            {category.subcategories && category.subcategories.length > 0 ? (
                                                 <ul className="space-y-2 pl-6">
                                                     {category.subcategories.map(sub => (
                                                         <li key={sub} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
