@@ -58,8 +58,8 @@ export default function ProductFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as Categorias</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category.name} value={category.name} className="capitalize">
+            {categories.map((category, index) => (
+              <SelectItem key={`${category.name}-${index}`} value={category.name} className="capitalize">
                 {category.name}
               </SelectItem>
             ))}
@@ -76,8 +76,8 @@ export default function ProductFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as Subcategorias</SelectItem>
-            {subcategories.map((sub) => (
-              <SelectItem key={sub} value={sub} className="capitalize">
+            {subcategories.map((sub, index) => (
+              <SelectItem key={`${sub}-${index}`} value={sub} className="capitalize">
                 {sub}
               </SelectItem>
             ))}
