@@ -58,6 +58,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  useEffect(() => {
+    if (isLoading) return;
+    saveDataToLocalStorage('users', users);
+  }, [users, isLoading]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleStorageChange = (event: StorageEvent) => {
+        try {
+            if (event.key === 'user' && event.newValue) setUser(JSON.parse(event.newValue));
+            if (event.key === 'users' && event.newValue) setUsers(JSON.parse(event.newValue));
+        } catch (error) {
+            console.error("Failed to parse localStorage data on change", error);
+        }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+
   const login = (username: string, pass: string) => {
     const foundUser = users.find(u => u.username === username && u.password === pass);
     
@@ -96,19 +120,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     const newUsers = [...users, newUser];
     setUsers(newUsers);
-    saveDataToLocalStorage('users', newUsers);
     return true;
   };
 
   const updateUser = (userId: string, data: Partial<Omit<User, 'id'>>) => {
     const newUsers = users.map(u => u.id === userId ? { ...u, ...data } : u);
     setUsers(newUsers);
-    saveDataToLocalStorage('users', newUsers);
   };
   
   const restoreUsers = (usersToRestore: User[]) => {
       setUsers(usersToRestore);
-      saveDataToLocalStorage('users', usersToRestore);
   };
 
   return (

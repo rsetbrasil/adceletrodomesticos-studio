@@ -58,9 +58,30 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         }
     }, []);
 
+    useEffect(() => {
+        if (isLoading) return;
+        saveDataToLocalStorage('settings', settings);
+    }, [settings, isLoading]);
+    
+    useEffect(() => {
+      if (typeof window === 'undefined') return;
+      const handleStorageChange = (event: StorageEvent) => {
+          try {
+              if (event.key === 'settings' && event.newValue) setSettings(JSON.parse(event.newValue));
+          } catch (error) {
+              console.error("Failed to parse localStorage data on change", error);
+          }
+      };
+  
+      window.addEventListener('storage', handleStorageChange);
+  
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+      };
+    }, []);
+
     const updateSettings = (newSettings: StoreSettings) => {
         setSettings(newSettings);
-        saveDataToLocalStorage('settings', newSettings);
         toast({
             title: "Configurações Salvas!",
             description: "As informações da loja foram atualizadas com sucesso.",
@@ -69,12 +90,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     
     const restoreSettings = (settingsToRestore: StoreSettings) => {
         setSettings(settingsToRestore);
-        saveDataToLocalStorage('settings', settingsToRestore);
     };
 
     const resetSettings = () => {
         setSettings(initialSettings);
-        saveDataToLocalStorage('settings', initialSettings);
     };
 
     return (

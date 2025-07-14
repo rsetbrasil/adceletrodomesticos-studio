@@ -198,7 +198,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       };
       setProducts((prevProducts) => {
         const newProducts = [newProduct, ...prevProducts];
-        saveDataToLocalStorage('products', newProducts);
         return newProducts;
       });
       toast({
@@ -217,7 +216,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const newProducts = prevProducts.map((p) =>
         p.id === finalProduct.id ? finalProduct : p
       );
-      saveDataToLocalStorage('products', newProducts);
       return newProducts;
     });
     toast({
@@ -229,7 +227,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const deleteProduct = (productId: string) => {
       setProducts((prevProducts) => {
         const newProducts = prevProducts.filter((p) => p.id !== productId);
-        saveDataToLocalStorage('products', newProducts);
         return newProducts;
       });
       toast({
@@ -391,7 +388,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const addOrder = (order: Order) => {
     setOrders((prevOrders) => {
       const newOrders = [order, ...prevOrders];
-      saveDataToLocalStorage('orders', newOrders);
       return newOrders;
     });
   };
@@ -401,7 +397,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const newOrders = prevOrders.map((order) =>
         order.id === orderId ? { ...order, status } : order
       );
-      saveDataToLocalStorage('orders', newOrders);
       return newOrders;
     });
     toast({
@@ -428,7 +423,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         return order;
       });
-      saveDataToLocalStorage('orders', newOrders);
       return newOrders;
     });
   };
@@ -450,7 +444,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         return order;
       });
-      saveDataToLocalStorage('orders', newOrders);
       return newOrders;
     });
     toast({
@@ -467,7 +460,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         return order;
       });
-      saveDataToLocalStorage('orders', newOrders);
       return newOrders;
     });
     toast({
@@ -481,7 +473,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const newOrders = prevOrders.map((order) =>
             order.id === orderId ? { ...order, ...details } : order
         );
-        saveDataToLocalStorage('orders', newOrders);
         return newOrders;
     });
     toast({
