@@ -207,17 +207,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateProduct = (updatedProduct: Product) => {
-    const finalProduct = {
-      ...updatedProduct,
-      'data-ai-hint': updatedProduct.name.toLowerCase().split(' ').slice(0, 2).join(' '),
-    };
-
-    setProducts((prevProducts) => {
-      const newProducts = prevProducts.map((p) =>
-        p.id === finalProduct.id ? finalProduct : p
-      );
-      return newProducts;
-    });
+    setProducts((prevProducts) =>
+      prevProducts.map((p) =>
+        p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p
+      )
+    );
     toast({
       title: 'Produto Atualizado!',
       description: `O produto "${updatedProduct.name}" foi atualizado.`,
