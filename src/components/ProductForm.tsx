@@ -73,6 +73,14 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   });
 
   useEffect(() => {
+    if (categories.length === 0 && !productToEdit) {
+      form.reset({
+        name: '', description: '', longDescription: '', price: 0,
+        category: '', subcategory: '', stock: 0, imageUrls: [], maxInstallments: 10,
+      });
+      return;
+    };
+
     let defaultValues: ProductFormValues;
     if (productToEdit) {
       defaultValues = {
@@ -85,10 +93,10 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       };
       setImagePreviews(productToEdit.imageUrls || []);
     } else {
-      const firstCategory = categories && categories.length > 0 ? categories[0] : null;
+      const firstCategory = categories.length > 0 ? categories[0] : null;
       let firstSubcategory = '';
       if (firstCategory && firstCategory.subcategories && firstCategory.subcategories.length > 0) {
-        firstSubcategory = firstCategory.subcategories[0];
+          firstSubcategory = firstCategory.subcategories[0];
       }
       defaultValues = {
         name: '',
