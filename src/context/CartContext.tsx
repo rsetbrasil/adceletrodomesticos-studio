@@ -395,6 +395,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const addOrder = (order: Order) => {
+    // 1. Update stock
+    setProducts(prevProducts => {
+      const updatedProducts = [...prevProducts];
+      order.items.forEach(cartItem => {
+        const productIndex = updatedProducts.findIndex(p => p.id === cartItem.id);
+        if (productIndex !== -1) {
+          const newStock = updatedProducts[productIndex].stock - cartItem.quantity;
+          updatedProducts[productIndex] = {
+            ...updatedProducts[productIndex],
+            stock: newStock >= 0 ? newStock : 0 // Ensure stock doesn't go negative
+          };
+        }
+      });
+      return updatedProducts;
+    });
+
+    // 2. Add order
     setOrders((prevOrders) => {
       const sortedOrders = [order, ...prevOrders];
       sortedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -402,20 +419,64 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
   
+  const manageStockForOrder = (order: Order | undefined, operation: 'add' | 'subtract') => {
+    if (!order) return;
+  
+    setProducts(prevProducts => {
+      const updatedProducts = [...prevProducts];
+      order.items.forEach(orderItem => {
+        const productIndex = updatedProducts.findIndex(p => p.id === orderItem.id);
+        if (productIndex !== -1) {
+          const product = updatedProducts[productIndex];
+          const stockChange = orderItem.quantity;
+          const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
+          
+          updatedProducts[productIndex] = {
+            ...product,
+            stock: newStock >= 0 ? newStock : 0, // Prevent negative stock
+          };
+        }
+      });
+      return updatedProducts;
+    });
+  };
+
   const deleteOrder = (orderId: string) => {
+    const orderToDelete = orders.find(o => o.id === orderId);
+    if (!orderToDelete) return;
+
+    // Return items to stock
+    if (orderToDelete.status !== 'Cancelado') {
+      manageStockForOrder(orderToDelete, 'add');
+    }
+
     setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
   };
 
-  const updateOrderStatus = (orderId: string, status: Order['status']) => {
+  const updateOrderStatus = (orderId: string, newStatus: Order['status']) => {
+    const orderToUpdate = orders.find(o => o.id === orderId);
+    if (!orderToUpdate) return;
+  
+    const oldStatus = orderToUpdate.status;
+  
+    // If status changes TO "Cancelado" and it WASN'T "Cancelado" before, return stock
+    if (newStatus === 'Cancelado' && oldStatus !== 'Cancelado') {
+      manageStockForOrder(orderToUpdate, 'add');
+    }
+    // If status changes FROM "Cancelado" to something else, subtract stock again
+    else if (oldStatus === 'Cancelado' && newStatus !== 'Cancelado') {
+      manageStockForOrder(orderToUpdate, 'subtract');
+    }
+
     setOrders((prevOrders) => {
       const newOrders = prevOrders.map((order) =>
-        order.id === orderId ? { ...order, status } : order
+        order.id === orderId ? { ...order, status: newStatus } : order
       );
       return newOrders;
     });
     toast({
         title: "Status do Pedido Atualizado!",
-        description: `O pedido #${orderId} agora está como "${status}".`,
+        description: `O pedido #${orderId} agora está como "${newStatus}".`,
     });
   };
 
