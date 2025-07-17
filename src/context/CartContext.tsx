@@ -101,13 +101,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       const storedCategories = localStorage.getItem('categories');
       if (storedCategories) {
-        const parsedCategories = JSON.parse(storedCategories) as any[];
-        const migratedCategories = parsedCategories.map(c => ({
-          id: c.id || `cat-${c.name.toLowerCase().replace(/\s+/g, '-')}`,
-          name: c.name,
-          subcategories: c.subcategories || []
-        }));
-        setCategories(migratedCategories);
+        const parsedCategories = JSON.parse(storedCategories);
+        setCategories(parsedCategories || []);
       } else {
         const initialCats = getInitialCategories();
         setCategories(initialCats);
@@ -229,23 +224,25 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateCategoryName = (categoryId: string, newName: string) => {
-    const oldCategory = categories.find(c => c.id === categoryId);
-    if (!oldCategory) return;
-
     const nameExists = categories.some(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== categoryId);
     if (nameExists) {
       toast({ title: "Erro", description: "Uma categoria com esse novo nome já existe.", variant: "destructive" });
       return;
     }
 
+    const oldCategory = categories.find(c => c.id === categoryId);
+    if (!oldCategory) return;
+    
+    setProducts(prods =>
+      prods.map(p => (p.category === oldCategory.name ? { ...p, category: newName } : p))
+    );
+    
     setCategories(prev =>
       prev
         .map(c => (c.id === categoryId ? { ...c, name: newName } : c))
         .sort((a, b) => a.name.localeCompare(b.name))
     );
-    setProducts(prods =>
-      prods.map(p => (p.category === oldCategory.name ? { ...p, category: newName } : p))
-    );
+
     toast({ title: "Categoria Renomeada!" });
   };
 
@@ -290,6 +287,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
+    setProducts(prods => prods.map(p => 
+      (p.category === category.name && p.subcategory?.toLowerCase() === oldSub.toLowerCase()) 
+        ? { ...p, subcategory: newSub } 
+        : p
+    ));
     setCategories(prev => prev.map(c => {
         if (c.id === categoryId) {
             const newSubs = c.subcategories.map(s => s.toLowerCase() === oldSub.toLowerCase() ? newSub : s).sort();
@@ -297,11 +299,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         return c;
     }));
-    setProducts(prods => prods.map(p => 
-      (p.category === category.name && p.subcategory?.toLowerCase() === oldSub.toLowerCase()) 
-        ? { ...p, subcategory: newSub } 
-        : p
-    ));
     toast({ title: "Subcategoria Renomeada!" });
   };
 
