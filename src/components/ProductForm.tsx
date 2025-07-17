@@ -221,7 +221,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                 field.onChange(value);
                                 form.setValue('subcategory', ''); // Reset subcategory on change
                             }} 
-                            defaultValue={field.value}
+                            value={field.value}
                            >
                             <FormControl>
                                 <SelectTrigger>
