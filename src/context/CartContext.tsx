@@ -101,7 +101,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       const storedCategories = localStorage.getItem('categories');
       if (storedCategories) {
-        // Migration for older data that doesn't have an ID
         const parsedCategories = JSON.parse(storedCategories) as any[];
         const migratedCategories = parsedCategories.map(c => ({
           id: c.id || `cat-${c.name.toLowerCase().replace(/\s+/g, '-')}`,
@@ -212,39 +211,44 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       });
   };
 
-  // Category Management
   const addCategory = (name: string) => {
-    setCategories(prev => {
-        if (prev.some(c => c.name.toLowerCase() === name.toLowerCase())) {
-            toast({ title: "Erro", description: "Essa categoria já existe.", variant: "destructive" });
-            return prev;
-        }
-        const newCategory: Category = {
-            id: `cat-${Date.now()}`,
-            name,
-            subcategories: []
-        };
-        const newCategories = [...prev, newCategory].sort((a,b) => a.name.localeCompare(b.name));
-        toast({ title: "Categoria Adicionada!" });
-        return newCategories;
-    });
+    const nameExists = categories.some(c => c.name.toLowerCase() === name.toLowerCase());
+    if (nameExists) {
+      toast({ title: "Erro", description: "Essa categoria já existe.", variant: "destructive" });
+      return;
+    }
+
+    const newCategory: Category = {
+      id: `cat-${Date.now()}`,
+      name,
+      subcategories: []
+    };
+    
+    setCategories(prev => [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)));
+    toast({ title: "Categoria Adicionada!" });
   };
 
   const updateCategoryName = (categoryId: string, newName: string) => {
-    setCategories(prev => {
-        const oldCategory = prev.find(c => c.id === categoryId);
-        if (!oldCategory) return prev;
+    const oldCategory = categories.find(c => c.id === categoryId);
+    if (!oldCategory) return;
 
-        if (prev.some(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== categoryId)) {
-            toast({ title: "Erro", description: "Uma categoria com esse novo nome já existe.", variant: "destructive" });
-            return prev;
-        }
-        const newCategories = prev.map(c => c.id === categoryId ? { ...c, name: newName } : c).sort((a,b) => a.name.localeCompare(b.name));
-        setProducts(prods => prods.map(p => p.category === oldCategory.name ? { ...p, category: newName } : p));
-        toast({ title: "Categoria Renomeada!" });
-        return newCategories;
-    });
+    const nameExists = categories.some(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== categoryId);
+    if (nameExists) {
+      toast({ title: "Erro", description: "Uma categoria com esse novo nome já existe.", variant: "destructive" });
+      return;
+    }
+
+    setCategories(prev =>
+      prev
+        .map(c => (c.id === categoryId ? { ...c, name: newName } : c))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
+    setProducts(prods =>
+      prods.map(p => (p.category === oldCategory.name ? { ...p, category: newName } : p))
+    );
+    toast({ title: "Categoria Renomeada!" });
   };
+
 
   const deleteCategory = (categoryId: string) => {
     const categoryToDelete = categories.find(c => c.id === categoryId);
@@ -254,45 +258,51 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: "Erro", description: "Não é possível excluir categorias que contêm produtos.", variant: "destructive" });
         return;
     }
-    setCategories(prev => {
-        const newCategories = prev.filter(c => c.id !== categoryId);
-        toast({ title: "Categoria Excluída!", variant: "destructive" });
-        return newCategories;
-    });
+    setCategories(prev => prev.filter(c => c.id !== categoryId));
+    toast({ title: "Categoria Excluída!", variant: "destructive" });
   };
 
   const addSubcategory = (categoryId: string, subcategoryName: string) => {
-    setCategories(prev => {
-        return prev.map(c => {
-            if (c.id === categoryId) {
-                if (c.subcategories.some(s => s.toLowerCase() === subcategoryName.toLowerCase())) {
-                    toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
-                    return c;
-                }
-                toast({ title: "Subcategoria Adicionada!" });
-                return { ...c, subcategories: [...c.subcategories, subcategoryName].sort((a,b) => a.localeCompare(b)) };
-            }
-            return c;
-        });
-    });
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return;
+
+    const subExists = category.subcategories.some(s => s.toLowerCase() === subcategoryName.toLowerCase());
+    if (subExists) {
+      toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
+      return;
+    }
+    
+    setCategories(prev => prev.map(c => 
+      c.id === categoryId 
+        ? { ...c, subcategories: [...c.subcategories, subcategoryName].sort() } 
+        : c
+    ));
+    toast({ title: "Subcategoria Adicionada!" });
   };
 
   const updateSubcategory = (categoryId: string, oldSub: string, newSub: string) => {
-    setCategories(prev => {
-        return prev.map(c => {
-            if (c.id === categoryId) {
-                if (c.subcategories.some(s => s.toLowerCase() === newSub.toLowerCase() && oldSub.toLowerCase() !== newSub.toLowerCase())) {
-                    toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
-                    return c;
-                }
-                const newSubs = c.subcategories.map(s => s.toLowerCase() === oldSub.toLowerCase() ? newSub : s).sort((a,b) => a.localeCompare(b));
-                setProducts(prods => prods.map(p => (p.category === c.name && p.subcategory?.toLowerCase() === oldSub.toLowerCase()) ? { ...p, subcategory: newSub } : p));
-                toast({ title: "Subcategoria Renomeada!" });
-                return { ...c, subcategories: newSubs };
-            }
-            return c;
-        });
-    });
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return;
+
+    const subExists = category.subcategories.some(s => s.toLowerCase() === newSub.toLowerCase() && s.toLowerCase() !== oldSub.toLowerCase());
+    if (subExists) {
+        toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
+        return;
+    }
+
+    setCategories(prev => prev.map(c => {
+        if (c.id === categoryId) {
+            const newSubs = c.subcategories.map(s => s.toLowerCase() === oldSub.toLowerCase() ? newSub : s).sort();
+            return { ...c, subcategories: newSubs };
+        }
+        return c;
+    }));
+    setProducts(prods => prods.map(p => 
+      (p.category === category.name && p.subcategory?.toLowerCase() === oldSub.toLowerCase()) 
+        ? { ...p, subcategory: newSub } 
+        : p
+    ));
+    toast({ title: "Subcategoria Renomeada!" });
   };
 
   const deleteSubcategory = (categoryId: string, subcategoryName: string) => {
@@ -303,15 +313,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: "Erro", description: "Não é possível excluir subcategorias que contêm produtos.", variant: "destructive" });
         return;
     }
-    setCategories(prev => {
-        const newCategories = prev.map(c => 
-            c.id === categoryId
-                ? { ...c, subcategories: c.subcategories.filter(s => s.toLowerCase() !== subcategoryName.toLowerCase()) } 
-                : c
-        );
-        toast({ title: "Subcategoria Excluída!", variant: "destructive" });
-        return newCategories;
-    });
+    setCategories(prev => prev.map(c => 
+        c.id === categoryId
+            ? { ...c, subcategories: c.subcategories.filter(s => s.toLowerCase() !== subcategoryName.toLowerCase()) } 
+            : c
+    ));
+    toast({ title: "Subcategoria Excluída!", variant: "destructive" });
   };
 
 
