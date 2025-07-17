@@ -57,33 +57,18 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: productToEdit ? 
-    {
-      ...productToEdit,
-      maxInstallments: productToEdit.maxInstallments || 10,
-    }
-    : {
+    defaultValues: {
       name: '',
       description: '',
       longDescription: '',
       price: 0,
-      category: categories[0]?.name || '',
+      category: '',
       subcategory: '',
       stock: 0,
       imageUrls: [],
       maxInstallments: 10,
     },
   });
-
-  const price = form.watch('price');
-  const maxInstallments = form.watch('maxInstallments');
-  const selectedCategory = form.watch('category');
-  const installmentValue = price > 0 && maxInstallments > 0 ? price / maxInstallments : 0;
-  
-  const subcategories = useMemo(() => {
-    const category = categories.find(c => c.name === selectedCategory);
-    return category ? category.subcategories : [];
-  }, [selectedCategory, categories]);
 
   useEffect(() => {
     if (productToEdit) {
@@ -93,12 +78,13 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       });
       setImagePreviews(productToEdit.imageUrls || []);
     } else {
+      // For new products, set default values, ensuring category is valid.
       form.reset({
         name: '',
         description: '',
         longDescription: '',
         price: 0,
-        category: categories[0]?.name || '',
+        category: categories[0]?.name || '', // Crucial: ensure it has a valid initial value
         subcategory: '',
         stock: 0,
         imageUrls: [],
@@ -106,7 +92,17 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       });
        setImagePreviews([]);
     }
-  }, [productToEdit, form, categories]);
+  }, [productToEdit, categories, form]); // Dependency on `categories` is key.
+
+  const price = form.watch('price');
+  const maxInstallments = form.watch('maxInstallments');
+  const selectedCategory = form.watch('category');
+  const installmentValue = price > 0 && maxInstallments > 0 ? price / maxInstallments : 0;
+  
+  const subcategories = useMemo(() => {
+    const category = categories.find(c => c.name === selectedCategory);
+    return category?.subcategories || [];
+  }, [selectedCategory, categories]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -203,7 +199,6 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                               value={String(field.value ?? '').replace('.', ',')}
                               onChange={(e) => {
                                 let value = e.target.value;
-                                // Allow only numbers and a single comma
                                 value = value.replace(/[^0-9,]/g, '');
                                 const parts = value.split(',');
                                 if (parts.length > 2) {
@@ -261,17 +256,17 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                         </FormItem>
                       )}
                     />
-                     {subcategories && subcategories.length > 0 && (
+                    {subcategories.length > 0 && (
                         <FormField
-                          control={form.control}
-                          name="subcategory"
-                          render={({ field }) => (
+                            control={form.control}
+                            name="subcategory"
+                            render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Subcategoria</FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
-                                value={field.value}
-                              >
+                                <FormLabel>Subcategoria</FormLabel>
+                                <Select 
+                                    onValueChange={field.onChange} 
+                                    value={field.value}
+                                >
                                 <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione uma subcategoria" />
@@ -284,10 +279,10 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
-                              </Select>
-                              <FormMessage />
+                                </Select>
+                                <FormMessage />
                             </FormItem>
-                          )}
+                            )}
                         />
                      )}
                     <FormField
