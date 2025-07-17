@@ -245,14 +245,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
     const oldCategory = categories.find(c => c.id === categoryId);
     if (!oldCategory) return;
+    
+    // Update products using the new category name
     setProducts(prods =>
       prods.map(p => (p.category === oldCategory.name ? { ...p, category: newName } : p))
     );
+    
+    // Update the category itself
     setCategories(prev =>
       prev
         .map(c => (c.id === categoryId ? { ...c, name: newName } : c))
         .sort((a, b) => a.name.localeCompare(b.name))
     );
+    
     toast({ title: "Categoria Renomeada!" });
   };
 
