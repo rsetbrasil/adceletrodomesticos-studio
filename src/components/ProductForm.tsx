@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/context/CartContext';
 import { PackagePlus, X } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import type { Product } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
@@ -67,7 +67,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       description: '',
       longDescription: '',
       price: 0,
-      category: '',
+      category: categories[0]?.name || '',
       subcategory: '',
       stock: 0,
       imageUrls: [],
@@ -84,6 +84,29 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
     const category = categories.find(c => c.name === selectedCategory);
     return category ? category.subcategories : [];
   }, [selectedCategory, categories]);
+
+  useEffect(() => {
+    if (productToEdit) {
+      form.reset({
+        ...productToEdit,
+        maxInstallments: productToEdit.maxInstallments || 10,
+      });
+      setImagePreviews(productToEdit.imageUrls || []);
+    } else {
+      form.reset({
+        name: '',
+        description: '',
+        longDescription: '',
+        price: 0,
+        category: categories[0]?.name || '',
+        subcategory: '',
+        stock: 0,
+        imageUrls: [],
+        maxInstallments: 10,
+      });
+       setImagePreviews([]);
+    }
+  }, [productToEdit, form, categories]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -118,8 +141,6 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
     } else {
         addProduct(values);
     }
-    form.reset();
-    setImagePreviews([]);
     onFinished();
   }
 
@@ -219,7 +240,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                           <Select 
                             onValueChange={(value) => {
                                 field.onChange(value);
-                                form.setValue('subcategory', ''); // Reset subcategory on change
+                                form.setValue('subcategory', '', { shouldValidate: true });
                             }} 
                             value={field.value}
                            >
