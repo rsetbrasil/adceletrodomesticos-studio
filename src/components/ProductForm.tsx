@@ -66,11 +66,18 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
     if (productToEdit) {
       defaultValues = {
         ...productToEdit,
+        price: productToEdit.price || 0,
+        stock: productToEdit.stock || 0,
+        maxInstallments: productToEdit.maxInstallments || 1,
         subcategory: productToEdit.subcategory || '',
       };
     } else {
       const firstCategory = categories.length > 0 ? categories[0] : null;
-      const firstSubcategory = firstCategory?.subcategories.length ? firstCategory.subcategories[0] : '';
+      let firstSubcategory = '';
+      if (firstCategory && firstCategory.subcategories && firstCategory.subcategories.length > 0) {
+          firstSubcategory = firstCategory.subcategories[0];
+      }
+      
       defaultValues = {
         name: '',
         description: '',

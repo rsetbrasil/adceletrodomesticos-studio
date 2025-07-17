@@ -140,7 +140,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         if (event.key === 'orders' && event.newValue) setOrders(JSON.parse(event.newValue));
         if (event.key === 'cartItems' && event.newValue) setCartItems(JSON.parse(event.newValue));
         if (event.key === 'products' && event.newValue) setProducts(JSON.parse(event.newValue));
-        if (event.key === 'categories' && event.newValue) setCategories(JSON.parse(event.newValue));
+        if (event.key === 'categories' && event.newValue) setCategories(JSON.parse(event.newValue) || []);
       } catch (error) {
         console.error("Failed to parse localStorage data on change", error);
       }
