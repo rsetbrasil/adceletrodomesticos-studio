@@ -19,6 +19,7 @@ interface CartContextType {
   setLastOrder: (order: Order) => void;
   orders: Order[];
   addOrder: (order: Order) => void;
+  deleteOrder: (orderId: string) => void;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
   updateInstallmentStatus: (orderId: string, installmentNumber: number, status: Installment['status']) => void;
   updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date) => void;
@@ -149,6 +150,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
         if (handlers[event.key] && event.newValue) {
             handlers[event.key](JSON.parse(event.newValue));
+        } else if (handlers[event.key] && !event.newValue) {
+            const defaultValues = {
+                'products': initialProducts,
+                'categories': getInitialCategories(),
+                'orders': [],
+                'cartItems': [],
+            };
+            handlers[event.key](defaultValues[event.key as keyof typeof defaultValues]);
         }
       } catch (error) {
         console.error("Failed to parse localStorage data on change", error);
@@ -392,6 +401,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       return sortedOrders;
     });
   };
+  
+  const deleteOrder = (orderId: string) => {
+    setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
+  };
 
   const updateOrderStatus = (orderId: string, status: Order['status']) => {
     setOrders((prevOrders) => {
@@ -495,6 +508,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setLastOrder,
         orders,
         addOrder,
+        deleteOrder,
         updateOrderStatus,
         updateInstallmentStatus,
         updateInstallmentDueDate,
