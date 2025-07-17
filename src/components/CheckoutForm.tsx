@@ -191,7 +191,7 @@ export default function CheckoutForm() {
       })
       .reduce((max, current) => Math.max(max, current), 0);
       
-    const orderId = `PED-${lastOrderNumber + 1}`;
+    const orderId = `PED-${String(lastOrderNumber + 1).padStart(4, '0')}`;
     
     const finalInstallments = values.installments;
     const finalInstallmentValue = total / finalInstallments;
@@ -300,16 +300,16 @@ export default function CheckoutForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Número de Parcelas</FormLabel>
-                   <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
+                   <Select onValueChange={(value) => field.onChange(Number(value))} value={String(field.value)}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o número de parcelas" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {[...Array(maxAllowedInstallments).keys()].map((i) => (
-                        <SelectItem key={i + 1} value={String(i + 1)}>
-                          {i + 1}x de {formatCurrency(total / (i + 1))}
+                      {Array.from({ length: maxAllowedInstallments }, (_, i) => i + 1).map((i) => (
+                        <SelectItem key={i} value={String(i)}>
+                          {i}x de {formatCurrency(total / i)}
                         </SelectItem>
                       ))}
                     </SelectContent>

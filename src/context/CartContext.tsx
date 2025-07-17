@@ -176,10 +176,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         id: `prod-${Date.now()}`,
         'data-ai-hint': productData.name.toLowerCase().split(' ').slice(0, 2).join(' '),
       };
-      setProducts((prevProducts) => {
-        const newProducts = [newProduct, ...prevProducts];
-        return newProducts;
-      });
+      setProducts((prevProducts) => [newProduct, ...prevProducts]);
       toast({
           title: "Produto Cadastrado!",
           description: `O produto "${newProduct.name}" foi adicionado ao catálogo.`,
@@ -189,7 +186,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const updateProduct = (updatedProduct: Product) => {
     setProducts((prevProducts) =>
       prevProducts.map((p) =>
-        p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p
+        p.id === updatedProduct.id ? updatedProduct : p
       )
     );
     toast({
@@ -199,10 +196,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteProduct = (productId: string) => {
-      setProducts((prevProducts) => {
-        const newProducts = prevProducts.filter((p) => p.id !== productId);
-        return newProducts;
-      });
+      setProducts((prevProducts) => prevProducts.filter((p) => p.id !== productId));
       toast({
         title: 'Produto Excluído!',
         description: 'O produto foi removido do catálogo.',
@@ -360,10 +354,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const addOrder = (order: Order) => {
-    setOrders((prevOrders) => {
-      const newOrders = [order, ...prevOrders];
-      return newOrders;
-    });
+    setOrders((prevOrders) => [order, ...prevOrders]);
   };
 
   const updateOrderStatus = (orderId: string, status: Order['status']) => {
