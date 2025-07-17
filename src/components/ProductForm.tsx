@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -74,7 +75,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         description: '',
         longDescription: '',
         price: 0,
-        category: categories[0]?.name || '',
+        category: categories.length > 0 ? categories[0].name : '',
         subcategory: '',
         stock: 0,
         imageUrls: [],
@@ -186,7 +187,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                               type="text"
                               inputMode="decimal"
                               {...field}
-                              value={String(field.value === undefined ? '' : field.value).replace('.', ',')}
+                              value={field.value === undefined ? '' : String(field.value).replace('.', ',')}
                               onChange={(e) => {
                                 let value = e.target.value;
                                 value = value.replace(/[^0-9,]/g, '');
