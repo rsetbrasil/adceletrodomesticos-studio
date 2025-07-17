@@ -57,35 +57,35 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   const { addProduct, updateProduct, categories } = useCart();
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   
-  const defaultValues: ProductFormValues = useMemo(() => ({
-    name: '',
-    description: '',
-    longDescription: '',
-    price: 0,
-    category: categories.length > 0 ? categories[0].name : '',
-    subcategory: '',
-    stock: 0,
-    imageUrls: [],
-    maxInstallments: 10,
-  }), [categories]);
-
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues,
   });
 
   useEffect(() => {
+    let defaultValues: ProductFormValues;
     if (productToEdit) {
-      form.reset({
+      defaultValues = {
         ...productToEdit,
         subcategory: productToEdit.subcategory || '',
-      });
-      setImagePreviews(productToEdit.imageUrls || []);
+      };
     } else {
-      form.reset(defaultValues);
-      setImagePreviews([]);
+      const firstCategory = categories.length > 0 ? categories[0] : null;
+      const firstSubcategory = firstCategory?.subcategories.length ? firstCategory.subcategories[0] : '';
+      defaultValues = {
+        name: '',
+        description: '',
+        longDescription: '',
+        price: 0,
+        category: firstCategory?.name || '',
+        subcategory: firstSubcategory,
+        stock: 0,
+        imageUrls: [],
+        maxInstallments: 10,
+      };
     }
-  }, [productToEdit, defaultValues, form]);
+    form.reset(defaultValues);
+    setImagePreviews(defaultValues.imageUrls);
+  }, [productToEdit, categories, form]);
 
 
   const price = form.watch('price');
@@ -229,7 +229,8 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                           <Select 
                             onValueChange={(value) => {
                                 field.onChange(value);
-                                form.setValue('subcategory', '', { shouldValidate: true });
+                                const newSubs = categories.find(c => c.name === value)?.subcategories || [];
+                                form.setValue('subcategory', newSubs.length > 0 ? newSubs[0] : '', { shouldValidate: true });
                             }} 
                             value={field.value}
                            >
@@ -238,7 +239,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                     <SelectValue placeholder="Selecione uma categoria" />
                                 </SelectTrigger>
                             </FormControl>
-                            <SelectContent key={categories.length}>
+                            <SelectContent>
                                 {categories.map((cat, index) => (
                                     <SelectItem key={`${cat.name}-${index}`} value={cat.name} className="capitalize">
                                         {cat.name}
