@@ -28,8 +28,14 @@ const productSchema = z.object({
   description: z.string().min(10, 'A descrição curta é obrigatória.'),
   longDescription: z.string().min(20, 'A descrição longa é obrigatória.'),
   price: z.preprocess(
-    (val) => (typeof val === 'string' ? String(val).replace(/\./g, '').replace(',', '.') : val),
-    z.coerce.number().positive('O preço deve ser um número positivo.')
+    (val) => {
+      if (typeof val === 'string') {
+        const cleanedValue = val.replace(/\./g, '').replace(',', '.');
+        return parseFloat(cleanedValue);
+      }
+      return val;
+    },
+    z.coerce.number({ invalid_type_error: 'Preço inválido.' }).positive('O preço deve ser positivo.')
   ),
   category: z.string().min(1, 'A categoria é obrigatória.'),
   subcategory: z.string().optional(),
@@ -37,6 +43,7 @@ const productSchema = z.object({
   imageUrls: z.array(z.string()).min(1, 'Pelo menos uma imagem é obrigatória.'),
   maxInstallments: z.coerce.number().int().min(1, 'O número mínimo de parcelas é 1.'),
 });
+
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
@@ -48,15 +55,13 @@ const formatCurrency = (value: number) => {
     }).format(value);
 };
 
-const formatCurrencyInput = (value: string | number) => {
-  if (!value) return '';
+const formatCurrencyInput = (value: string | number | undefined | null) => {
+  if (value === undefined || value === null || value === '') return '';
   let strValue = String(value).replace(/\D/g, '');
   if (strValue === '') return '';
 
-  // Converte para número e divide por 100 para ter o valor em reais
   let numValue = parseInt(strValue, 10) / 100;
   
-  // Formata o número para o padrão brasileiro
   return numValue.toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -101,8 +106,8 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       };
       setImagePreviews(productToEdit.imageUrls || []);
     } else {
-      const firstCategory = categories.length > 0 ? categories[0] : null;
-      const firstSubcategory = firstCategory?.subcategories.length ? firstCategory.subcategories[0] : '';
+       const firstCategory = categories.length > 0 ? categories[0] : null;
+       const firstSubcategory = firstCategory?.subcategories.length ? firstCategory.subcategories[0] : '';
       defaultValues = {
         name: '',
         description: '',
@@ -123,7 +128,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   const price = form.watch('price');
   const maxInstallments = form.watch('maxInstallments');
   const selectedCategoryName = form.watch('category');
-  const installmentValue = price > 0 && maxInstallments > 0 ? price / maxInstallments : 0;
+  const installmentValue = (price || 0) > 0 && (maxInstallments || 0) > 0 ? (price || 0) / (maxInstallments || 1) : 0;
   
   const subcategories = useMemo(() => {
     const category = categories.find(c => c.name === selectedCategoryName);
@@ -220,14 +225,13 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                           <FormControl>
                              <Input
                               inputMode="decimal"
-                              value={formatCurrencyInput(field.value ?? '')}
+                              value={formatCurrencyInput(field.value)}
                               onChange={(e) => {
-                                const formattedValue = formatCurrencyInput(e.target.value);
-                                field.onChange(formattedValue);
+                                field.onChange(e.target.value);
                               }}
                             />
                           </FormControl>
-                          {price > 0 && maxInstallments > 1 && ( <p className="text-sm text-muted-foreground mt-2"> {maxInstallments}x de {formatCurrency(installmentValue)} </p> )}
+                          {(price || 0) > 0 && (maxInstallments || 0) > 1 && ( <p className="text-sm text-muted-foreground mt-2"> {maxInstallments}x de {formatCurrency(installmentValue)} </p> )}
                           <FormMessage />
                         </FormItem>
                       )}
