@@ -228,7 +228,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                     <SelectValue placeholder="Selecione uma categoria" />
                                 </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent key={categories.length}>
                                 {categories.map((cat, index) => (
                                     <SelectItem key={`${cat.name}-${index}`} value={cat.name} className="capitalize">
                                         {cat.name}
@@ -253,10 +253,10 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                           >
                             <FormControl>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Selecione uma subcategoria" />
+                                    <SelectValue placeholder={subcategories.length > 0 ? "Selecione uma subcategoria" : "Nenhuma"} />
                                 </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent key={subcategories.length}>
                                 {subcategories.map((sub, index) => (
                                     <SelectItem key={`${sub}-${index}`} value={sub} className="capitalize">
                                         {sub}
