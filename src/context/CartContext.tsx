@@ -228,13 +228,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: "Erro", description: "Essa categoria já existe.", variant: "destructive" });
       return;
     }
-
     const newCategory: Category = {
       id: `cat-${Date.now()}`,
       name,
       subcategories: []
     };
-    
     setCategories(prev => [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)));
     toast({ title: "Categoria Adicionada!" });
   };
@@ -245,20 +243,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: "Erro", description: "Uma categoria com esse novo nome já existe.", variant: "destructive" });
       return;
     }
-
     const oldCategory = categories.find(c => c.id === categoryId);
     if (!oldCategory) return;
-    
     setProducts(prods =>
       prods.map(p => (p.category === oldCategory.name ? { ...p, category: newName } : p))
     );
-    
     setCategories(prev =>
       prev
         .map(c => (c.id === categoryId ? { ...c, name: newName } : c))
         .sort((a, b) => a.name.localeCompare(b.name))
     );
-
     toast({ title: "Categoria Renomeada!" });
   };
 
@@ -393,31 +387,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const setLastOrder = (order: Order) => {
     setLastOrderState(order);
   }
-
-  const addOrder = (order: Order) => {
-    // 1. Update stock
-    setProducts(prevProducts => {
-      const updatedProducts = [...prevProducts];
-      order.items.forEach(cartItem => {
-        const productIndex = updatedProducts.findIndex(p => p.id === cartItem.id);
-        if (productIndex !== -1) {
-          const newStock = updatedProducts[productIndex].stock - cartItem.quantity;
-          updatedProducts[productIndex] = {
-            ...updatedProducts[productIndex],
-            stock: newStock >= 0 ? newStock : 0 // Ensure stock doesn't go negative
-          };
-        }
-      });
-      return updatedProducts;
-    });
-
-    // 2. Add order
-    setOrders((prevOrders) => {
-      const sortedOrders = [order, ...prevOrders];
-      sortedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      return sortedOrders;
-    });
-  };
   
   const manageStockForOrder = (order: Order | undefined, operation: 'add' | 'subtract') => {
     if (!order) return;
@@ -441,11 +410,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const addOrder = (order: Order) => {
+    manageStockForOrder(order, 'subtract');
+    setOrders((prevOrders) => {
+      const sortedOrders = [order, ...prevOrders];
+      sortedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      return sortedOrders;
+    });
+  };
+
   const deleteOrder = (orderId: string) => {
     const orderToDelete = orders.find(o => o.id === orderId);
     if (!orderToDelete) return;
 
-    // Return items to stock
     if (orderToDelete.status !== 'Cancelado') {
       manageStockForOrder(orderToDelete, 'add');
     }
@@ -459,11 +436,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   
     const oldStatus = orderToUpdate.status;
   
-    // If status changes TO "Cancelado" and it WASN'T "Cancelado" before, return stock
     if (newStatus === 'Cancelado' && oldStatus !== 'Cancelado') {
       manageStockForOrder(orderToUpdate, 'add');
     }
-    // If status changes FROM "Cancelado" to something else, subtract stock again
     else if (oldStatus === 'Cancelado' && newStatus !== 'Cancelado') {
       manageStockForOrder(orderToUpdate, 'subtract');
     }
