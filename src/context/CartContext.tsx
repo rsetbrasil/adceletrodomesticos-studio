@@ -56,13 +56,13 @@ const saveDataToLocalStorage = (key: string, data: any) => {
 const getInitialCategories = (): Category[] => {
     const mainCategories = Array.from(new Set(initialProducts.map(p => p.category)));
     
-    return mainCategories.map(catName => {
+    return mainCategories.map((catName, index) => {
         const subcategories = Array.from(new Set(
             initialProducts
                 .filter(p => p.category === catName && p.subcategory)
                 .map(p => p.subcategory!)
         )).sort();
-        return { id: `cat-${catName.toLowerCase().replace(/\s+/g, '-')}`, name: catName, subcategories };
+        return { id: `cat-${Date.now()}-${index}`, name: catName, subcategories };
     }).sort((a, b) => a.name.localeCompare(b.name));
 };
 
@@ -202,11 +202,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateProduct = (updatedProduct: Product) => {
-    setProducts((prevProducts) =>
-      prevProducts.map((p) =>
-        p.id === updatedProduct.id ? updatedProduct : p
-      )
+    const updatedProductsList = products.map((p) =>
+      p.id === updatedProduct.id ? updatedProduct : p
     );
+    setProducts(updatedProductsList);
+    saveDataToLocalStorage('products', updatedProductsList);
     toast({
       title: 'Produto Atualizado!',
       description: `O produto "${updatedProduct.name}" foi atualizado.`,
