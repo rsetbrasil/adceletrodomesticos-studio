@@ -25,7 +25,7 @@ export default function ManageCategoriesPage() {
 
     const openDialog = (mode: typeof dialogState.mode, data?: any) => {
         setDialogState({ mode, data });
-        setInputValue(data?.name || data?.subName || '');
+        setInputValue(data?.categoryName || data?.subName || '');
     };
 
     const closeDialog = () => {
@@ -44,13 +44,13 @@ export default function ManageCategoriesPage() {
                 addCategory(inputValue.trim());
                 break;
             case 'editCategory':
-                updateCategoryName(dialogState.data.oldName, inputValue.trim());
+                updateCategoryName(dialogState.data.categoryId, inputValue.trim());
                 break;
             case 'addSubcategory':
-                addSubcategory(dialogState.data.categoryName, inputValue.trim());
+                addSubcategory(dialogState.data.categoryId, inputValue.trim());
                 break;
             case 'editSubcategory':
-                updateSubcategory(dialogState.data.categoryName, dialogState.data.oldSubName, inputValue.trim());
+                updateSubcategory(dialogState.data.categoryId, dialogState.data.oldSubName, inputValue.trim());
                 break;
         }
         closeDialog();
@@ -59,7 +59,7 @@ export default function ManageCategoriesPage() {
     const getDialogTitle = () => {
         switch (dialogState.mode) {
             case 'addCategory': return 'Adicionar Nova Categoria';
-            case 'editCategory': return `Editar Categoria: ${dialogState.data?.oldName}`;
+            case 'editCategory': return `Editar Categoria: ${dialogState.data?.categoryName}`;
             case 'addSubcategory': return `Adicionar Subcategoria em ${dialogState.data?.categoryName}`;
             case 'editSubcategory': return `Editar Subcategoria: ${dialogState.data?.oldSubName}`;
             default: return '';
@@ -83,21 +83,21 @@ export default function ManageCategoriesPage() {
                 <CardContent>
                     {categories.length > 0 ? (
                         <div className="space-y-2">
-                            {categories.map((category, index) => (
-                                <Collapsible key={`${category.name}-${index}`} className="border rounded-lg">
+                            {categories.map((category) => (
+                                <Collapsible key={category.id} className="border rounded-lg">
                                     <div className="flex items-center justify-between w-full p-4 hover:bg-muted/50 rounded-t-lg data-[state=open]:rounded-b-none group">
                                         <CollapsibleTrigger className="flex items-center gap-2">
                                             <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
                                             <span className="font-semibold">{category.name}</span>
                                         </CollapsibleTrigger>
                                         <div className="flex items-center gap-2">
-                                            <Button variant="ghost" size="sm" onClick={() => openDialog('editCategory', { oldName: category.name })}>
+                                            <Button variant="ghost" size="sm" onClick={() => openDialog('editCategory', { categoryId: category.id, categoryName: category.name })}>
                                                 <Edit className="mr-2 h-4 w-4"/> Editar Nome
                                             </Button>
-                                            <Button variant="ghost" size="sm" onClick={() => openDialog('addSubcategory', { categoryName: category.name })}>
+                                            <Button variant="ghost" size="sm" onClick={() => openDialog('addSubcategory', { categoryId: category.id, categoryName: category.name })}>
                                                 <PlusCircle className="mr-2 h-4 w-4"/> Adicionar Subcategoria
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteCategory(category.name)}>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteCategory(category.id)}>
                                                 <Trash className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -110,10 +110,10 @@ export default function ManageCategoriesPage() {
                                                         <li key={sub} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
                                                             <span>{sub}</span>
                                                             <div className="flex items-center">
-                                                                <Button variant="ghost" size="icon" onClick={() => openDialog('editSubcategory', { categoryName: category.name, oldSubName: sub })}>
+                                                                <Button variant="ghost" size="icon" onClick={() => openDialog('editSubcategory', { categoryId: category.id, oldSubName: sub })}>
                                                                     <Edit className="h-4 w-4"/>
                                                                 </Button>
-                                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteSubcategory(category.name, sub)}>
+                                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteSubcategory(category.id, sub)}>
                                                                     <Trash className="h-4 w-4" />
                                                                 </Button>
                                                             </div>

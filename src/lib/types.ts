@@ -73,6 +73,7 @@ export type User = {
 };
 
 export type Category = {
+  id: string;
   name: string;
   subcategories: string[];
 };

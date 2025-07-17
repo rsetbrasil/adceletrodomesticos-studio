@@ -73,32 +73,23 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   });
 
   useEffect(() => {
-    if (categories.length === 0 && !productToEdit) {
-      form.reset({
-        name: '', description: '', longDescription: '', price: 0,
-        category: '', subcategory: '', stock: 0, imageUrls: [], maxInstallments: 10,
-      });
-      return;
-    };
-
-    let defaultValues: ProductFormValues;
     if (productToEdit) {
-      defaultValues = {
+      form.reset({
         ...productToEdit,
         price: productToEdit.price || 0,
         stock: productToEdit.stock || 0,
-        maxInstallments: productToEdit.maxInstallments || 1,
+        maxInstallments: productToEdit.maxInstallments || 10,
         subcategory: productToEdit.subcategory || '',
         imageUrls: productToEdit.imageUrls || [],
-      };
+      });
       setImagePreviews(productToEdit.imageUrls || []);
     } else {
       const firstCategory = categories.length > 0 ? categories[0] : null;
       let firstSubcategory = '';
       if (firstCategory && firstCategory.subcategories && firstCategory.subcategories.length > 0) {
-          firstSubcategory = firstCategory.subcategories[0];
+        firstSubcategory = firstCategory.subcategories[0];
       }
-      defaultValues = {
+      form.reset({
         name: '',
         description: '',
         longDescription: '',
@@ -108,10 +99,9 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         stock: 0,
         imageUrls: [],
         maxInstallments: 10,
-      };
+      });
       setImagePreviews([]);
     }
-    form.reset(defaultValues);
   }, [productToEdit, categories, form]);
 
 
@@ -241,7 +231,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                         <FormItem>
                           <FormLabel>Estoque</FormLabel>
                           <FormControl>
-                            <Input type="number" {...field} value={field.value ?? ''} />
+                            <Input type="number" {...field} value={field.value ?? 0} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -267,8 +257,8 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {categories.map((cat, index) => (
-                                    <SelectItem key={`${cat.name}-${index}`} value={cat.name} className="capitalize">
+                                {categories.map((cat) => (
+                                    <SelectItem key={cat.id} value={cat.name} className="capitalize">
                                         {cat.name}
                                     </SelectItem>
                                 ))}
@@ -314,7 +304,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                         <FormItem>
                           <FormLabel>Parcelas Máximas</FormLabel>
                           <FormControl>
-                            <Input type="number" min="1" {...field} value={field.value ?? ''} />
+                            <Input type="number" min="1" {...field} value={field.value ?? 1} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

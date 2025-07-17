@@ -30,11 +30,11 @@ interface CartContextType {
   deleteProduct: (productId: string) => void;
   categories: Category[];
   addCategory: (categoryName: string) => void;
-  deleteCategory: (categoryName: string) => void;
-  updateCategoryName: (oldName: string, newName: string) => void;
-  addSubcategory: (categoryName: string, subcategoryName: string) => void;
-  updateSubcategory: (categoryName: string, oldSub: string, newSub: string) => void;
-  deleteSubcategory: (categoryName: string, subcategoryName: string) => void;
+  deleteCategory: (categoryId: string) => void;
+  updateCategoryName: (categoryId: string, newName: string) => void;
+  addSubcategory: (categoryId: string, subcategoryName: string) => void;
+  updateSubcategory: (categoryId: string, oldSub: string, newSub: string) => void;
+  deleteSubcategory: (categoryId: string, subcategoryName: string) => void;
   isLoading: boolean;
   restoreCartData: (data: { products: Product[], orders: Order[], categories: Category[] }) => void;
   resetOrders: () => void;
@@ -61,7 +61,7 @@ const getInitialCategories = (): Category[] => {
                 .filter(p => p.category === catName && p.subcategory)
                 .map(p => p.subcategory!)
         )).sort();
-        return { name: catName, subcategories };
+        return { id: `cat-${catName.toLowerCase().replace(/\s+/g, '-')}`, name: catName, subcategories };
     }).sort((a, b) => a.name.localeCompare(b.name));
 };
 
@@ -101,7 +101,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       const storedCategories = localStorage.getItem('categories');
       if (storedCategories) {
-        setCategories(JSON.parse(storedCategories) || []);
+        // Migration for older data that doesn't have an ID
+        const parsedCategories = JSON.parse(storedCategories) as any[];
+        const migratedCategories = parsedCategories.map(c => ({
+          id: c.id || `cat-${c.name.toLowerCase().replace(/\s+/g, '-')}`,
+          name: c.name,
+          subcategories: c.subcategories || []
+        }));
+        setCategories(migratedCategories);
       } else {
         const initialCats = getInitialCategories();
         setCategories(initialCats);
@@ -212,44 +219,55 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             toast({ title: "Erro", description: "Essa categoria já existe.", variant: "destructive" });
             return prev;
         }
-        const newCategories = [...prev, { name, subcategories: [] }].sort((a,b) => a.name.localeCompare(b.name));
+        const newCategory: Category = {
+            id: `cat-${Date.now()}`,
+            name,
+            subcategories: []
+        };
+        const newCategories = [...prev, newCategory].sort((a,b) => a.name.localeCompare(b.name));
         toast({ title: "Categoria Adicionada!" });
         return newCategories;
     });
   };
 
-  const updateCategoryName = (oldName: string, newName: string) => {
+  const updateCategoryName = (categoryId: string, newName: string) => {
     setCategories(prev => {
-        if (prev.some(c => c.name.toLowerCase() === newName.toLowerCase() && oldName.toLowerCase() !== newName.toLowerCase())) {
+        const oldCategory = prev.find(c => c.id === categoryId);
+        if (!oldCategory) return prev;
+
+        if (prev.some(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== categoryId)) {
             toast({ title: "Erro", description: "Uma categoria com esse novo nome já existe.", variant: "destructive" });
             return prev;
         }
-        const newCategories = prev.map(c => c.name.toLowerCase() === oldName.toLowerCase() ? { ...c, name: newName } : c).sort((a,b) => a.name.localeCompare(b.name));
-        setProducts(prods => prods.map(p => p.category.toLowerCase() === oldName.toLowerCase() ? { ...p, category: newName } : p));
+        const newCategories = prev.map(c => c.id === categoryId ? { ...c, name: newName } : c).sort((a,b) => a.name.localeCompare(b.name));
+        setProducts(prods => prods.map(p => p.category === oldCategory.name ? { ...p, category: newName } : p));
         toast({ title: "Categoria Renomeada!" });
         return newCategories;
     });
   };
 
-  const deleteCategory = (name: string) => {
-    if (products.some(p => p.category.toLowerCase() === name.toLowerCase())) {
+  const deleteCategory = (categoryId: string) => {
+    const categoryToDelete = categories.find(c => c.id === categoryId);
+    if (!categoryToDelete) return;
+
+    if (products.some(p => p.category === categoryToDelete.name)) {
         toast({ title: "Erro", description: "Não é possível excluir categorias que contêm produtos.", variant: "destructive" });
         return;
     }
     setCategories(prev => {
-        const newCategories = prev.filter(c => c.name.toLowerCase() !== name.toLowerCase());
+        const newCategories = prev.filter(c => c.id !== categoryId);
         toast({ title: "Categoria Excluída!", variant: "destructive" });
         return newCategories;
     });
   };
 
-  const addSubcategory = (categoryName: string, subcategoryName: string) => {
+  const addSubcategory = (categoryId: string, subcategoryName: string) => {
     setCategories(prev => {
         return prev.map(c => {
-            if (c.name.toLowerCase() === categoryName.toLowerCase()) {
+            if (c.id === categoryId) {
                 if (c.subcategories.some(s => s.toLowerCase() === subcategoryName.toLowerCase())) {
                     toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
-                    return c; // Return original category without changes
+                    return c;
                 }
                 toast({ title: "Subcategoria Adicionada!" });
                 return { ...c, subcategories: [...c.subcategories, subcategoryName].sort((a,b) => a.localeCompare(b)) };
@@ -259,16 +277,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const updateSubcategory = (categoryName: string, oldSub: string, newSub: string) => {
+  const updateSubcategory = (categoryId: string, oldSub: string, newSub: string) => {
     setCategories(prev => {
         return prev.map(c => {
-            if (c.name.toLowerCase() === categoryName.toLowerCase()) {
+            if (c.id === categoryId) {
                 if (c.subcategories.some(s => s.toLowerCase() === newSub.toLowerCase() && oldSub.toLowerCase() !== newSub.toLowerCase())) {
                     toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
                     return c;
                 }
                 const newSubs = c.subcategories.map(s => s.toLowerCase() === oldSub.toLowerCase() ? newSub : s).sort((a,b) => a.localeCompare(b));
-                setProducts(prods => prods.map(p => (p.category.toLowerCase() === categoryName.toLowerCase() && p.subcategory?.toLowerCase() === oldSub.toLowerCase()) ? { ...p, subcategory: newSub } : p));
+                setProducts(prods => prods.map(p => (p.category === c.name && p.subcategory?.toLowerCase() === oldSub.toLowerCase()) ? { ...p, subcategory: newSub } : p));
                 toast({ title: "Subcategoria Renomeada!" });
                 return { ...c, subcategories: newSubs };
             }
@@ -277,14 +295,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const deleteSubcategory = (categoryName: string, subcategoryName: string) => {
-    if (products.some(p => p.category.toLowerCase() === categoryName.toLowerCase() && p.subcategory?.toLowerCase() === subcategoryName.toLowerCase())) {
+  const deleteSubcategory = (categoryId: string, subcategoryName: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return;
+
+    if (products.some(p => p.category === category.name && p.subcategory?.toLowerCase() === subcategoryName.toLowerCase())) {
         toast({ title: "Erro", description: "Não é possível excluir subcategorias que contêm produtos.", variant: "destructive" });
         return;
     }
     setCategories(prev => {
         const newCategories = prev.map(c => 
-            c.name.toLowerCase() === categoryName.toLowerCase()
+            c.id === categoryId
                 ? { ...c, subcategories: c.subcategories.filter(s => s.toLowerCase() !== subcategoryName.toLowerCase()) } 
                 : c
         );
