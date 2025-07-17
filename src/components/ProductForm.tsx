@@ -28,7 +28,7 @@ const productSchema = z.object({
   description: z.string().min(10, 'A descrição curta é obrigatória.'),
   longDescription: z.string().min(20, 'A descrição longa é obrigatória.'),
   price: z.preprocess(
-    (val) => (typeof val === 'string' ? String(val).replace(',', '.') : val),
+    (val) => (typeof val === 'string' ? String(val).replace(/\./g, '').replace(',', '.') : val),
     z.coerce.number().positive('O preço deve ser um número positivo.')
   ),
   category: z.string().min(1, 'A categoria é obrigatória.'),
@@ -47,6 +47,22 @@ const formatCurrency = (value: number) => {
       currency: 'BRL',
     }).format(value);
 };
+
+const formatCurrencyInput = (value: string | number) => {
+  if (!value) return '';
+  let strValue = String(value).replace(/\D/g, '');
+  if (strValue === '') return '';
+
+  // Converte para número e divide por 100 para ter o valor em reais
+  let numValue = parseInt(strValue, 10) / 100;
+  
+  // Formata o número para o padrão brasileiro
+  return numValue.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 
 interface ProductFormProps {
     productToEdit?: Product | null;
@@ -73,23 +89,21 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   });
 
   useEffect(() => {
+    let defaultValues: ProductFormValues;
     if (productToEdit) {
-      form.reset({
+      defaultValues = {
         ...productToEdit,
         price: productToEdit.price || 0,
         stock: productToEdit.stock || 0,
         maxInstallments: productToEdit.maxInstallments || 10,
         subcategory: productToEdit.subcategory || '',
         imageUrls: productToEdit.imageUrls || [],
-      });
+      };
       setImagePreviews(productToEdit.imageUrls || []);
     } else {
       const firstCategory = categories.length > 0 ? categories[0] : null;
-      let firstSubcategory = '';
-      if (firstCategory && firstCategory.subcategories && firstCategory.subcategories.length > 0) {
-        firstSubcategory = firstCategory.subcategories[0];
-      }
-      form.reset({
+      const firstSubcategory = firstCategory?.subcategories.length ? firstCategory.subcategories[0] : '';
+      defaultValues = {
         name: '',
         description: '',
         longDescription: '',
@@ -99,9 +113,10 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         stock: 0,
         imageUrls: [],
         maxInstallments: 10,
-      });
+      };
       setImagePreviews([]);
     }
+    form.reset(defaultValues);
   }, [productToEdit, categories, form]);
 
 
@@ -203,19 +218,12 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                         <FormItem>
                           <FormLabel>Preço (R$)</FormLabel>
                           <FormControl>
-                            <Input
-                              type="text"
+                             <Input
                               inputMode="decimal"
-                              {...field}
-                              value={String(field.value ?? '').replace('.', ',')}
+                              value={formatCurrencyInput(field.value ?? '')}
                               onChange={(e) => {
-                                let value = e.target.value;
-                                value = value.replace(/[^0-9,]/g, '');
-                                const parts = value.split(',');
-                                if (parts.length > 2) {
-                                    value = parts[0] + ',' + parts.slice(1).join('');
-                                }
-                                field.onChange(value);
+                                const formattedValue = formatCurrencyInput(e.target.value);
+                                field.onChange(formattedValue);
                               }}
                             />
                           </FormControl>
