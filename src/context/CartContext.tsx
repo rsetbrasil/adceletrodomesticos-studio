@@ -244,36 +244,35 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addSubcategory = (categoryName: string, subcategoryName: string) => {
     setCategories(prev => {
-        const category = prev.find(c => c.name === categoryName);
-        if (category?.subcategories.some(s => s.toLowerCase() === subcategoryName.toLowerCase())) {
-            toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
-            return prev;
-        }
-        const newCategories = prev.map(c => 
-            c.name === categoryName 
-                ? { ...c, subcategories: [...c.subcategories, subcategoryName].sort((a,b) => a.localeCompare(b)) } 
-                : c
-        );
-        toast({ title: "Subcategoria Adicionada!" });
-        return newCategories;
+        return prev.map(c => {
+            if (c.name === categoryName) {
+                if (c.subcategories.some(s => s.toLowerCase() === subcategoryName.toLowerCase())) {
+                    toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
+                    return c; // Return original category without changes
+                }
+                toast({ title: "Subcategoria Adicionada!" });
+                return { ...c, subcategories: [...c.subcategories, subcategoryName].sort((a,b) => a.localeCompare(b)) };
+            }
+            return c;
+        });
     });
   };
 
   const updateSubcategory = (categoryName: string, oldSub: string, newSub: string) => {
     setCategories(prev => {
-        const category = prev.find(c => c.name === categoryName);
-        if (category?.subcategories.some(s => s.toLowerCase() === newSub.toLowerCase() && oldSub.toLowerCase() !== newSub.toLowerCase())) {
-            toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
-            return prev;
-        }
-        const newCategories = prev.map(c => 
-            c.name === categoryName 
-                ? { ...c, subcategories: c.subcategories.map(s => s === oldSub ? newSub : s).sort((a,b) => a.localeCompare(b)) } 
-                : c
-        );
-        setProducts(prods => prods.map(p => (p.category === categoryName && p.subcategory === oldSub) ? { ...p, subcategory: newSub } : p));
-        toast({ title: "Subcategoria Renomeada!" });
-        return newCategories;
+        return prev.map(c => {
+            if (c.name === categoryName) {
+                if (c.subcategories.some(s => s.toLowerCase() === newSub.toLowerCase() && oldSub.toLowerCase() !== newSub.toLowerCase())) {
+                    toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
+                    return c;
+                }
+                const newSubs = c.subcategories.map(s => s === oldSub ? newSub : s).sort((a,b) => a.localeCompare(b));
+                setProducts(prods => prods.map(p => (p.category === categoryName && p.subcategory === oldSub) ? { ...p, subcategory: newSub } : p));
+                toast({ title: "Subcategoria Renomeada!" });
+                return { ...c, subcategories: newSubs };
+            }
+            return c;
+        });
     });
   };
 
