@@ -59,39 +59,48 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      longDescription: '',
+      price: 0,
+      category: '',
+      subcategory: '',
+      stock: 0,
+      imageUrls: [],
+      maxInstallments: 10,
+    }
   });
 
   useEffect(() => {
-    let defaultValues: ProductFormValues;
     if (productToEdit) {
-      defaultValues = {
+      form.reset({
         ...productToEdit,
         price: productToEdit.price || 0,
         stock: productToEdit.stock || 0,
         maxInstallments: productToEdit.maxInstallments || 1,
         subcategory: productToEdit.subcategory || '',
-      };
+      });
+      setImagePreviews(productToEdit.imageUrls || []);
     } else {
-      const firstCategory = categories.length > 0 ? categories[0] : null;
-      let firstSubcategory = '';
-      if (firstCategory && firstCategory.subcategories && firstCategory.subcategories.length > 0) {
-          firstSubcategory = firstCategory.subcategories[0];
-      }
-      
-      defaultValues = {
-        name: '',
-        description: '',
-        longDescription: '',
-        price: 0,
-        category: firstCategory?.name || '',
-        subcategory: firstSubcategory,
-        stock: 0,
-        imageUrls: [],
-        maxInstallments: 10,
-      };
+        const firstCategory = categories?.length > 0 ? categories[0] : null;
+        let firstSubcategory = '';
+        if (firstCategory && firstCategory.subcategories && firstCategory.subcategories.length > 0) {
+            firstSubcategory = firstCategory.subcategories[0];
+        }
+        form.reset({
+            name: '',
+            description: '',
+            longDescription: '',
+            price: 0,
+            category: firstCategory?.name || '',
+            subcategory: firstSubcategory,
+            stock: 0,
+            imageUrls: [],
+            maxInstallments: 10,
+        });
+        setImagePreviews([]);
     }
-    form.reset(defaultValues);
-    setImagePreviews(defaultValues.imageUrls);
   }, [productToEdit, categories, form]);
 
 
@@ -197,7 +206,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                               type="text"
                               inputMode="decimal"
                               {...field}
-                              value={field.value === undefined || field.value === null ? '' : String(field.value).replace('.', ',')}
+                              value={String(field.value ?? '').replace('.', ',')}
                               onChange={(e) => {
                                 let value = e.target.value;
                                 value = value.replace(/[^0-9,]/g, '');
@@ -247,8 +256,8 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {categories.map((cat, index) => (
-                                    <SelectItem key={`${cat.name}-${index}`} value={cat.name} className="capitalize">
+                                {categories.map((cat) => (
+                                    <SelectItem key={cat.name} value={cat.name} className="capitalize">
                                         {cat.name}
                                     </SelectItem>
                                 ))}
@@ -275,8 +284,8 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {subcategories.map((sub, index) => (
-                                        <SelectItem key={`${sub}-${index}`} value={sub} className="capitalize">
+                                    {subcategories.map((sub) => (
+                                        <SelectItem key={sub} value={sub} className="capitalize">
                                             {sub}
                                         </SelectItem>
                                     ))}
