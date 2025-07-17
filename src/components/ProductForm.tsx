@@ -229,8 +229,8 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {categories.map((cat) => (
-                                    <SelectItem key={cat.name} value={cat.name} className="capitalize">
+                                {categories.map((cat, index) => (
+                                    <SelectItem key={`${cat.name}-${index}`} value={cat.name} className="capitalize">
                                         {cat.name}
                                     </SelectItem>
                                 ))}
@@ -257,8 +257,8 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {subcategories.map((sub) => (
-                                    <SelectItem key={sub} value={sub} className="capitalize">
+                                {subcategories.map((sub, index) => (
+                                    <SelectItem key={`${sub}-${index}`} value={sub} className="capitalize">
                                         {sub}
                                     </SelectItem>
                                 ))}
