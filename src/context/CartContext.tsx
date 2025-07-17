@@ -448,13 +448,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const updateCustomer = (updatedCustomer: CustomerInfo) => {
     setOrders((prevOrders) => {
-      const newOrders = prevOrders.map((order) => {
+      return prevOrders.map((order) => {
         if (order.customer.cpf === updatedCustomer.cpf) {
-          return { ...order, customer: updatedCustomer };
+          return { ...order, customer: { ...order.customer, ...updatedCustomer } };
         }
         return order;
       });
-      return newOrders;
     });
     toast({
       title: "Cliente Atualizado!",
