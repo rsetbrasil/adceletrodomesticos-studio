@@ -224,7 +224,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             return prev;
         }
         const newCategories = prev.map(c => c.name === oldName ? { ...c, name: newName } : c).sort((a,b) => a.name.localeCompare(b.name));
-        // Also update products
         setProducts(prods => prods.map(p => p.category === oldName ? { ...p, category: newName } : p));
         toast({ title: "Categoria Renomeada!" });
         return newCategories;
@@ -252,7 +251,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         const newCategories = prev.map(c => 
             c.name === categoryName 
-                ? { ...c, subcategories: [...c.subcategories, subcategoryName].sort() } 
+                ? { ...c, subcategories: [...c.subcategories, subcategoryName].sort((a,b) => a.localeCompare(b)) } 
                 : c
         );
         toast({ title: "Subcategoria Adicionada!" });
@@ -269,10 +268,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         const newCategories = prev.map(c => 
             c.name === categoryName 
-                ? { ...c, subcategories: c.subcategories.map(s => s === oldSub ? newSub : s).sort() } 
+                ? { ...c, subcategories: c.subcategories.map(s => s === oldSub ? newSub : s).sort((a,b) => a.localeCompare(b)) } 
                 : c
         );
-        // Also update products
         setProducts(prods => prods.map(p => (p.category === categoryName && p.subcategory === oldSub) ? { ...p, subcategory: newSub } : p));
         toast({ title: "Subcategoria Renomeada!" });
         return newCategories;
