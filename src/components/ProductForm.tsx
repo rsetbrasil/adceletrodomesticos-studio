@@ -61,26 +61,20 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   });
 
   useEffect(() => {
-    // This effect now correctly handles both editing a product and creating a new one.
-    // It depends on `productToEdit` and `categories` to ensure it runs when these crucial props are available.
     if (productToEdit) {
-      // If editing, populate the form with the product's data.
       form.reset({
         ...productToEdit,
+        price: productToEdit.price || 0,
         maxInstallments: productToEdit.maxInstallments || 10,
       });
       setImagePreviews(productToEdit.imageUrls || []);
     } else {
-      // If creating a new product, reset the form to default values.
-      // Crucially, it sets the 'category' to the first available category name,
-      // or an empty string if no categories exist. This ensures the Select
-      // component always has a valid initial value.
       form.reset({
         name: '',
         description: '',
         longDescription: '',
         price: 0,
-        category: categories[0]?.name || '', // Ensures a valid starting value
+        category: categories[0]?.name || '',
         subcategory: '',
         stock: 0,
         imageUrls: [],
@@ -192,7 +186,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                               type="text"
                               inputMode="decimal"
                               {...field}
-                              value={String(field.value ?? '').replace('.', ',')}
+                              value={String(field.value === undefined ? '' : field.value).replace('.', ',')}
                               onChange={(e) => {
                                 let value = e.target.value;
                                 value = value.replace(/[^0-9,]/g, '');
@@ -344,5 +338,3 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
     </Form>
   );
 }
-
-    
