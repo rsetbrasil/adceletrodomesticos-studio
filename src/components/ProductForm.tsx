@@ -30,8 +30,8 @@ const productSchema = z.object({
   price: z.preprocess(
     (val) => {
       if (typeof val === 'string') {
-        const cleanedValue = val.replace(/\./g, '').replace(',', '.');
-        return parseFloat(cleanedValue);
+        // Converte o formato BRL "1.234,56" para o formato numérico "1234.56"
+        return parseFloat(val.replace(/\./g, '').replace(',', '.'));
       }
       return val;
     },
@@ -55,14 +55,11 @@ const formatCurrency = (value: number) => {
     }).format(value);
 };
 
-const formatCurrencyInput = (value: string | number | undefined | null) => {
-  if (value === undefined || value === null || value === '') return '';
-  let strValue = String(value).replace(/\D/g, '');
-  if (strValue === '') return '';
-
-  let numValue = parseInt(strValue, 10) / 100;
-  
-  return numValue.toLocaleString('pt-BR', {
+const formatBRL = (value: number | undefined | null) => {
+  if (value === undefined || value === null || isNaN(value)) {
+    return "";
+  }
+  return value.toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -114,7 +111,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         longDescription: '',
         price: 0,
         category: firstCategory?.name || '',
-        subcategory: firstSubcategory,
+        subcategory: firstSubcategory || '',
         stock: 0,
         imageUrls: [],
         maxInstallments: 10,
@@ -223,11 +220,13 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                         <FormItem>
                           <FormLabel>Preço (R$)</FormLabel>
                           <FormControl>
-                             <Input
+                            <Input
+                              {...field}
                               inputMode="decimal"
-                              value={formatCurrencyInput(field.value)}
+                              value={formatBRL(field.value)}
                               onChange={(e) => {
-                                field.onChange(e.target.value);
+                                const rawValue = e.target.value.replace(/\D/g, '');
+                                field.onChange(Number(rawValue) / 100);
                               }}
                             />
                           </FormControl>
@@ -289,7 +288,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                 <FormLabel>Subcategoria</FormLabel>
                                 <Select 
                                     onValueChange={field.onChange} 
-                                    value={field.value}
+                                    value={field.value || ""}
                                 >
                                 <FormControl>
                                     <SelectTrigger>
