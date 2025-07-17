@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -57,34 +58,29 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      longDescription: '',
-      price: 0,
-      category: '',
-      subcategory: '',
-      stock: 0,
-      imageUrls: [],
-      maxInstallments: 10,
-    },
   });
 
   useEffect(() => {
+    // This effect now correctly handles both editing a product and creating a new one.
+    // It depends on `productToEdit` and `categories` to ensure it runs when these crucial props are available.
     if (productToEdit) {
+      // If editing, populate the form with the product's data.
       form.reset({
         ...productToEdit,
         maxInstallments: productToEdit.maxInstallments || 10,
       });
       setImagePreviews(productToEdit.imageUrls || []);
     } else {
-      // For new products, set default values, ensuring category is valid.
+      // If creating a new product, reset the form to default values.
+      // Crucially, it sets the 'category' to the first available category name,
+      // or an empty string if no categories exist. This ensures the Select
+      // component always has a valid initial value.
       form.reset({
         name: '',
         description: '',
         longDescription: '',
         price: 0,
-        category: categories[0]?.name || '', // Crucial: ensure it has a valid initial value
+        category: categories[0]?.name || '', // Ensures a valid starting value
         subcategory: '',
         stock: 0,
         imageUrls: [],
@@ -92,17 +88,17 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       });
        setImagePreviews([]);
     }
-  }, [productToEdit, categories, form]); // Dependency on `categories` is key.
+  }, [productToEdit, categories, form]);
 
   const price = form.watch('price');
   const maxInstallments = form.watch('maxInstallments');
-  const selectedCategory = form.watch('category');
+  const selectedCategoryName = form.watch('category');
   const installmentValue = price > 0 && maxInstallments > 0 ? price / maxInstallments : 0;
   
   const subcategories = useMemo(() => {
-    const category = categories.find(c => c.name === selectedCategory);
+    const category = categories.find(c => c.name === selectedCategoryName);
     return category?.subcategories || [];
-  }, [selectedCategory, categories]);
+  }, [selectedCategoryName, categories]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -348,3 +344,5 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
     </Form>
   );
 }
+
+    
