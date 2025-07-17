@@ -228,7 +228,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                     <SelectValue placeholder="Selecione uma categoria" />
                                 </SelectTrigger>
                             </FormControl>
-                            <SelectContent key={categories.length}>
+                            <SelectContent>
                                 {categories.map((cat, index) => (
                                     <SelectItem key={`${cat.name}-${index}`} value={cat.name} className="capitalize">
                                         {cat.name}
@@ -240,34 +240,35 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                         </FormItem>
                       )}
                     />
-                     <FormField
-                      control={form.control}
-                      name="subcategory"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Subcategoria</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            value={field.value}
-                            disabled={subcategories.length === 0}
-                          >
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={subcategories.length > 0 ? "Selecione uma subcategoria" : "Nenhuma"} />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent key={subcategories.length}>
-                                {subcategories.map((sub, index) => (
-                                    <SelectItem key={`${sub}-${index}`} value={sub} className="capitalize">
-                                        {sub}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                     {subcategories && subcategories.length > 0 && (
+                        <FormField
+                          control={form.control}
+                          name="subcategory"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Subcategoria</FormLabel>
+                              <Select 
+                                onValueChange={field.onChange} 
+                                value={field.value}
+                              >
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione uma subcategoria" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {subcategories.map((sub, index) => (
+                                        <SelectItem key={`${sub}-${index}`} value={sub} className="capitalize">
+                                            {sub}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                     )}
                     <FormField
                       control={form.control}
                       name="maxInstallments"
