@@ -83,32 +83,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const storedCart = localStorage.getItem('cartItems');
       if (storedCart) setCartItems(JSON.parse(storedCart));
 
-      let loadedOrders: Order[] = [];
       const storedOrdersRaw = localStorage.getItem('orders');
       if (storedOrdersRaw) {
-        loadedOrders = JSON.parse(storedOrdersRaw);
-      }
-
-      // Check if migration is needed for old order IDs
-      const needsMigration = loadedOrders.length > 0 && loadedOrders.some(o => !o.id.startsWith('PED-'));
-
-      if (needsMigration) {
-          // Sort by date to make IDs sequential and meaningful
-          const sortedByDate = loadedOrders.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-          
-          const migratedOrders = sortedByDate.map((order, index) => {
-              // Force re-ID for all orders to ensure sequence
-              return { ...order, id: `PED-${index + 1}` };
-          });
-
-          // Sort back to newest first for UI display
-          const finalOrders = migratedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          
-          setOrders(finalOrders);
-      } else {
-          // Ensure orders are always sorted newest first, even without migration
-          const sortedOrders = loadedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          setOrders(sortedOrders);
+        const loadedOrders = JSON.parse(storedOrdersRaw) as Order[];
+        // Always sort by date to ensure newest first for UI display
+        const sortedOrders = loadedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setOrders(sortedOrders);
       }
 
       const storedProducts = localStorage.getItem('products');
