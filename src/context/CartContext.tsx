@@ -138,11 +138,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === null) return;
       try {
-        if (event.key === 'orders' && event.newValue) setOrders(JSON.parse(event.newValue));
-        if (event.key === 'cartItems' && event.newValue) setCartItems(JSON.parse(event.newValue));
-        if (event.key === 'products' && event.newValue) setProducts(JSON.parse(event.newValue));
-        if (event.key === 'categories' && event.newValue) setCategories(JSON.parse(event.newValue) || []);
+        const handlers: { [key: string]: (value: any) => void } = {
+            'products': (value) => setProducts(value || initialProducts),
+            'categories': (value) => setCategories(value || getInitialCategories()),
+            'orders': (value) => setOrders(value || []),
+            'cartItems': (value) => setCartItems(value || []),
+        };
+
+        if (handlers[event.key] && event.newValue) {
+            handlers[event.key](JSON.parse(event.newValue));
+        }
       } catch (error) {
         console.error("Failed to parse localStorage data on change", error);
       }
@@ -251,7 +258,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const categoryToDelete = categories.find(c => c.id === categoryId);
     if (!categoryToDelete) return;
 
-    if (products.some(p => p.category === categoryToDelete.name)) {
+    const isCategoryInUse = products.some(p => p.category === categoryToDelete.name);
+    if (isCategoryInUse) {
         toast({ title: "Erro", description: "Não é possível excluir categorias que contêm produtos.", variant: "destructive" });
         return;
     }
@@ -306,7 +314,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
 
-    if (products.some(p => p.category === category.name && p.subcategory?.toLowerCase() === subcategoryName.toLowerCase())) {
+    const isSubcategoryInUse = products.some(p => p.category === category.name && p.subcategory?.toLowerCase() === subcategoryName.toLowerCase());
+    if (isSubcategoryInUse) {
         toast({ title: "Erro", description: "Não é possível excluir subcategorias que contêm produtos.", variant: "destructive" });
         return;
     }

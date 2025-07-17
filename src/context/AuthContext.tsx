@@ -66,9 +66,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handleStorageChange = (event: StorageEvent) => {
+        if (event.key === null) return;
         try {
-            if (event.key === 'user' && event.newValue) setUser(JSON.parse(event.newValue));
-            if (event.key === 'users' && event.newValue) setUsers(JSON.parse(event.newValue));
+            const handlers: { [key: string]: (value: any) => void } = {
+                'user': (value) => setUser(value || null),
+                'users': (value) => setUsers(value || initialUsers),
+            };
+
+            if (handlers[event.key] && event.newValue) {
+                handlers[event.key](JSON.parse(event.newValue));
+            } else if (handlers[event.key] && !event.newValue) {
+                // Handle item removal from localStorage
+                handlers[event.key](null);
+            }
         } catch (error) {
             console.error("Failed to parse localStorage data on change", error);
         }

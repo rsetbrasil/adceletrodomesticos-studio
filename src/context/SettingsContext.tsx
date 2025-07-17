@@ -66,11 +66,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
       if (typeof window === 'undefined') return;
       const handleStorageChange = (event: StorageEvent) => {
-          try {
-              if (event.key === 'settings' && event.newValue) setSettings(JSON.parse(event.newValue));
-          } catch (error) {
-              console.error("Failed to parse localStorage data on change", error);
-          }
+        if (event.key === 'settings') {
+            try {
+                if (event.newValue) {
+                    setSettings(JSON.parse(event.newValue));
+                } else {
+                    setSettings(initialSettings);
+                }
+            } catch (error) {
+                console.error("Failed to parse settings from localStorage on change", error);
+            }
+        }
       };
   
       window.addEventListener('storage', handleStorageChange);
