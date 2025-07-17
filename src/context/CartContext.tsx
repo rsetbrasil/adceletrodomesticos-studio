@@ -157,7 +157,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 'orders': [],
                 'cartItems': [],
             };
-            handlers[event.key](defaultValues[event.key as keyof typeof defaultValues]);
+            handlers[event.key as keyof typeof defaultValues](defaultValues[event.key as keyof typeof defaultValues]);
         }
       } catch (error) {
         console.error("Failed to parse localStorage data on change", error);
@@ -205,8 +205,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const updatedProductsList = products.map((p) =>
       p.id === updatedProduct.id ? updatedProduct : p
     );
-    setProducts(updatedProductsList);
     saveDataToLocalStorage('products', updatedProductsList);
+    setProducts(updatedProductsList);
     toast({
       title: 'Produto Atualizado!',
       description: `O produto "${updatedProduct.name}" foi atualizado.`,
@@ -243,21 +243,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: "Erro", description: "Uma categoria com esse novo nome já existe.", variant: "destructive" });
       return;
     }
+
     const oldCategory = categories.find(c => c.id === categoryId);
     if (!oldCategory) return;
-    
+    const oldName = oldCategory.name;
+
     // Update products using the new category name
-    setProducts(prods =>
-      prods.map(p => (p.category === oldCategory.name ? { ...p, category: newName } : p))
-    );
-    
+    const updatedProducts = products.map(p => (p.category.toLowerCase() === oldName.toLowerCase() ? { ...p, category: newName } : p));
+    saveDataToLocalStorage('products', updatedProducts);
+    setProducts(updatedProducts);
+
     // Update the category itself
-    setCategories(prev =>
-      prev
-        .map(c => (c.id === categoryId ? { ...c, name: newName } : c))
-        .sort((a, b) => a.name.localeCompare(b.name))
-    );
-    
+    const updatedCategories = categories
+      .map(c => (c.id === categoryId ? { ...c, name: newName } : c))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    saveDataToLocalStorage('categories', updatedCategories);
+    setCategories(updatedCategories);
+
     toast({ title: "Categoria Renomeada!" });
   };
 
