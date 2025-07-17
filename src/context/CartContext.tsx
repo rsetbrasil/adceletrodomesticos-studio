@@ -100,7 +100,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       const storedCategories = localStorage.getItem('categories');
       if (storedCategories) {
-        setCategories(JSON.parse(storedCategories));
+        setCategories(JSON.parse(storedCategories) || []);
       } else {
         const initialCats = getInitialCategories();
         setCategories(initialCats);
@@ -354,7 +354,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const addOrder = (order: Order) => {
-    setOrders((prevOrders) => [order, ...prevOrders]);
+    setOrders((prevOrders) => {
+      const sortedOrders = [order, ...prevOrders];
+      sortedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      return sortedOrders;
+    });
   };
 
   const updateOrderStatus = (orderId: string, status: Order['status']) => {
