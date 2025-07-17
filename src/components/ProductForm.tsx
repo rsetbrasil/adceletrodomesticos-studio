@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -42,6 +41,7 @@ const productSchema = z.object({
 type ProductFormValues = z.infer<typeof productSchema>;
 
 const formatCurrency = (value: number) => {
+    if (isNaN(value)) return 'R$ 0,00';
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -55,35 +55,38 @@ interface ProductFormProps {
 
 export default function ProductForm({ productToEdit, onFinished }: ProductFormProps) {
   const { addProduct, updateProduct, categories } = useCart();
-  const [imagePreviews, setImagePreviews] = useState<string[]>(productToEdit?.imageUrls || []);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  
+  const defaultValues: ProductFormValues = useMemo(() => ({
+    name: '',
+    description: '',
+    longDescription: '',
+    price: 0,
+    category: categories.length > 0 ? categories[0].name : '',
+    subcategory: '',
+    stock: 0,
+    imageUrls: [],
+    maxInstallments: 10,
+  }), [categories]);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
+    defaultValues,
   });
 
   useEffect(() => {
     if (productToEdit) {
       form.reset({
         ...productToEdit,
-        price: productToEdit.price || 0,
-        maxInstallments: productToEdit.maxInstallments || 10,
+        subcategory: productToEdit.subcategory || '',
       });
       setImagePreviews(productToEdit.imageUrls || []);
     } else {
-      form.reset({
-        name: '',
-        description: '',
-        longDescription: '',
-        price: 0,
-        category: categories.length > 0 ? categories[0].name : '',
-        subcategory: '',
-        stock: 0,
-        imageUrls: [],
-        maxInstallments: 10,
-      });
-       setImagePreviews([]);
+      form.reset(defaultValues);
+      setImagePreviews([]);
     }
-  }, [productToEdit, categories, form]);
+  }, [productToEdit, defaultValues, form]);
+
 
   const price = form.watch('price');
   const maxInstallments = form.watch('maxInstallments');
@@ -187,7 +190,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                               type="text"
                               inputMode="decimal"
                               {...field}
-                              value={field.value === undefined ? '' : String(field.value).replace('.', ',')}
+                              value={field.value === undefined || field.value === null ? '' : String(field.value).replace('.', ',')}
                               onChange={(e) => {
                                 let value = e.target.value;
                                 value = value.replace(/[^0-9,]/g, '');
@@ -211,7 +214,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                         <FormItem>
                           <FormLabel>Estoque</FormLabel>
                           <FormControl>
-                            <Input type="number" {...field} />
+                            <Input type="number" {...field} value={field.value ?? ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -235,7 +238,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                     <SelectValue placeholder="Selecione uma categoria" />
                                 </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent key={categories.length}>
                                 {categories.map((cat, index) => (
                                     <SelectItem key={`${cat.name}-${index}`} value={cat.name} className="capitalize">
                                         {cat.name}
@@ -283,7 +286,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                         <FormItem>
                           <FormLabel>Parcelas Máximas</FormLabel>
                           <FormControl>
-                            <Input type="number" min="1" {...field} />
+                            <Input type="number" min="1" {...field} value={field.value ?? ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
