@@ -37,7 +37,7 @@ interface CartContextType {
   updateCustomer: (customer: CustomerInfo) => Promise<void>;
   updateOrderDetails: (orderId: string, details: Partial<Order>) => Promise<void>;
   products: Product[];
-  addProduct: (product: Omit<Product, 'id' | 'data-ai-hint'>) => Promise<void>;
+  addProduct: (product: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
   deleteProduct: (productId: string) => Promise<void>;
   categories: Category[];
@@ -173,11 +173,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     clearCart();
   };
 
-  const addProduct = async (productData: Omit<Product, 'id' | 'data-ai-hint'>) => {
+  const addProduct = async (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>) => {
       const newProductId = `prod-${Date.now()}`;
       const newProduct: Product = {
         ...productData,
         id: newProductId,
+        createdAt: new Date().toISOString(),
         'data-ai-hint': productData.name.toLowerCase().split(' ').slice(0, 2).join(' '),
       };
       try {

@@ -17,6 +17,7 @@ export const products: Product[] = [
     subcategory: 'Celulares',
     stock: 15,
     maxInstallments: 12,
+    createdAt: '2023-10-26T10:00:00Z',
   },
   {
     id: '2',
@@ -33,6 +34,7 @@ export const products: Product[] = [
     subcategory: 'Notebooks',
     stock: 8,
     maxInstallments: 12,
+    createdAt: '2023-10-25T11:00:00Z',
   },
   {
     id: '3',
@@ -50,6 +52,7 @@ export const products: Product[] = [
     subcategory: 'Calçados',
     stock: 30,
     maxInstallments: 6,
+    createdAt: '2023-10-24T12:00:00Z',
   },
   {
     id: '4',
@@ -65,6 +68,7 @@ export const products: Product[] = [
     subcategory: 'Roupas',
     stock: 50,
     maxInstallments: 3,
+    createdAt: '2023-10-23T13:00:00Z',
   },
   {
     id: '5',
@@ -81,6 +85,7 @@ export const products: Product[] = [
     subcategory: 'Móveis para Sala',
     stock: 5,
     maxInstallments: 10,
+    createdAt: '2023-10-22T14:00:00Z',
   },
   {
     id: '6',
@@ -96,6 +101,7 @@ export const products: Product[] = [
     subcategory: 'Móveis para Cozinha',
     stock: 7,
     maxInstallments: 10,
+    createdAt: '2023-10-21T15:00:00Z',
   },
   {
     id: '7',
@@ -114,6 +120,7 @@ export const products: Product[] = [
     subcategory: 'Acessórios',
     stock: 22,
     maxInstallments: 8,
+    createdAt: '2023-10-20T16:00:00Z',
   },
   {
     id: '8',
@@ -130,6 +137,7 @@ export const products: Product[] = [
     subcategory: 'Roupas',
     stock: 18,
     maxInstallments: 5,
+    createdAt: '2023-10-19T17:00:00Z',
   },
   {
     id: '9',
@@ -143,6 +151,7 @@ export const products: Product[] = [
     subcategory: 'TVs',
     stock: 12,
     maxInstallments: 12,
+    createdAt: '2023-10-18T18:00:00Z',
   },
   {
     id: '10',
@@ -156,6 +165,7 @@ export const products: Product[] = [
     subcategory: 'Geladeiras',
     stock: 10,
     maxInstallments: 12,
+    createdAt: '2023-10-17T19:00:00Z',
   },
   {
     id: '11',
@@ -169,5 +179,6 @@ export const products: Product[] = [
     subcategory: 'Móveis para Quarto',
     stock: 15,
     maxInstallments: 10,
+    createdAt: '2023-10-16T20:00:00Z',
   }
 ];

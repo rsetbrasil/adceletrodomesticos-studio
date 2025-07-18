@@ -53,7 +53,7 @@ export default function Home() {
         filtered.sort((a, b) => b.price - a.price);
         break;
       case 'newest':
-        // Assuming products are ordered by newest in the source data
+        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         break;
       default: // relevance
         // No specific relevance logic, using default order

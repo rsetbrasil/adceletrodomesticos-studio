@@ -10,6 +10,7 @@ export type Product = {
   stock: number;
   maxInstallments?: number;
   "data-ai-hint"?: string;
+  createdAt: string; // Adicionado para ordenação
 };
 
 export type CartItem = {

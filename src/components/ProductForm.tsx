@@ -76,8 +76,6 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    // Define os valores padrão com base na existência de 'productToEdit'.
-    // Isso garante que o formulário seja inicializado corretamente.
     defaultValues: productToEdit ? {
         ...productToEdit,
         price: productToEdit.price || 0,
@@ -99,8 +97,6 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   });
 
   useEffect(() => {
-    // Redefine os valores do formulário quando `productToEdit` ou `categories` mudar.
-    // Isso é crucial para garantir que o formulário reflita os dados corretos.
     const defaultValues = productToEdit ? {
         ...productToEdit,
         price: productToEdit.price || 0,
@@ -162,10 +158,11 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   }
 
   function onSubmit(values: ProductFormValues) {
+    const productData = { ...values };
     if (productToEdit) {
-        updateProduct({ ...productToEdit, ...values });
+        updateProduct({ ...productToEdit, ...productData });
     } else {
-        addProduct(values);
+        addProduct(productData);
     }
     onFinished();
   }
