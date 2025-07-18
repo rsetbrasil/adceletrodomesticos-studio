@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 import { addMonths } from 'date-fns';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query } from 'firebase/firestore';
 
 const saveDataToLocalStorage = (key: string, data: any) => {
     if (typeof window === 'undefined') return;
@@ -16,19 +16,6 @@ const saveDataToLocalStorage = (key: string, data: any) => {
     } catch (error) {
         console.error(`Failed to save ${key} to localStorage`, error);
     }
-};
-
-const getInitialCategories = (products: Product[]): Category[] => {
-    const mainCategories = Array.from(new Set(products.map(p => p.category)));
-    
-    return mainCategories.map((catName, index) => {
-        const subcategories = Array.from(new Set(
-            products
-                .filter(p => p.category === catName && p.subcategory)
-                .map(p => p.subcategory!)
-        )).sort();
-        return { id: `cat-${Date.now()}-${index}`, name: catName, subcategories };
-    }).sort((a, b) => a.name.localeCompare(b.name));
 };
 
 interface CartContextType {
@@ -98,10 +85,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             setProducts(loadedProducts);
             
             // Load Categories
-            const categoriesSnapshot = await getDocs(collection(db, 'categories'));
+            const categoriesSnapshot = await getDocs(query(collection(db, 'categories')));
             let loadedCategories: Category[];
             if (categoriesSnapshot.empty) {
-                const initialCats = getInitialCategories(loadedProducts);
+                const initialCats = Array.from(new Set(loadedProducts.map(p => p.category))).map((catName, index) => ({
+                    id: `cat-${Date.now()}-${index}`,
+                    name: catName,
+                    subcategories: Array.from(new Set(loadedProducts.filter(p => p.category === catName && p.subcategory).map(p => p.subcategory!))).sort()
+                })).sort((a, b) => a.name.localeCompare(b.name));
+                
                 const batch = writeBatch(db);
                 initialCats.forEach(c => {
                     const docRef = doc(db, 'categories', c.id);
@@ -174,8 +166,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const resetAllCartData = async () => {
-     await restoreCartData({ products: initialProducts, orders: [], categories: getInitialCategories(initialProducts) });
-     clearCart();
+    const initialCats = Array.from(new Set(initialProducts.map(p => p.category))).map((catName, index) => ({
+        id: `cat-${Date.now()}-${index}`,
+        name: catName,
+        subcategories: Array.from(new Set(initialProducts.filter(p => p.category === catName && p.subcategory).map(p => p.subcategory!))).sort()
+    })).sort((a, b) => a.name.localeCompare(b.name));
+    await restoreCartData({ products: initialProducts, orders: [], categories: initialCats });
+    clearCart();
   };
 
   const addProduct = async (productData: Omit<Product, 'id' | 'data-ai-hint'>) => {
