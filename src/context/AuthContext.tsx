@@ -48,15 +48,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(JSON.parse(storedUser));
       }
 
-      const storedUsers = localStorage.getItem('users');
-      if (storedUsers) {
-        setUsers(JSON.parse(storedUsers));
+      // **Critical Change:** Prioritize localStorage for user data
+      const storedUsersJSON = localStorage.getItem('users');
+      if (storedUsersJSON) {
+        setUsers(JSON.parse(storedUsersJSON));
       } else {
+        // Only use initialUsers if localStorage is empty, then save it.
         setUsers(initialUsers);
         saveDataToLocalStorage('users', initialUsers);
       }
     } catch (error) {
         console.error("Failed to read state from localStorage", error);
+        // Fallback to initial data if parsing fails
         setUsers(initialUsers);
     } finally {
         setIsLoading(false);
@@ -170,5 +173,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    
