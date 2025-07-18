@@ -235,7 +235,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     };
     try {
         await setDoc(doc(db, 'categories', newCategoryId), newCategory);
-        setCategories(prev => [...prev, newCategory].sort((a,b) => a.name.localeCompare(b.name)));
+        setCategories(prev => [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)));
         toast({ title: "Categoria Adicionada!" });
     } catch (error) {
         console.error("Error adding category:", error);
