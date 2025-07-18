@@ -2,37 +2,35 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function isAuthenticated() {
-      return request.auth != null;
-    }
 
-    // PUBLIC DATA: Anyone can read these collections.
+    // Allow public read for products, categories, and store settings
+    // as these are needed for the public-facing storefront.
     match /products/{productId} {
       allow read: if true;
-      allow write: if isAuthenticated(); // Only authenticated users can write
-    }
-    
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
-    }
-    
-    match /config/{docId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if request.auth != null; // Authenticated users can write
     }
 
-    // ORDERS: Anyone can create an order (checkout), but only authenticated users can manage them.
-    match /orders/{orderId} {
-      allow create: if true; 
-      allow read, update, delete: if isAuthenticated();
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if request.auth != null; // Authenticated users can write
     }
-    
-    // USERS: Only authenticated users can query for their own username. Admin can do more.
+
+    match /config/storeSettings {
+      allow read: if true;
+      allow write: if request.auth != null; // Authenticated users can write
+    }
+
+    // Orders can be created by anyone (checkout process).
+    // Reading and updating them requires authentication.
+    match /orders/{orderId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // Users can be read or written to by an admin.
+    // We check for a custom claim 'role' on the auth token.
     match /users/{userId} {
-      allow read, update: if isAuthenticated() && request.auth.uid == userId;
-      allow create, delete, list: if isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow read, write: if request.auth != null && request.auth.token.role == 'admin';
     }
   }
 }
