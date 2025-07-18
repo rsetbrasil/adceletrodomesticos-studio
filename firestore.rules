@@ -6,54 +6,33 @@ service cloud.firestore {
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    function isRole(role) {
-      // This is insecure for production if user roles can be read by clients.
-      // It's suitable for this prototype where client-side role checking is acceptable.
-      // In a real app, you'd use custom claims.
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
-    }
-    
-    function isAdmin() {
-      return isRole('admin');
-    }
-    
-    function isManager() {
-      return isRole('gerente');
-    }
 
-    // PUBLIC: Anyone can read products, categories, and store settings
+    // PUBLIC DATA: Anyone can read these collections.
     match /products/{productId} {
       allow read: if true;
-      allow write: if isAuthenticated(); // Allow any authenticated user to manage
+      allow write: if isAuthenticated(); // Only authenticated users can write
     }
     
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isAuthenticated(); // Allow any authenticated user to manage
+      allow write: if isAuthenticated();
     }
     
-    match /config/storeSettings {
+    match /config/{docId} {
       allow read: if true;
-      allow write: if isAuthenticated(); // Allow any authenticated user to manage
+      allow write: if isAuthenticated();
     }
-    
-    // ORDERS
+
+    // ORDERS: Anyone can create an order (checkout), but only authenticated users can manage them.
     match /orders/{orderId} {
-      allow create: if true; // Anyone can create an order (checkout)
-      allow read, update, delete: if isAuthenticated(); // Only authenticated users can manage orders
+      allow create: if true; 
+      allow read, update, delete: if isAuthenticated();
     }
     
-    // USERS
+    // USERS: Only authenticated users can query for their own username. Admin can do more.
     match /users/{userId} {
-      // Allow a user to read their own data
-      allow read: if isAuthenticated() && request.auth.uid == userId;
-      
-      // Allow an admin to do anything
-      allow write: if isAdmin();
-      
-      // Special rule for login: allow anyone to query the users collection by username
-      allow list: if request.query.keys.hasAny(['username']);
+      allow read, update: if isAuthenticated() && request.auth.uid == userId;
+      allow create, delete, list: if isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   }
 }

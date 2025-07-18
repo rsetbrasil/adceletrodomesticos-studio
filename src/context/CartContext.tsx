@@ -117,7 +117,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
         } catch (error) {
             console.error("Failed to load data from Firestore:", error);
-            toast({ title: "Erro de Conexão", description: "Não foi possível carregar os dados da loja.", variant: "destructive" });
+            toast({ title: "Erro de Conexão", description: "Não foi possível carregar os dados da loja. Verifique as regras do Firestore.", variant: "destructive" });
         } finally {
             setIsLoading(false);
         }
@@ -130,9 +130,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     try {
         const batch = writeBatch(db);
-        // Clear existing collections (optional, can be dangerous)
-        // For simplicity, we'll just overwrite.
-
+        
         data.products.forEach(p => batch.set(doc(db, 'products', p.id), p));
         data.orders.forEach(o => batch.set(doc(db, 'orders', o.id), o));
         data.categories.forEach(c => batch.set(doc(db, 'categories', c.id), c));
