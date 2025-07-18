@@ -30,7 +30,6 @@ const productSchema = z.object({
   price: z.preprocess(
     (val) => {
       if (typeof val === 'string') {
-        // Converte o formato BRL "1.234,56" para o formato numérico "1234.56"
         return parseFloat(val.replace(/\./g, '').replace(',', '.'));
       }
       return val;
@@ -77,12 +76,21 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: {
+    // Define os valores padrão com base na existência de 'productToEdit'.
+    // Isso garante que o formulário seja inicializado corretamente.
+    defaultValues: productToEdit ? {
+        ...productToEdit,
+        price: productToEdit.price || 0,
+        stock: productToEdit.stock || 0,
+        maxInstallments: productToEdit.maxInstallments || 10,
+        subcategory: productToEdit.subcategory || '',
+        imageUrls: productToEdit.imageUrls || [],
+    } : {
       name: '',
       description: '',
       longDescription: '',
       price: 0,
-      category: '',
+      category: categories.length > 0 ? categories[0].name : '',
       subcategory: '',
       stock: 0,
       imageUrls: [],
@@ -91,34 +99,28 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   });
 
   useEffect(() => {
-    let defaultValues: ProductFormValues;
-    if (productToEdit) {
-      defaultValues = {
+    // Redefine os valores do formulário quando `productToEdit` ou `categories` mudar.
+    // Isso é crucial para garantir que o formulário reflita os dados corretos.
+    const defaultValues = productToEdit ? {
         ...productToEdit,
         price: productToEdit.price || 0,
         stock: productToEdit.stock || 0,
         maxInstallments: productToEdit.maxInstallments || 10,
         subcategory: productToEdit.subcategory || '',
         imageUrls: productToEdit.imageUrls || [],
-      };
-      setImagePreviews(productToEdit.imageUrls || []);
-    } else {
-       const firstCategory = categories.length > 0 ? categories[0] : null;
-       const firstSubcategory = firstCategory?.subcategories.length ? firstCategory.subcategories[0] : '';
-      defaultValues = {
-        name: '',
-        description: '',
-        longDescription: '',
-        price: 0,
-        category: firstCategory?.name || '',
-        subcategory: firstSubcategory || '',
-        stock: 0,
-        imageUrls: [],
-        maxInstallments: 10,
-      };
-      setImagePreviews([]);
-    }
+    } : {
+      name: '',
+      description: '',
+      longDescription: '',
+      price: 0,
+      category: categories.length > 0 ? categories[0].name : '',
+      subcategory: '',
+      stock: 0,
+      imageUrls: [],
+      maxInstallments: 10,
+    };
     form.reset(defaultValues);
+    setImagePreviews(defaultValues.imageUrls);
   }, [productToEdit, categories, form]);
 
 
