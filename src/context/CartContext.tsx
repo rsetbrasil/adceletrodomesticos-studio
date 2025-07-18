@@ -196,7 +196,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const updateProduct = async (updatedProduct: Product) => {
     try {
-        await setDoc(doc(db, 'products', updatedProduct.id), updatedProduct, { merge: true });
+        await updateDoc(doc(db, 'products', updatedProduct.id), updatedProduct);
         setProducts(prev => prev.map((p) => p.id === updatedProduct.id ? updatedProduct : p));
         toast({
             title: 'Produto Atualizado!',
@@ -573,3 +573,5 @@ export const useCart = () => {
   }
   return context;
 };
+
+    
