@@ -88,13 +88,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const storedOrdersRaw = localStorage.getItem('orders');
       if (storedOrdersRaw) {
         const loadedOrders = JSON.parse(storedOrdersRaw) as Order[];
-        // Always sort by date to ensure newest first for UI display
         const sortedOrders = loadedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setOrders(sortedOrders);
       }
 
-      const storedProducts = localStorage.getItem('products');
       let currentProducts = initialProducts;
+      const storedProducts = localStorage.getItem('products');
       if (storedProducts) {
         currentProducts = JSON.parse(storedProducts);
         setProducts(currentProducts);
@@ -118,52 +117,27 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  useEffect(() => {
-    if (isLoading) return;
-    saveDataToLocalStorage('cartItems', cartItems);
-  }, [cartItems, isLoading]);
-  
-  useEffect(() => {
-    if (isLoading) return;
-    saveDataToLocalStorage('orders', orders);
-  }, [orders, isLoading]);
-
-  useEffect(() => {
-    if (isLoading) return;
-    saveDataToLocalStorage('products', products);
-  }, [products, isLoading]);
-
-  useEffect(() => {
-    if (isLoading) return;
-    saveDataToLocalStorage('categories', categories);
-  }, [categories, isLoading]);
-
+  // Effect to listen for changes in localStorage from other tabs
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === null) return;
-      try {
-        const handlers: { [key: string]: (value: any) => void } = {
-            'products': (value) => setProducts(value || initialProducts),
-            'categories': (value) => setCategories(value || getInitialCategories(products)),
-            'orders': (value) => setOrders(value || []),
-            'cartItems': (value) => setCartItems(value || []),
-        };
 
-        if (handlers[event.key] && event.newValue) {
-            handlers[event.key](JSON.parse(event.newValue));
-        } else if (handlers[event.key] && !event.newValue) {
-            const defaultValues = {
-                'products': initialProducts,
-                'categories': getInitialCategories(initialProducts),
-                'orders': [],
-                'cartItems': [],
-            };
-            handlers[event.key as keyof typeof defaultValues](defaultValues[event.key as keyof typeof defaultValues]);
+    const handleStorageChange = (event: StorageEvent) => {
+        try {
+            if (event.key === 'products') {
+                setProducts(event.newValue ? JSON.parse(event.newValue) : initialProducts);
+            }
+            if (event.key === 'categories') {
+                setCategories(event.newValue ? JSON.parse(event.newValue) : getInitialCategories(products));
+            }
+            if (event.key === 'orders') {
+                setOrders(event.newValue ? JSON.parse(event.newValue) : []);
+            }
+            if (event.key === 'cartItems') {
+                setCartItems(event.newValue ? JSON.parse(event.newValue) : []);
+            }
+        } catch (error) {
+            console.error("Failed to parse localStorage data on change", error);
         }
-      } catch (error) {
-        console.error("Failed to parse localStorage data on change", error);
-      }
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -174,20 +148,32 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [products]);
   
   const restoreCartData = (data: { products: Product[], orders: Order[], categories: Category[] }) => {
-    setProducts(data.products || initialProducts);
-    setOrders(data.orders || []);
-    setCategories(data.categories || getInitialCategories(data.products || initialProducts));
+    const prods = data.products || initialProducts;
+    const ords = data.orders || [];
+    const cats = data.categories || getInitialCategories(prods);
+    setProducts(prods);
+    setOrders(ords);
+    setCategories(cats);
+    saveDataToLocalStorage('products', prods);
+    saveDataToLocalStorage('orders', ords);
+    saveDataToLocalStorage('categories', cats);
   };
 
   const resetOrders = () => {
     setOrders([]);
+    saveDataToLocalStorage('orders', []);
   };
   
   const resetAllCartData = () => {
+    const initialCats = getInitialCategories(initialProducts);
     setProducts(initialProducts);
     setOrders([]);
-    setCategories(getInitialCategories(initialProducts));
+    setCategories(initialCats);
     setCartItems([]);
+    saveDataToLocalStorage('products', initialProducts);
+    saveDataToLocalStorage('orders', []);
+    saveDataToLocalStorage('categories', initialCats);
+    saveDataToLocalStorage('cartItems', []);
   };
 
   const addProduct = (productData: Omit<Product, 'id' | 'data-ai-hint'>) => {
@@ -196,7 +182,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         id: `prod-${Date.now()}`,
         'data-ai-hint': productData.name.toLowerCase().split(' ').slice(0, 2).join(' '),
       };
-      setProducts((prevProducts) => [newProduct, ...prevProducts]);
+      const updatedProducts = [newProduct, ...products];
+      setProducts(updatedProducts);
+      saveDataToLocalStorage('products', updatedProducts);
       toast({
           title: "Produto Cadastrado!",
           description: `O produto "${newProduct.name}" foi adicionado ao catálogo.`,
@@ -207,8 +195,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const updatedProductsList = products.map((p) =>
       p.id === updatedProduct.id ? updatedProduct : p
     );
-    saveDataToLocalStorage('products', updatedProductsList);
     setProducts(updatedProductsList);
+    saveDataToLocalStorage('products', updatedProductsList);
     toast({
       title: 'Produto Atualizado!',
       description: `O produto "${updatedProduct.name}" foi atualizado.`,
@@ -216,7 +204,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteProduct = (productId: string) => {
-      setProducts((prevProducts) => prevProducts.filter((p) => p.id !== productId));
+      const updatedProducts = products.filter((p) => p.id !== productId);
+      setProducts(updatedProducts);
+      saveDataToLocalStorage('products', updatedProducts);
       toast({
         title: 'Produto Excluído!',
         description: 'O produto foi removido do catálogo.',
@@ -225,8 +215,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addCategory = (name: string) => {
-    const nameExists = categories.some(c => c.name.toLowerCase() === name.toLowerCase());
-    if (nameExists) {
+    if (categories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
       toast({ title: "Erro", description: "Essa categoria já existe.", variant: "destructive" });
       return;
     }
@@ -235,27 +224,31 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       name,
       subcategories: []
     };
-    setCategories(prev => [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)));
+    const updatedCategories = [...categories, newCategory].sort((a, b) => a.name.localeCompare(b.name));
+    setCategories(updatedCategories);
+    saveDataToLocalStorage('categories', updatedCategories);
     toast({ title: "Categoria Adicionada!" });
   };
 
   const updateCategoryName = (categoryId: string, newName: string) => {
-    const nameExists = categories.some(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== categoryId);
-    if (nameExists) {
-      toast({ title: "Erro", description: "Uma categoria com esse novo nome já existe.", variant: "destructive" });
-      return;
+    if (categories.some(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== categoryId)) {
+        toast({ title: "Erro", description: "Uma categoria com esse novo nome já existe.", variant: "destructive" });
+        return;
     }
 
     const oldCategory = categories.find(c => c.id === categoryId);
     if (!oldCategory) return;
     const oldName = oldCategory.name;
 
-    setProducts(prods => prods.map(p => (p.category.toLowerCase() === oldName.toLowerCase() ? { ...p, category: newName } : p)));
+    const updatedProducts = products.map(p => (p.category.toLowerCase() === oldName.toLowerCase() ? { ...p, category: newName } : p));
+    setProducts(updatedProducts);
+    saveDataToLocalStorage('products', updatedProducts);
 
-    setCategories(prev => prev
+    const updatedCategories = categories
       .map(c => (c.id === categoryId ? { ...c, name: newName } : c))
-      .sort((a, b) => a.name.localeCompare(b.name))
-    );
+      .sort((a, b) => a.name.localeCompare(b.name));
+    setCategories(updatedCategories);
+    saveDataToLocalStorage('categories', updatedCategories);
 
     toast({ title: "Categoria Renomeada!" });
   };
@@ -265,12 +258,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const categoryToDelete = categories.find(c => c.id === categoryId);
     if (!categoryToDelete) return;
 
-    const isCategoryInUse = products.some(p => p.category === categoryToDelete.name);
-    if (isCategoryInUse) {
+    if (products.some(p => p.category === categoryToDelete.name)) {
         toast({ title: "Erro", description: "Não é possível excluir categorias que contêm produtos.", variant: "destructive" });
         return;
     }
-    setCategories(prev => prev.filter(c => c.id !== categoryId));
+    const updatedCategories = categories.filter(c => c.id !== categoryId);
+    setCategories(updatedCategories);
+    saveDataToLocalStorage('categories', updatedCategories);
     toast({ title: "Categoria Excluída!", variant: "destructive" });
   };
 
@@ -278,17 +272,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
 
-    const subExists = category.subcategories.some(s => s.toLowerCase() === subcategoryName.toLowerCase());
-    if (subExists) {
+    if (category.subcategories.some(s => s.toLowerCase() === subcategoryName.toLowerCase())) {
       toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
       return;
     }
     
-    setCategories(prev => prev.map(c => 
+    const updatedCategories = categories.map(c => 
       c.id === categoryId 
         ? { ...c, subcategories: [...c.subcategories, subcategoryName].sort() } 
         : c
-    ));
+    );
+    setCategories(updatedCategories);
+    saveDataToLocalStorage('categories', updatedCategories);
     toast({ title: "Subcategoria Adicionada!" });
   };
 
@@ -296,24 +291,28 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
 
-    const subExists = category.subcategories.some(s => s.toLowerCase() === newSub.toLowerCase() && s.toLowerCase() !== oldSub.toLowerCase());
-    if (subExists) {
+    if (category.subcategories.some(s => s.toLowerCase() === newSub.toLowerCase() && s.toLowerCase() !== oldSub.toLowerCase())) {
         toast({ title: "Erro", description: "Essa subcategoria já existe.", variant: "destructive" });
         return;
     }
 
-    setProducts(prods => prods.map(p => 
+    const updatedProducts = products.map(p => 
       (p.category === category.name && p.subcategory?.toLowerCase() === oldSub.toLowerCase()) 
         ? { ...p, subcategory: newSub } 
         : p
-    ));
-    setCategories(prev => prev.map(c => {
+    );
+    setProducts(updatedProducts);
+    saveDataToLocalStorage('products', updatedProducts);
+
+    const updatedCategories = categories.map(c => {
         if (c.id === categoryId) {
             const newSubs = c.subcategories.map(s => s.toLowerCase() === oldSub.toLowerCase() ? newSub : s).sort();
             return { ...c, subcategories: newSubs };
         }
         return c;
-    }));
+    });
+    setCategories(updatedCategories);
+    saveDataToLocalStorage('categories', updatedCategories);
     toast({ title: "Subcategoria Renomeada!" });
   };
 
@@ -321,16 +320,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
 
-    const isSubcategoryInUse = products.some(p => p.category === category.name && p.subcategory?.toLowerCase() === subcategoryName.toLowerCase());
-    if (isSubcategoryInUse) {
+    if (products.some(p => p.category === category.name && p.subcategory?.toLowerCase() === subcategoryName.toLowerCase())) {
         toast({ title: "Erro", description: "Não é possível excluir subcategorias que contêm produtos.", variant: "destructive" });
         return;
     }
-    setCategories(prev => prev.map(c => 
+    const updatedCategories = categories.map(c => 
         c.id === categoryId
             ? { ...c, subcategories: c.subcategories.filter(s => s.toLowerCase() !== subcategoryName.toLowerCase()) } 
             : c
-    ));
+    );
+    setCategories(updatedCategories);
+    saveDataToLocalStorage('categories', updatedCategories);
     toast({ title: "Subcategoria Excluída!", variant: "destructive" });
   };
 
@@ -340,17 +340,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       ? product.imageUrls[0] 
       : 'https://placehold.co/600x600.png';
 
-    setCartItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.id === product.id);
-      if (existingItem) {
-        return prevItems.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      return [...prevItems, { id: product.id, name: product.name, price: product.price, imageUrl, quantity: 1 }];
-    });
+    let newCartItems: CartItem[] = [];
+    const existingItem = cartItems.find((item) => item.id === product.id);
+    if (existingItem) {
+      newCartItems = cartItems.map((item) =>
+        item.id === product.id
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      );
+    } else {
+      newCartItems = [...cartItems, { id: product.id, name: product.name, price: product.price, imageUrl, quantity: 1 }];
+    }
+    setCartItems(newCartItems);
+    saveDataToLocalStorage('cartItems', newCartItems);
     toast({
         title: "Produto adicionado!",
         description: `${product.name} foi adicionado ao seu carrinho.`,
@@ -358,9 +360,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removeFromCart = (productId: string) => {
-    setCartItems((prevItems) =>
-      prevItems.filter((item) => item.id !== productId)
-    );
+    const newCartItems = cartItems.filter((item) => item.id !== productId);
+    setCartItems(newCartItems);
+    saveDataToLocalStorage('cartItems', newCartItems);
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
@@ -368,15 +370,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       removeFromCart(productId);
       return;
     }
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === productId ? { ...item, quantity } : item
-      )
+    const newCartItems = cartItems.map((item) =>
+      item.id === productId ? { ...item, quantity } : item
     );
+    setCartItems(newCartItems);
+    saveDataToLocalStorage('cartItems', newCartItems);
   };
 
   const clearCart = () => {
     setCartItems([]);
+    saveDataToLocalStorage('cartItems', []);
   };
 
   const getCartTotal = () => {
@@ -395,32 +398,32 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const manageStockForOrder = (order: Order | undefined, operation: 'add' | 'subtract') => {
     if (!order) return;
   
-    setProducts(prevProducts => {
-      const updatedProducts = [...prevProducts];
-      order.items.forEach(orderItem => {
-        const productIndex = updatedProducts.findIndex(p => p.id === orderItem.id);
-        if (productIndex !== -1) {
-          const product = updatedProducts[productIndex];
-          const stockChange = orderItem.quantity;
-          const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
-          
-          updatedProducts[productIndex] = {
-            ...product,
-            stock: newStock >= 0 ? newStock : 0, // Prevent negative stock
-          };
-        }
-      });
-      return updatedProducts;
+    const currentProducts = JSON.parse(localStorage.getItem('products') || '[]') as Product[];
+    const updatedProducts = [...currentProducts];
+
+    order.items.forEach(orderItem => {
+      const productIndex = updatedProducts.findIndex(p => p.id === orderItem.id);
+      if (productIndex !== -1) {
+        const product = updatedProducts[productIndex];
+        const stockChange = orderItem.quantity;
+        const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
+        
+        updatedProducts[productIndex] = {
+          ...product,
+          stock: newStock >= 0 ? newStock : 0,
+        };
+      }
     });
+
+    setProducts(updatedProducts);
+    saveDataToLocalStorage('products', updatedProducts);
   };
 
   const addOrder = (order: Order) => {
     manageStockForOrder(order, 'subtract');
-    setOrders((prevOrders) => {
-      const sortedOrders = [order, ...prevOrders];
-      sortedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      return sortedOrders;
-    });
+    const newOrders = [order, ...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setOrders(newOrders);
+    saveDataToLocalStorage('orders', newOrders);
   };
 
   const deleteOrder = (orderId: string) => {
@@ -431,7 +434,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       manageStockForOrder(orderToDelete, 'add');
     }
 
-    setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
+    const updatedOrders = orders.filter((order) => order.id !== orderId);
+    setOrders(updatedOrders);
+    saveDataToLocalStorage('orders', updatedOrders);
   };
 
   const updateOrderStatus = (orderId: string, newStatus: Order['status']) => {
@@ -447,12 +452,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       manageStockForOrder(orderToUpdate, 'subtract');
     }
 
-    setOrders((prevOrders) => {
-      const newOrders = prevOrders.map((order) =>
-        order.id === orderId ? { ...order, status: newStatus } : order
-      );
-      return newOrders;
-    });
+    const updatedOrders = orders.map((order) =>
+      order.id === orderId ? { ...order, status: newStatus } : order
+    );
+    setOrders(updatedOrders);
+    saveDataToLocalStorage('orders', updatedOrders);
     toast({
         title: "Status do Pedido Atualizado!",
         description: `O pedido #${orderId} agora está como "${newStatus}".`,
@@ -460,46 +464,44 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateInstallmentStatus = (orderId: string, installmentNumber: number, status: Installment['status']) => {
-    setOrders((prevOrders) => {
-      const newOrders = prevOrders.map((order) => {
-        if (order.id === orderId) {
-          const updatedInstallments = (order.installmentDetails || []).map((inst) => {
-            if (inst.installmentNumber === installmentNumber) {
-              return { 
-                ...inst, 
-                status,
-                paymentDate: status === 'Pago' ? new Date().toISOString() : null,
-              };
-            }
-            return inst;
-          });
-          return { ...order, installmentDetails: updatedInstallments };
-        }
-        return order;
-      });
-      return newOrders;
+    const updatedOrders = orders.map((order) => {
+      if (order.id === orderId) {
+        const updatedInstallments = (order.installmentDetails || []).map((inst) => {
+          if (inst.installmentNumber === installmentNumber) {
+            return { 
+              ...inst, 
+              status,
+              paymentDate: status === 'Pago' ? new Date().toISOString() : null,
+            };
+          }
+          return inst;
+        });
+        return { ...order, installmentDetails: updatedInstallments };
+      }
+      return order;
     });
+    setOrders(updatedOrders);
+    saveDataToLocalStorage('orders', updatedOrders);
   };
 
   const updateInstallmentDueDate = (orderId: string, installmentNumber: number, newDueDate: Date) => {
-    setOrders((prevOrders) => {
-      const newOrders = prevOrders.map((order) => {
-        if (order.id === orderId) {
-          const updatedInstallments = (order.installmentDetails || []).map((inst) => {
-            if (inst.installmentNumber === installmentNumber) {
-              return {
-                ...inst,
-                dueDate: newDueDate.toISOString(),
-              };
-            }
-            return inst;
-          });
-          return { ...order, installmentDetails: updatedInstallments };
-        }
-        return order;
-      });
-      return newOrders;
+    const updatedOrders = orders.map((order) => {
+      if (order.id === orderId) {
+        const updatedInstallments = (order.installmentDetails || []).map((inst) => {
+          if (inst.installmentNumber === installmentNumber) {
+            return {
+              ...inst,
+              dueDate: newDueDate.toISOString(),
+            };
+          }
+          return inst;
+        });
+        return { ...order, installmentDetails: updatedInstallments };
+      }
+      return order;
     });
+    setOrders(updatedOrders);
+    saveDataToLocalStorage('orders', updatedOrders);
     toast({
         title: "Vencimento Atualizado!",
         description: `A data de vencimento da parcela ${installmentNumber} do pedido #${orderId} foi alterada.`,
@@ -507,14 +509,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateCustomer = (updatedCustomer: CustomerInfo) => {
-    setOrders((prevOrders) => {
-      return prevOrders.map((order) => {
-        if (order.customer.cpf === updatedCustomer.cpf) {
-          return { ...order, customer: { ...order.customer, ...updatedCustomer } };
-        }
-        return order;
-      });
+    const updatedOrders = orders.map((order) => {
+      if (order.customer.cpf === updatedCustomer.cpf) {
+        return { ...order, customer: { ...order.customer, ...updatedCustomer } };
+      }
+      return order;
     });
+    setOrders(updatedOrders);
+    saveDataToLocalStorage('orders', updatedOrders);
     toast({
       title: "Cliente Atualizado!",
       description: `Os dados de ${updatedCustomer.name} foram salvos.`,
@@ -522,12 +524,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateOrderDetails = (orderId: string, details: Partial<Order>) => {
-    setOrders((prevOrders) => {
-        const newOrders = prevOrders.map((order) =>
-            order.id === orderId ? { ...order, ...details } : order
-        );
-        return newOrders;
-    });
+    const updatedOrders = orders.map((order) =>
+        order.id === orderId ? { ...order, ...details } : order
+    );
+    setOrders(updatedOrders);
+    saveDataToLocalStorage('orders', updatedOrders);
     toast({
         title: "Pedido Atualizado!",
         description: `Os detalhes do pedido #${orderId} foram atualizados.`,

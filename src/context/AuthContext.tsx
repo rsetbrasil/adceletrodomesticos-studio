@@ -58,29 +58,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  useEffect(() => {
-    if (isLoading) return;
-    saveDataToLocalStorage('users', users);
-  }, [users, isLoading]);
-
+  // Effect to listen for changes in localStorage from other tabs
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const handleStorageChange = (event: StorageEvent) => {
-        if (event.key === null) return;
-        try {
-            const handlers: { [key: string]: (value: any) => void } = {
-                'user': (value) => setUser(value || null),
-                'users': (value) => setUsers(value || initialUsers),
-            };
 
-            if (handlers[event.key] && event.newValue) {
-                handlers[event.key](JSON.parse(event.newValue));
-            } else if (handlers[event.key] && !event.newValue) {
-                // Handle item removal from localStorage
-                handlers[event.key](null);
-            }
-        } catch (error) {
-            console.error("Failed to parse localStorage data on change", error);
+    const handleStorageChange = (event: StorageEvent) => {
+        if (event.key === 'user') {
+            try {
+                const newValue = event.newValue ? JSON.parse(event.newValue) : null;
+                setUser(newValue);
+            } catch (e) { console.error(e) }
+        }
+        if (event.key === 'users') {
+            try {
+                const newValue = event.newValue ? JSON.parse(event.newValue) : initialUsers;
+                setUsers(newValue);
+            } catch (e) { console.error(e) }
         }
     };
 
@@ -121,6 +114,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const addUser = (data: Omit<User, 'id'>): boolean => {
     if (users.some(u => u.username.toLowerCase() === data.username.toLowerCase())) {
+        toast({
+            title: 'Erro ao Criar Usuário',
+            description: 'Este nome de usuário já está em uso.',
+            variant: 'destructive',
+        });
         return false;
     }
 
@@ -130,16 +128,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     const newUsers = [...users, newUser];
     setUsers(newUsers);
+    saveDataToLocalStorage('users', newUsers);
+    toast({
+        title: 'Usuário Criado!',
+        description: `O usuário ${data.name} foi criado com sucesso.`,
+    });
     return true;
   };
 
   const updateUser = (userId: string, data: Partial<Omit<User, 'id'>>) => {
     const newUsers = users.map(u => u.id === userId ? { ...u, ...data } : u);
     setUsers(newUsers);
+    saveDataToLocalStorage('users', newUsers);
+    toast({
+        title: 'Usuário Atualizado!',
+        description: 'As informações do usuário foram salvas com sucesso.',
+    });
   };
   
   const restoreUsers = (usersToRestore: User[]) => {
       setUsers(usersToRestore);
+      saveDataToLocalStorage('users', usersToRestore);
   };
 
   return (

@@ -57,14 +57,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             setIsLoading(false);
         }
     }, []);
-
-    useEffect(() => {
-        if (isLoading) return;
-        saveDataToLocalStorage('settings', settings);
-    }, [settings, isLoading]);
     
+    // Effect to listen for changes in localStorage from other tabs
     useEffect(() => {
       if (typeof window === 'undefined') return;
+      
       const handleStorageChange = (event: StorageEvent) => {
         if (event.key === 'settings') {
             try {
@@ -88,6 +85,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     const updateSettings = (newSettings: StoreSettings) => {
         setSettings(newSettings);
+        saveDataToLocalStorage('settings', newSettings);
         toast({
             title: "Configurações Salvas!",
             description: "As informações da loja foram atualizadas com sucesso.",
@@ -96,10 +94,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     
     const restoreSettings = (settingsToRestore: StoreSettings) => {
         setSettings(settingsToRestore);
+        saveDataToLocalStorage('settings', settingsToRestore);
     };
 
     const resetSettings = () => {
         setSettings(initialSettings);
+        saveDataToLocalStorage('settings', initialSettings);
     };
 
     return (
