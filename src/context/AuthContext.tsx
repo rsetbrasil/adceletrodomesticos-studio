@@ -92,9 +92,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userWithId = { ...foundUserDoc.data(), id: foundUserDoc.id } as User;
         
         if (userWithId.password === pass) {
-            // A role está incluída aqui, então será salva no localStorage
-            setUser(userWithId); 
-            localStorage.setItem('user', JSON.stringify(userWithId));
+            const userToStore = { ...userWithId };
+            // Ensure password is not stored in state or localStorage for security
+            delete userToStore.password;
+            
+            setUser(userToStore); 
+            localStorage.setItem('user', JSON.stringify(userToStore));
             router.push('/admin/orders');
             toast({
                 title: 'Login bem-sucedido!',
@@ -154,6 +157,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userRef = doc(db, 'users', userId);
         await updateDoc(userRef, data);
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
+        
+        // If the current user is being updated, update the localStorage object too
+        if (user?.id === userId) {
+            const updatedCurrentUser = { ...user, ...data };
+            delete updatedCurrentUser.password;
+            setUser(updatedCurrentUser);
+            localStorage.setItem('user', JSON.stringify(updatedCurrentUser));
+        }
+
         toast({
             title: 'Usuário Atualizado!',
             description: 'As informações do usuário foram salvas com sucesso.',

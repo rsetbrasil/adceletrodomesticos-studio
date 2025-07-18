@@ -2,39 +2,50 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check if a user is authenticated
+  
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Public read access for products, categories, and settings
+    function isRole(role) {
+      // For this to work, you must set a custom claim 'role' on the user
+      // This is more secure and efficient than reading another document.
+      // Example via Admin SDK: admin.auth().setCustomUserClaims(uid, { role: 'admin' });
+      return request.auth.token.role == role;
+    }
+
+    function isOneOfRoles(roles) {
+      return request.auth.token.role in roles;
+    }
+
+    // PUBLIC: Anyone can read products, categories, and store settings
     match /products/{productId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAuthenticated() && isOneOfRoles(['admin', 'gerente']);
     }
     
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAuthenticated() && isOneOfRoles(['admin', 'gerente']);
     }
     
-    match /config/storeSettings {
+    match /config/{docId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAuthenticated() && isOneOfRoles(['admin', 'gerente']);
     }
     
-    // Orders can be created by anyone (checkout), but only managed by authenticated users.
+    // AUTHENTICATED: Any authenticated user can manage their own orders
     match /orders/{orderId} {
-      allow create: if true;
+      allow create: if true; // Allow anyone to create an order (checkout)
       allow read, update, delete: if isAuthenticated();
     }
     
-    // Users can be created by anyone (for signup), but can only be managed by themselves or an admin
+    // Users can read their own data, Admins can manage all users.
     match /users/{userId} {
-      allow read, update, delete: if isAuthenticated() && request.auth.uid == userId;
-      // This allows login functionality by querying the username
-      allow list: if true;
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isRole('admin'));
+      // Only admins can create or delete users. Users can update their own info. Admins can update any.
+      allow create, delete: if isAuthenticated() && isRole('admin');
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isRole('admin'));
     }
   }
 }
