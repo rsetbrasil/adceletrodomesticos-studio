@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const checkUser = () => {
+        setIsLoading(true);
         try {
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
@@ -41,38 +42,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (error) {
             console.error("Failed to read user from localStorage", error);
             localStorage.removeItem('user');
-        }
-    };
-    
-    const fetchUsers = async () => {
-        setIsLoading(true);
-        try {
-            const usersCollection = collection(db, 'users');
-            const querySnapshot = await getDocs(usersCollection);
-
-            if (querySnapshot.empty) {
-                const batch = writeBatch(db);
-                initialUsers.forEach(u => {
-                    const docRef = doc(db, 'users', u.id);
-                    batch.set(docRef, u);
-                });
-                await batch.commit();
-                setUsers(initialUsers);
-            } else {
-                const fetchedUsers = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as User[];
-                setUsers(fetchedUsers);
-            }
-        } catch (error) {
-            console.error("Error fetching users from Firestore:", error);
         } finally {
             setIsLoading(false);
         }
     };
-    
     checkUser();
-    fetchUsers();
-
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+        const usersCollection = collection(db, 'users');
+        const querySnapshot = await getDocs(usersCollection);
+
+        if (querySnapshot.empty) {
+            const batch = writeBatch(db);
+            initialUsers.forEach(u => {
+                const docRef = doc(db, 'users', u.id);
+                batch.set(docRef, u);
+            });
+            await batch.commit();
+            setUsers(initialUsers);
+        } else {
+            const fetchedUsers = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as User[];
+            setUsers(fetchedUsers);
+        }
+    } catch (error) {
+        console.error("Error fetching users from Firestore:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      fetchUsers();
+    }
+  }, [user]);
 
   const login = async (username: string, pass: string) => {
     try {
@@ -86,9 +89,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const foundUser = querySnapshot.docs[0].data() as User;
+        const userId = querySnapshot.docs[0].id;
+        
+        // Ensure the user object has the correct ID from Firestore
+        const userWithId = { ...foundUser, id: userId };
 
-        if (foundUser.password === pass) {
-            const { password, ...userToStore } = foundUser;
+        if (userWithId.password === pass) {
+            const { password, ...userToStore } = userWithId;
             setUser(userToStore);
             localStorage.setItem('user', JSON.stringify(userToStore));
             router.push('/admin/orders');
@@ -116,7 +123,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addUser = async (data: Omit<User, 'id'>): Promise<boolean> => {
-    if (users.some(u => u.username.toLowerCase() === data.username.toLowerCase())) {
+    const q = query(collection(db, 'users'), where("username", "==", data.username.toLowerCase()));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
         toast({
             title: 'Erro ao Criar Usuário',
             description: 'Este nome de usuário já está em uso.',
@@ -160,12 +169,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const restoreUsers = async (usersToRestore: User[]) => {
       try {
-        const batch = writeBatch(db);
+        const usersCollectionRef = collection(db, "users");
+        const snapshot = await getDocs(usersCollectionRef);
+        const deleteBatch = writeBatch(db);
+        snapshot.docs.forEach(doc => {
+            deleteBatch.delete(doc.ref);
+        });
+        await deleteBatch.commit();
+        
+        const addBatch = writeBatch(db);
         usersToRestore.forEach(u => {
             const docRef = doc(db, 'users', u.id);
-            batch.set(docRef, u);
+            addBatch.set(docRef, u);
         });
-        await batch.commit();
+        await addBatch.commit();
         setUsers(usersToRestore);
       } catch (error) {
         console.error("Error restoring users to Firestore:", error);
