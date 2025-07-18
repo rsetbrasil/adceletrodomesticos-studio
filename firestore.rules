@@ -1,34 +1,37 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Regra explícita para CADA coleção.
     
-    // Allow public read access for store data needed by anyone.
-    match /products/{document=**} {
+    // Leitura pública, escrita apenas para usuários logados.
+    match /products/{productId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    match /categories/{document=**} {
+    // Leitura pública, escrita apenas para usuários logados.
+    match /categories/{categoryId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    match /config/{document=**} {
+    // Leitura pública, escrita apenas para usuários logados.
+    match /config/{doc} {
       allow read: if true;
       allow write: if request.auth != null;
     }
-
-    // Orders can be created by anyone (checkout), but only managed by authenticated users.
+    
+    // Ninguém pode ler todos os pedidos de uma vez. Apenas acessos diretos.
+    // Qualquer pessoa pode criar (checkout). Apenas logados podem gerenciar.
     match /orders/{orderId} {
-      allow create: if true;
       allow read, update, delete: if request.auth != null;
+      allow create: if true;
     }
 
-    // Users can only be managed by authenticated users.
-    // The UI should enforce role-based access (e.g., only admins can see the users page).
+    // Ninguém pode listar todos os usuários.
+    // Apenas usuários logados podem ler ou escrever em seus próprios documentos.
     match /users/{userId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
