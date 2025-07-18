@@ -6,10 +6,11 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -109,6 +110,15 @@ export default function ProductDetailPage() {
           <h1 className="text-3xl lg:text-4xl font-bold font-headline text-primary">{product.name}</h1>
           <p className="text-muted-foreground mt-4 text-lg">{product.description}</p>
           
+          {product.paymentCondition && (
+            <Alert className="mt-4 border-accent/50 text-accent-foreground bg-accent/5">
+                <Info className="h-5 w-5 text-accent" />
+                <AlertDescription className="font-semibold text-accent">
+                    {product.paymentCondition}
+                </AlertDescription>
+            </Alert>
+          )}
+
           <Separator className="my-6" />
 
           <div className="space-y-4">

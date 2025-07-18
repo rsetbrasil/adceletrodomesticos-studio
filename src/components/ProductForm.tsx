@@ -41,6 +41,7 @@ const productSchema = z.object({
   stock: z.coerce.number().int().min(0, 'O estoque não pode ser negativo.'),
   imageUrls: z.array(z.string()).min(1, 'Pelo menos uma imagem é obrigatória.'),
   maxInstallments: z.coerce.number().int().min(1, 'O número mínimo de parcelas é 1.'),
+  paymentCondition: z.string().optional(),
 });
 
 
@@ -83,6 +84,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         maxInstallments: productToEdit.maxInstallments || 10,
         subcategory: productToEdit.subcategory || '',
         imageUrls: productToEdit.imageUrls || [],
+        paymentCondition: productToEdit.paymentCondition || '',
     } : {
       name: '',
       description: '',
@@ -93,6 +95,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       stock: 0,
       imageUrls: [],
       maxInstallments: 10,
+      paymentCondition: '',
     }
   });
 
@@ -104,6 +107,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         maxInstallments: productToEdit.maxInstallments || 10,
         subcategory: productToEdit.subcategory || '',
         imageUrls: productToEdit.imageUrls || [],
+        paymentCondition: productToEdit.paymentCondition || '',
     } : {
       name: '',
       description: '',
@@ -114,6 +118,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       stock: 0,
       imageUrls: [],
       maxInstallments: 10,
+      paymentCondition: '',
     };
     form.reset(defaultValues);
     setImagePreviews(defaultValues.imageUrls);
@@ -180,6 +185,19 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                       <FormLabel>Nome do Produto</FormLabel>
                       <FormControl>
                         <Input placeholder="Ex: Smartphone Pro Z" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="paymentCondition"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Condição de Pagamento (Opcional)</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Ex: 1ª parcela no ato da entrega..." {...field} rows={2} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

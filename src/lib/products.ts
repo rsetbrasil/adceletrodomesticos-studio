@@ -18,6 +18,7 @@ export const products: Product[] = [
     stock: 15,
     maxInstallments: 12,
     createdAt: '2023-10-26T10:00:00Z',
+    paymentCondition: '1ª parcela no ato da entrega e o restante mensalmente.',
   },
   {
     id: '2',

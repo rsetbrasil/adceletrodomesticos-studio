@@ -9,6 +9,7 @@ export type Product = {
   subcategory?: string;
   stock: number;
   maxInstallments?: number;
+  paymentCondition?: string; // Adicionado
   "data-ai-hint"?: string;
   createdAt: string; // Adicionado para ordenação
 };
