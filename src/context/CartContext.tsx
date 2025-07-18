@@ -72,7 +72,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const { toast } = useToast();
 
@@ -82,36 +82,34 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     try {
-      const storedCart = localStorage.getItem('cartItems');
-      if (storedCart) setCartItems(JSON.parse(storedCart));
+        // Load cart
+        const storedCart = localStorage.getItem('cartItems');
+        if (storedCart) setCartItems(JSON.parse(storedCart));
 
-      const storedOrdersRaw = localStorage.getItem('orders');
-      if (storedOrdersRaw) {
-        const loadedOrders = JSON.parse(storedOrdersRaw) as Order[];
+        // Load orders
+        const storedOrdersRaw = localStorage.getItem('orders');
+        const loadedOrders = storedOrdersRaw ? JSON.parse(storedOrdersRaw) as Order[] : [];
         const sortedOrders = loadedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setOrders(sortedOrders);
-      }
 
-      let currentProducts = initialProducts;
-      const storedProducts = localStorage.getItem('products');
-      if (storedProducts) {
-        currentProducts = JSON.parse(storedProducts);
+        // Load products
+        const storedProducts = localStorage.getItem('products');
+        const currentProducts = storedProducts ? JSON.parse(storedProducts) : initialProducts;
         setProducts(currentProducts);
-      } else {
-        saveDataToLocalStorage('products', initialProducts)
-      }
+        if (!storedProducts) {
+            saveDataToLocalStorage('products', initialProducts);
+        }
 
-      const storedCategories = localStorage.getItem('categories');
-      if (storedCategories) {
-        const parsedCategories = JSON.parse(storedCategories);
-        setCategories(parsedCategories || []);
-      } else {
+        // Load categories
+        const storedCategories = localStorage.getItem('categories');
         const initialCats = getInitialCategories(currentProducts);
-        setCategories(initialCats);
-        saveDataToLocalStorage('categories', initialCats);
-      }
+        const currentCategories = storedCategories ? JSON.parse(storedCategories) : initialCats;
+        setCategories(currentCategories);
+        if (!storedCategories) {
+            saveDataToLocalStorage('categories', initialCats);
+        }
     } catch (error) {
-      console.error("Failed to load data from localStorage", error);
+        console.error("Failed to load data from localStorage", error);
     } finally {
         setIsLoading(false);
     }
@@ -398,25 +396,31 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const manageStockForOrder = (order: Order | undefined, operation: 'add' | 'subtract') => {
     if (!order) return;
   
-    const currentProducts = JSON.parse(localStorage.getItem('products') || '[]') as Product[];
-    const updatedProducts = [...currentProducts];
-
-    order.items.forEach(orderItem => {
-      const productIndex = updatedProducts.findIndex(p => p.id === orderItem.id);
-      if (productIndex !== -1) {
-        const product = updatedProducts[productIndex];
-        const stockChange = orderItem.quantity;
-        const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
+    setProducts(currentProducts => {
+        const updatedProducts = [...currentProducts];
+        let changed = false;
         
-        updatedProducts[productIndex] = {
-          ...product,
-          stock: newStock >= 0 ? newStock : 0,
-        };
-      }
-    });
+        order.items.forEach(orderItem => {
+          const productIndex = updatedProducts.findIndex(p => p.id === orderItem.id);
+          if (productIndex !== -1) {
+            const product = updatedProducts[productIndex];
+            const stockChange = orderItem.quantity;
+            const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
+            
+            updatedProducts[productIndex] = {
+              ...product,
+              stock: newStock >= 0 ? newStock : 0,
+            };
+            changed = true;
+          }
+        });
 
-    setProducts(updatedProducts);
-    saveDataToLocalStorage('products', updatedProducts);
+        if (changed) {
+            saveDataToLocalStorage('products', updatedProducts);
+            return updatedProducts;
+        }
+        return currentProducts;
+    });
   };
 
   const addOrder = (order: Order) => {
@@ -584,3 +588,4 @@ export const useCart = () => {
   }
   return context;
 };
+
