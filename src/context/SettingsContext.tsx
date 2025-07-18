@@ -49,26 +49,27 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             if (storedSettings) {
                 setSettings(JSON.parse(storedSettings));
             } else {
+                setSettings(initialSettings);
                 saveDataToLocalStorage('settings', initialSettings);
             }
         } catch (error) {
             console.error("Failed to load settings from localStorage", error);
+            setSettings(initialSettings);
         } finally {
             setIsLoading(false);
         }
     }, []);
     
-    // Effect to listen for changes in localStorage from other tabs
     useEffect(() => {
       if (typeof window === 'undefined') return;
       
       const handleStorageChange = (event: StorageEvent) => {
         if (event.key === 'settings') {
             try {
-                if (event.newValue) {
-                    setSettings(JSON.parse(event.newValue));
-                } else {
+                if (event.newValue === null) {
                     setSettings(initialSettings);
+                } else {
+                    setSettings(JSON.parse(event.newValue));
                 }
             } catch (error) {
                 console.error("Failed to parse settings from localStorage on change", error);
@@ -77,10 +78,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       };
   
       window.addEventListener('storage', handleStorageChange);
-  
-      return () => {
-        window.removeEventListener('storage', handleStorageChange);
-      };
+      return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
     const updateSettings = (newSettings: StoreSettings) => {
@@ -116,3 +114,5 @@ export const useSettings = () => {
     }
     return context;
 };
+
+    

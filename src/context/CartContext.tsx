@@ -83,9 +83,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-        // Step 1: Initialize Products
-        const storedProductsJSON = localStorage.getItem('products');
         let productsToLoad: Product[];
+        const storedProductsJSON = localStorage.getItem('products');
         if (storedProductsJSON) {
             productsToLoad = JSON.parse(storedProductsJSON);
         } else {
@@ -94,9 +93,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         setProducts(productsToLoad);
 
-        // Step 2: Initialize Categories (based on final product list)
-        const storedCategoriesJSON = localStorage.getItem('categories');
         let categoriesToLoad: Category[];
+        const storedCategoriesJSON = localStorage.getItem('categories');
         if (storedCategoriesJSON) {
             categoriesToLoad = JSON.parse(storedCategoriesJSON);
         } else {
@@ -105,7 +103,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         setCategories(categoriesToLoad);
 
-        // Step 3: Initialize Cart and Orders
         const storedCart = localStorage.getItem('cartItems');
         if (storedCart) setCartItems(JSON.parse(storedCart));
 
@@ -113,35 +110,36 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const loadedOrders = storedOrdersRaw ? JSON.parse(storedOrdersRaw) as Order[] : [];
         const sortedOrders = loadedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setOrders(sortedOrders);
+
     } catch (error) {
         console.error("Failed to load data from localStorage", error);
-        // Fallback to initial state in case of parsing error
         setProducts(initialProducts);
         setCategories(getInitialCategories(initialProducts));
-        setOrders([]);
-        setCartItems([]);
     } finally {
         setIsLoading(false);
     }
   }, []);
 
-  // Effect to listen for changes in localStorage from other tabs
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const handleStorageChange = (event: StorageEvent) => {
         try {
-            if (event.key === 'products') {
-                setProducts(event.newValue ? JSON.parse(event.newValue) : initialProducts);
-            }
-            if (event.key === 'categories') {
-                setCategories(event.newValue ? JSON.parse(event.newValue) : getInitialCategories(products));
-            }
-            if (event.key === 'orders') {
-                setOrders(event.newValue ? JSON.parse(event.newValue) : []);
-            }
-            if (event.key === 'cartItems') {
-                setCartItems(event.newValue ? JSON.parse(event.newValue) : []);
+            const keys = ['products', 'categories', 'orders', 'cartItems'];
+            if (event.key && keys.includes(event.key)) {
+                if (event.newValue === null) {
+                    // Item was removed or cleared
+                    if (event.key === 'products') setProducts(initialProducts);
+                    if (event.key === 'categories') setCategories(getInitialCategories(initialProducts));
+                    if (event.key === 'orders') setOrders([]);
+                    if (event.key === 'cartItems') setCartItems([]);
+                } else {
+                    const parsedValue = JSON.parse(event.newValue);
+                    if (event.key === 'products') setProducts(parsedValue);
+                    if (event.key === 'categories') setCategories(parsedValue);
+                    if (event.key === 'orders') setOrders(parsedValue);
+                    if (event.key === 'cartItems') setCartItems(parsedValue);
+                }
             }
         } catch (error) {
             console.error("Failed to parse localStorage data on change", error);
@@ -149,11 +147,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     };
 
     window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [products]);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
   
   const restoreCartData = (data: { products: Product[], orders: Order[], categories: Category[] }) => {
     const prods = data.products || initialProducts;
@@ -600,3 +595,6 @@ export const useCart = () => {
 };
 
 
+
+
+    

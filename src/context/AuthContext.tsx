@@ -32,13 +32,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for auth state and user list in localStorage on initial load
+    if (typeof window === 'undefined') {
+        setIsLoading(false);
+        return;
+    }
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
@@ -49,39 +52,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (storedUsers) {
         setUsers(JSON.parse(storedUsers));
       } else {
+        setUsers(initialUsers);
         saveDataToLocalStorage('users', initialUsers);
       }
     } catch (error) {
         console.error("Failed to read state from localStorage", error);
+        setUsers(initialUsers);
     } finally {
         setIsLoading(false);
     }
   }, []);
 
-  // Effect to listen for changes in localStorage from other tabs
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const handleStorageChange = (event: StorageEvent) => {
-        if (event.key === 'user') {
-            try {
-                const newValue = event.newValue ? JSON.parse(event.newValue) : null;
-                setUser(newValue);
-            } catch (e) { console.error(e) }
-        }
-        if (event.key === 'users') {
-            try {
-                const newValue = event.newValue ? JSON.parse(event.newValue) : initialUsers;
-                setUsers(newValue);
-            } catch (e) { console.error(e) }
-        }
+        try {
+            if (event.key === 'user') {
+                if (event.newValue === null) {
+                    setUser(null);
+                } else {
+                    setUser(JSON.parse(event.newValue));
+                }
+            }
+            if (event.key === 'users') {
+                 if (event.newValue === null) {
+                    setUsers(initialUsers);
+                } else {
+                    setUsers(JSON.parse(event.newValue));
+                }
+            }
+        } catch (e) { console.error(e) }
     };
 
     window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
 
@@ -165,3 +170,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    
