@@ -12,7 +12,7 @@ export default function Home() {
     category: 'all',
     subcategory: 'all',
     search: '',
-    sort: 'relevance',
+    sort: 'newest',
   });
 
   const handleFilterChange = (
