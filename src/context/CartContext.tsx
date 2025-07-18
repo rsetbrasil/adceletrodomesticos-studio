@@ -81,35 +81,45 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
         return;
     }
+    
     try {
-        // Load cart
+        // Step 1: Initialize Products
+        const storedProductsJSON = localStorage.getItem('products');
+        let productsToLoad: Product[];
+        if (storedProductsJSON) {
+            productsToLoad = JSON.parse(storedProductsJSON);
+        } else {
+            productsToLoad = initialProducts;
+            saveDataToLocalStorage('products', productsToLoad);
+        }
+        setProducts(productsToLoad);
+
+        // Step 2: Initialize Categories (based on final product list)
+        const storedCategoriesJSON = localStorage.getItem('categories');
+        let categoriesToLoad: Category[];
+        if (storedCategoriesJSON) {
+            categoriesToLoad = JSON.parse(storedCategoriesJSON);
+        } else {
+            categoriesToLoad = getInitialCategories(productsToLoad);
+            saveDataToLocalStorage('categories', categoriesToLoad);
+        }
+        setCategories(categoriesToLoad);
+
+        // Step 3: Initialize Cart and Orders
         const storedCart = localStorage.getItem('cartItems');
         if (storedCart) setCartItems(JSON.parse(storedCart));
 
-        // Load orders
         const storedOrdersRaw = localStorage.getItem('orders');
         const loadedOrders = storedOrdersRaw ? JSON.parse(storedOrdersRaw) as Order[] : [];
         const sortedOrders = loadedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setOrders(sortedOrders);
-
-        // Load products
-        const storedProducts = localStorage.getItem('products');
-        const currentProducts = storedProducts ? JSON.parse(storedProducts) : initialProducts;
-        setProducts(currentProducts);
-        if (!storedProducts) {
-            saveDataToLocalStorage('products', initialProducts);
-        }
-
-        // Load categories
-        const storedCategories = localStorage.getItem('categories');
-        const initialCats = getInitialCategories(currentProducts);
-        const currentCategories = storedCategories ? JSON.parse(storedCategories) : initialCats;
-        setCategories(currentCategories);
-        if (!storedCategories) {
-            saveDataToLocalStorage('categories', initialCats);
-        }
     } catch (error) {
         console.error("Failed to load data from localStorage", error);
+        // Fallback to initial state in case of parsing error
+        setProducts(initialProducts);
+        setCategories(getInitialCategories(initialProducts));
+        setOrders([]);
+        setCartItems([]);
     } finally {
         setIsLoading(false);
     }
@@ -212,14 +222,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       });
   };
 
-  const addCategory = (name: string) => {
-    if (categories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+  const addCategory = (categoryName: string) => {
+    if (categories.some(c => c.name.toLowerCase() === categoryName.toLowerCase())) {
       toast({ title: "Erro", description: "Essa categoria já existe.", variant: "destructive" });
       return;
     }
     const newCategory: Category = {
       id: `cat-${Date.now()}`,
-      name,
+      name: categoryName,
       subcategories: []
     };
     const updatedCategories = [...categories, newCategory].sort((a, b) => a.name.localeCompare(b.name));
@@ -588,4 +598,5 @@ export const useCart = () => {
   }
   return context;
 };
+
 
