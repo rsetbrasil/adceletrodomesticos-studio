@@ -1,3 +1,4 @@
+
 'use client';
 
 import './globals.css';
@@ -19,7 +20,8 @@ export default function RootLayout({
   const isSpecialRoute = pathname.startsWith('/carnet') || pathname.startsWith('/login');
   const isAdminRoute = pathname.startsWith('/admin');
 
-  // Verifica se a chave de API do Firebase está configurada
+  // Verifica se a chave de API do Firebase está configurada.
+  // A verificação `!== 'SUA_API_KEY'` é um fallback para o caso de o valor padrão não ter sido trocado.
   const isFirebaseConfigured = process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== 'SUA_API_KEY';
 
   if (!isFirebaseConfigured) {
