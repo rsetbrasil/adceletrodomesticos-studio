@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { User } from '@/lib/types';
 import { initialUsers } from '@/lib/users';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
@@ -51,7 +51,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const querySnapshot = await getDocs(usersCollection);
 
             if (querySnapshot.empty) {
-                // Seed the database if it's empty
                 const batch = writeBatch(db);
                 initialUsers.forEach(u => {
                     const docRef = doc(db, 'users', u.id);
@@ -65,7 +64,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
         } catch (error) {
             console.error("Error fetching users from Firestore:", error);
-            toast({ title: "Erro de Conexão", description: "Não foi possível carregar os usuários do banco de dados.", variant: "destructive" });
         } finally {
             setIsLoading(false);
         }
@@ -74,26 +72,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkUser();
     fetchUsers();
 
-  }, [toast]);
+  }, []);
 
-  const login = (username: string, pass: string) => {
-    const foundUser = users.find(u => u.username === username && u.password === pass);
-    
-    if (foundUser) {
-      const { password, ...userToStore } = foundUser;
-      setUser(userToStore);
-      localStorage.setItem('user', JSON.stringify(userToStore));
-      router.push('/admin/orders');
-      toast({
-        title: 'Login bem-sucedido!',
-        description: `Bem-vindo(a), ${userToStore.name}.`,
-      });
-    } else {
-      toast({
-        title: 'Falha no Login',
-        description: 'Usuário ou senha inválidos.',
-        variant: 'destructive',
-      });
+  const login = async (username: string, pass: string) => {
+    try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where("username", "==", username));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            toast({ title: 'Falha no Login', description: 'Usuário não encontrado.', variant: 'destructive' });
+            return;
+        }
+
+        const foundUser = querySnapshot.docs[0].data() as User;
+
+        if (foundUser.password === pass) {
+            const { password, ...userToStore } = foundUser;
+            setUser(userToStore);
+            localStorage.setItem('user', JSON.stringify(userToStore));
+            router.push('/admin/orders');
+            toast({
+                title: 'Login bem-sucedido!',
+                description: `Bem-vindo(a), ${userToStore.name}.`,
+            });
+        } else {
+            toast({
+                title: 'Falha no Login',
+                description: 'Senha inválida.',
+                variant: 'destructive',
+            });
+        }
+    } catch (error) {
+        console.error("Login error:", error);
+        toast({ title: 'Erro de Login', description: 'Não foi possível conectar. Verifique as permissões do banco de dados.', variant: 'destructive' });
     }
   };
 
