@@ -1,37 +1,12 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Regra explícita para CADA coleção.
-    
-    // Leitura pública, escrita apenas para usuários logados.
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-
-    // Leitura pública, escrita apenas para usuários logados.
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-
-    // Leitura pública, escrita apenas para usuários logados.
-    match /config/{doc} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Ninguém pode ler todos os pedidos de uma vez. Apenas acessos diretos.
-    // Qualquer pessoa pode criar (checkout). Apenas logados podem gerenciar.
-    match /orders/{orderId} {
-      allow read, update, delete: if request.auth != null;
-      allow create: if true;
-    }
-
-    // Ninguém pode listar todos os usuários.
-    // Apenas usuários logados podem ler ou escrever em seus próprios documentos.
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Allows anyone to read and write to the database.
+    // This is an open rule, ideal for prototyping and initial development.
+    // Before launching your application to the public, you should implement
+    // stricter security rules.
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }
