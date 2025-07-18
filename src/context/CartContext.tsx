@@ -81,8 +81,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
         return;
     }
-    
+
     try {
+        // This logic ensures that a fresh session (like incognito or Vercel)
+        // starts with the default data and saves it.
         let productsToLoad: Product[];
         const storedProductsJSON = localStorage.getItem('products');
         if (storedProductsJSON) {
@@ -105,16 +107,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
         const storedCart = localStorage.getItem('cartItems');
         if (storedCart) setCartItems(JSON.parse(storedCart));
+        else saveDataToLocalStorage('cartItems', []);
+
 
         const storedOrdersRaw = localStorage.getItem('orders');
         const loadedOrders = storedOrdersRaw ? JSON.parse(storedOrdersRaw) as Order[] : [];
         const sortedOrders = loadedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setOrders(sortedOrders);
+        if (!storedOrdersRaw) saveDataToLocalStorage('orders', []);
+
 
     } catch (error) {
         console.error("Failed to load data from localStorage", error);
+        // Fallback to initial data if parsing fails
         setProducts(initialProducts);
         setCategories(getInitialCategories(initialProducts));
+        setOrders([]);
+        setCartItems([]);
     } finally {
         setIsLoading(false);
     }
@@ -593,8 +602,3 @@ export const useCart = () => {
   }
   return context;
 };
-
-
-
-
-    
