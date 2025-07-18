@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -181,7 +182,7 @@ export default function CheckoutForm() {
       return null;
   }
 
-  function onSubmit(values: z.infer<typeof checkoutSchema>) {
+  async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     const lastOrderNumber = orders
       .map(o => {
           if (!o.id.startsWith('PED-')) return 0;
@@ -202,6 +203,7 @@ export default function CheckoutForm() {
         amount: finalInstallmentValue,
         dueDate: addMonths(orderDate, i + 1).toISOString(),
         status: 'Pendente' as const,
+        paymentDate: null,
     }));
 
     const order: Order = {
@@ -229,16 +231,25 @@ export default function CheckoutForm() {
       installmentDetails,
     };
     
-    addOrder(order);
-    setLastOrder(order);
-    clearCart();
-
-    toast({
-        title: "Pedido Realizado com Sucesso!",
-        description: `Seu pedido #${orderId} foi confirmado.`,
-    });
-
-    router.push(`/order-confirmation/${orderId}`);
+    try {
+        await addOrder(order);
+        setLastOrder(order);
+        clearCart();
+    
+        toast({
+            title: "Pedido Realizado com Sucesso!",
+            description: `Seu pedido #${orderId} foi confirmado.`,
+        });
+    
+        router.push(`/order-confirmation/${orderId}`);
+    } catch (error) {
+        console.error("Failed to process order:", error);
+        toast({
+            title: "Erro ao Finalizar Pedido",
+            description: "Não foi possível completar o pedido. Verifique o estoque e tente novamente.",
+            variant: "destructive"
+        });
+    }
   }
 
   return (

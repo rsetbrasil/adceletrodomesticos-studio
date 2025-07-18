@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -49,7 +50,7 @@ const userCreateFormSchema = z.object({
 
 
 export default function ManageUsersPage() {
-    const { user: currentUser, users, updateUser, addUser } = useAuth();
+    const { user: currentUser, users, updateUser, addUser, isLoading: isAuthLoading } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
 
@@ -73,11 +74,11 @@ export default function ManageUsersPage() {
     });
 
     useEffect(() => {
-        if (currentUser && currentUser.role !== 'admin') {
+        if (!isAuthLoading && currentUser && currentUser.role !== 'admin') {
             toast({ title: 'Acesso Negado', description: 'Você não tem permissão para acessar esta página.', variant: 'destructive' });
             router.push('/admin/orders');
         }
-    }, [currentUser, router, toast]);
+    }, [currentUser, router, toast, isAuthLoading]);
 
     const handleOpenEditDialog = (user: User) => {
         setUserToEdit(user);
@@ -85,7 +86,7 @@ export default function ManageUsersPage() {
         setIsEditDialogOpen(true);
     };
 
-    const handleEditUser = (values: z.infer<typeof userEditFormSchema>) => {
+    const handleEditUser = async (values: z.infer<typeof userEditFormSchema>) => {
         if (!userToEdit) return;
         
         const dataToUpdate: Partial<User> = { name: values.name };
@@ -93,41 +94,28 @@ export default function ManageUsersPage() {
             dataToUpdate.password = values.password;
         }
 
-        updateUser(userToEdit.id, dataToUpdate);
-        toast({
-            title: 'Usuário Atualizado!',
-            description: 'As informações do usuário foram salvas com sucesso.',
-        });
+        await updateUser(userToEdit.id, dataToUpdate);
         setIsEditDialogOpen(false);
     };
 
-    const handleCreateUser = (values: z.infer<typeof userCreateFormSchema>) => {
+    const handleCreateUser = async (values: z.infer<typeof userCreateFormSchema>) => {
         const { confirmPassword, ...userData } = values;
-        const success = addUser(userData);
+        const success = await addUser(userData);
 
         if (success) {
-            toast({
-                title: 'Usuário Criado!',
-                description: `O usuário ${userData.name} foi criado com sucesso.`,
-            });
             createForm.reset();
             setIsAddDialogOpen(false);
-        } else {
-            toast({
-                title: 'Erro ao Criar Usuário',
-                description: 'Este nome de usuário já está em uso.',
-                variant: 'destructive',
-            });
         }
     }
-
-    if (currentUser?.role !== 'admin') {
+    
+    if (isAuthLoading || currentUser?.role !== 'admin') {
         return (
             <div className="flex justify-center items-center py-24">
-                <p>Redirecionando...</p>
+                <p>Verificando permissões...</p>
             </div>
         );
     }
+
 
     return (
         <>

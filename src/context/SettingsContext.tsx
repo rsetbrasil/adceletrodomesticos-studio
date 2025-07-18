@@ -1,16 +1,10 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
-
-const saveDataToLocalStorage = (key: string, data: any) => {
-    if (typeof window === 'undefined') return;
-    try {
-        localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-        console.error(`Failed to save ${key} to localStorage`, error);
-    }
-};
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export type StoreSettings = {
     storeName: string;
@@ -26,10 +20,10 @@ const initialSettings: StoreSettings = {
 
 interface SettingsContextType {
     settings: StoreSettings;
-    updateSettings: (newSettings: StoreSettings) => void;
+    updateSettings: (newSettings: StoreSettings) => Promise<void>;
     isLoading: boolean;
-    restoreSettings: (settings: StoreSettings) => void;
-    resetSettings: () => void;
+    restoreSettings: (settings: StoreSettings) => Promise<void>;
+    resetSettings: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -40,70 +34,58 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const { toast } = useToast();
 
     useEffect(() => {
-        if (typeof window === 'undefined') {
-            setIsLoading(false);
-            return;
-        }
-        try {
-            const storedSettings = localStorage.getItem('settings');
-            if (storedSettings) {
-                setSettings(JSON.parse(storedSettings));
-            } else {
-                setSettings(initialSettings);
-                saveDataToLocalStorage('settings', initialSettings);
-            }
-        } catch (error) {
-            console.error("Failed to load settings from localStorage", error);
-            setSettings(initialSettings);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-    
-    useEffect(() => {
-      if (typeof window === 'undefined') return;
-      
-      const handleStorageChange = (event: StorageEvent) => {
-        if (event.key === 'settings') {
+        const fetchSettings = async () => {
+            setIsLoading(true);
             try {
-                if (event.newValue === null) {
-                    setSettings(initialSettings);
+                const settingsRef = doc(db, 'config', 'storeSettings');
+                const docSnap = await getDoc(settingsRef);
+
+                if (docSnap.exists()) {
+                    setSettings(docSnap.data() as StoreSettings);
                 } else {
-                    setSettings(JSON.parse(event.newValue));
+                    // Seed the database if settings don't exist
+                    await setDoc(settingsRef, initialSettings);
+                    setSettings(initialSettings);
                 }
             } catch (error) {
-                console.error("Failed to parse settings from localStorage on change", error);
+                console.error("Failed to load settings from Firestore:", error);
+                setSettings(initialSettings);
+                toast({ title: "Erro de Conexão", description: "Não foi possível carregar as configurações da loja.", variant: "destructive" });
+            } finally {
+                setIsLoading(false);
             }
-        }
-      };
-  
-      window.addEventListener('storage', handleStorageChange);
-      return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
+        };
 
-    const updateSettings = (newSettings: StoreSettings) => {
-        setSettings(newSettings);
-        saveDataToLocalStorage('settings', newSettings);
-        toast({
-            title: "Configurações Salvas!",
-            description: "As informações da loja foram atualizadas com sucesso.",
-        });
+        fetchSettings();
+    }, [toast]);
+
+    const updateSettings = async (newSettings: StoreSettings) => {
+        try {
+            const settingsRef = doc(db, 'config', 'storeSettings');
+            await setDoc(settingsRef, newSettings);
+            setSettings(newSettings);
+            toast({
+                title: "Configurações Salvas!",
+                description: "As informações da loja foram atualizadas com sucesso.",
+            });
+        } catch (error) {
+            console.error("Error updating settings in Firestore:", error);
+            toast({ title: "Erro", description: "Não foi possível salvar as configurações.", variant: "destructive" });
+        }
     };
     
-    const restoreSettings = (settingsToRestore: StoreSettings) => {
-        setSettings(settingsToRestore);
-        saveDataToLocalStorage('settings', settingsToRestore);
+    const restoreSettings = async (settingsToRestore: StoreSettings) => {
+        await updateSettings(settingsToRestore);
     };
 
-    const resetSettings = () => {
-        setSettings(initialSettings);
-        saveDataToLocalStorage('settings', initialSettings);
+    const resetSettings = async () => {
+        await updateSettings(initialSettings);
     };
 
     return (
         <SettingsContext.Provider value={{ settings, updateSettings, isLoading, restoreSettings, resetSettings }}>
             {children}
-        </SettingsContext.Provider>
+        </Settings-context.Provider>
     );
 };
 
@@ -114,5 +96,3 @@ export const useSettings = () => {
     }
     return context;
 };
-
-    

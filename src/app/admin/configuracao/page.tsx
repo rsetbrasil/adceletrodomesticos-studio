@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -69,16 +70,16 @@ export default function ConfiguracaoPage() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const text = e.target?.result as string;
         const data = JSON.parse(text);
 
         // Basic validation to check if it's a valid backup file
         if (data.settings && data.products && data.orders && data.categories && data.users) {
-          restoreSettings(data.settings);
-          restoreCartData({ products: data.products, orders: data.orders, categories: data.categories });
-          restoreUsers(data.users);
+          await restoreSettings(data.settings);
+          await restoreCartData({ products: data.products, orders: data.orders, categories: data.categories });
+          await restoreUsers(data.users);
           toast({ title: 'Backup Restaurado!', description: 'Os dados da loja foram restaurados com sucesso.' });
         } else {
           throw new Error('Formato de arquivo de backup inválido.');
@@ -96,16 +97,16 @@ export default function ConfiguracaoPage() {
     reader.readAsText(file);
   };
   
-  const handleResetOrders = () => {
-    resetOrders();
+  const handleResetOrders = async () => {
+    await resetOrders();
     setDialogOpenFor(null);
     toast({ title: "Ação Concluída", description: "Todos os pedidos e clientes foram zerados." });
   };
 
-  const handleResetAll = () => {
-    resetAllCartData();
-    restoreUsers(initialUsers);
-    resetSettings();
+  const handleResetAll = async () => {
+    await resetAllCartData();
+    await restoreUsers(initialUsers);
+    await resetSettings();
     setDialogOpenFor(null);
     toast({ title: "Loja Resetada!", description: "Todos os dados foram restaurados para o padrão." });
   }
