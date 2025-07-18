@@ -53,12 +53,12 @@ const saveDataToLocalStorage = (key: string, data: any) => {
     }
 };
 
-const getInitialCategories = (): Category[] => {
-    const mainCategories = Array.from(new Set(initialProducts.map(p => p.category)));
+const getInitialCategories = (products: Product[]): Category[] => {
+    const mainCategories = Array.from(new Set(products.map(p => p.category)));
     
     return mainCategories.map((catName, index) => {
         const subcategories = Array.from(new Set(
-            initialProducts
+            products
                 .filter(p => p.category === catName && p.subcategory)
                 .map(p => p.subcategory!)
         )).sort();
@@ -94,8 +94,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const storedProducts = localStorage.getItem('products');
+      let currentProducts = initialProducts;
       if (storedProducts) {
-        setProducts(JSON.parse(storedProducts));
+        currentProducts = JSON.parse(storedProducts);
+        setProducts(currentProducts);
       } else {
         saveDataToLocalStorage('products', initialProducts)
       }
@@ -105,7 +107,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const parsedCategories = JSON.parse(storedCategories);
         setCategories(parsedCategories || []);
       } else {
-        const initialCats = getInitialCategories();
+        const initialCats = getInitialCategories(currentProducts);
         setCategories(initialCats);
         saveDataToLocalStorage('categories', initialCats);
       }
@@ -143,7 +145,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       try {
         const handlers: { [key: string]: (value: any) => void } = {
             'products': (value) => setProducts(value || initialProducts),
-            'categories': (value) => setCategories(value || getInitialCategories()),
+            'categories': (value) => setCategories(value || getInitialCategories(products)),
             'orders': (value) => setOrders(value || []),
             'cartItems': (value) => setCartItems(value || []),
         };
@@ -153,7 +155,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         } else if (handlers[event.key] && !event.newValue) {
             const defaultValues = {
                 'products': initialProducts,
-                'categories': getInitialCategories(),
+                'categories': getInitialCategories(initialProducts),
                 'orders': [],
                 'cartItems': [],
             };
@@ -169,12 +171,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [products]);
   
   const restoreCartData = (data: { products: Product[], orders: Order[], categories: Category[] }) => {
     setProducts(data.products || initialProducts);
     setOrders(data.orders || []);
-    setCategories(data.categories || getInitialCategories());
+    setCategories(data.categories || getInitialCategories(data.products || initialProducts));
   };
 
   const resetOrders = () => {
@@ -184,7 +186,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const resetAllCartData = () => {
     setProducts(initialProducts);
     setOrders([]);
-    setCategories(getInitialCategories());
+    setCategories(getInitialCategories(initialProducts));
     setCartItems([]);
   };
 
@@ -248,17 +250,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!oldCategory) return;
     const oldName = oldCategory.name;
 
-    // Update products using the new category name
-    const updatedProducts = products.map(p => (p.category.toLowerCase() === oldName.toLowerCase() ? { ...p, category: newName } : p));
-    saveDataToLocalStorage('products', updatedProducts);
-    setProducts(updatedProducts);
+    setProducts(prods => prods.map(p => (p.category.toLowerCase() === oldName.toLowerCase() ? { ...p, category: newName } : p)));
 
-    // Update the category itself
-    const updatedCategories = categories
+    setCategories(prev => prev
       .map(c => (c.id === categoryId ? { ...c, name: newName } : c))
-      .sort((a, b) => a.name.localeCompare(b.name));
-    saveDataToLocalStorage('categories', updatedCategories);
-    setCategories(updatedCategories);
+      .sort((a, b) => a.name.localeCompare(b.name))
+    );
 
     toast({ title: "Categoria Renomeada!" });
   };
