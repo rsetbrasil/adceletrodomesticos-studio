@@ -2,37 +2,43 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // PUBLIC: Anyone can read products, categories, and store settings.
-    // This is necessary for the public-facing storefront to function.
+
+    // Helper function to check if a user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // PUBLIC DATA
+    // Products, categories, and settings can be read by anyone.
+    // Only authenticated users (admins/managers) can write.
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null; // Only authenticated users can write.
+      allow write: if isAuthenticated();
     }
-    
+
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if request.auth != null; // Only authenticated users can write.
+      allow write: if isAuthenticated();
     }
-    
-    match /config/{docId} { // e.g., /config/storeSettings
-      allow read: if true;
-      allow write: if request.auth != null; // Only authenticated users can write.
+
+    match /config/{docId} {
+       allow read: if true;
+       allow write: if isAuthenticated();
     }
-    
-    // CHECKOUT & ORDERS:
-    // Anyone can create an order (checkout process).
-    // Only authenticated users can read/update/delete orders (for the admin panel).
+
+    // ORDERS
+    // Anyone can create an order during checkout.
+    // Only authenticated users can manage (read, update, delete) orders.
     match /orders/{orderId} {
-      allow create: if true; 
-      allow read, update, delete: if request.auth != null;
+      allow create: if true;
+      allow read, update, delete: if isAuthenticated();
     }
     
-    // USERS:
-    // A user can be looked up by anyone for login purposes.
-    // Full read/write access is restricted to authenticated users (admins manage, etc.)
+    // USERS
+    // Users can read/write their own data. This is essential.
+    // In the future, we can add admin override rules here.
     match /users/{userId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
   }
 }
