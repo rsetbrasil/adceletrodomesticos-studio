@@ -2,35 +2,37 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Allow public read for products, categories, and store settings
-    // as these are needed for the public-facing storefront.
+    
+    // PUBLIC: Anyone can read products, categories, and store settings.
+    // This is necessary for the public-facing storefront to function.
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null; // Authenticated users can write
+      allow write: if request.auth != null; // Only authenticated users can write.
     }
-
+    
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if request.auth != null; // Authenticated users can write
+      allow write: if request.auth != null; // Only authenticated users can write.
     }
-
-    match /config/storeSettings {
+    
+    match /config/{docId} { // e.g., /config/storeSettings
       allow read: if true;
-      allow write: if request.auth != null; // Authenticated users can write
+      allow write: if request.auth != null; // Only authenticated users can write.
     }
-
-    // Orders can be created by anyone (checkout process).
-    // Reading and updating them requires authentication.
+    
+    // CHECKOUT & ORDERS:
+    // Anyone can create an order (checkout process).
+    // Only authenticated users can read/update/delete orders (for the admin panel).
     match /orders/{orderId} {
-      allow create: if true;
+      allow create: if true; 
       allow read, update, delete: if request.auth != null;
     }
-
-    // Users can be read or written to by an admin.
-    // We check for a custom claim 'role' on the auth token.
+    
+    // USERS:
+    // A user can be looked up by anyone for login purposes.
+    // Full read/write access is restricted to authenticated users (admins manage, etc.)
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.token.role == 'admin';
+      allow read, write: if request.auth != null;
     }
   }
 }

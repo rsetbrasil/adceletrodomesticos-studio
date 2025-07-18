@@ -88,20 +88,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
 
-        const foundUser = querySnapshot.docs[0].data() as User;
-        const userId = querySnapshot.docs[0].id;
+        const foundUserDoc = querySnapshot.docs[0];
+        const userWithId = { ...foundUserDoc.data(), id: foundUserDoc.id } as User;
         
-        // Ensure the user object has the correct ID from Firestore
-        const userWithId = { ...foundUser, id: userId };
-
         if (userWithId.password === pass) {
-            const { password, ...userToStore } = userWithId;
-            setUser(userToStore);
-            localStorage.setItem('user', JSON.stringify(userToStore));
+            // A role está incluída aqui, então será salva no localStorage
+            setUser(userWithId); 
+            localStorage.setItem('user', JSON.stringify(userWithId));
             router.push('/admin/orders');
             toast({
                 title: 'Login bem-sucedido!',
-                description: `Bem-vindo(a), ${userToStore.name}.`,
+                description: `Bem-vindo(a), ${userWithId.name}.`,
             });
         } else {
             toast({
@@ -112,7 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     } catch (error) {
         console.error("Login error:", error);
-        toast({ title: 'Erro de Login', description: 'Não foi possível conectar. Verifique as permissões do banco de dados.', variant: 'destructive' });
+        toast({ title: 'Erro de Login', description: 'Não foi possível conectar. Verifique as regras do banco de dados.', variant: 'destructive' });
     }
   };
 
