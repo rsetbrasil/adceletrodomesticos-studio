@@ -9,10 +9,11 @@ import {
   SelectValue,
 } from './ui/select';
 import { Button } from '@/components/ui/button';
-import { Search, ListFilter } from 'lucide-react';
+import { Search } from 'lucide-react';
 import type { Category } from '@/lib/types';
 import { useMemo } from 'react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 interface ProductFiltersProps {
@@ -32,6 +33,7 @@ export default function ProductFilters({
   currentFilters
 }: ProductFiltersProps) {
   
+  const isMobile = useIsMobile();
   const subcategories = useMemo(() => {
     if (currentFilters.category === 'all') {
       return [];
@@ -71,20 +73,22 @@ export default function ProductFilters({
               </SelectContent>
             </Select>
            )}
-           <Select
-              value={currentFilters.sort}
-              onValueChange={(value) => onFilterChange({ sort: value })}
-          >
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Ordenar por" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Novidades</SelectItem>
-              <SelectItem value="relevance">Relevância</SelectItem>
-              <SelectItem value="price-asc">Preço: Menor para Maior</SelectItem>
-              <SelectItem value="price-desc">Preço: Maior para Menor</SelectItem>
-            </SelectContent>
-          </Select>
+           {!isMobile && (
+            <Select
+                value={currentFilters.sort}
+                onValueChange={(value) => onFilterChange({ sort: value })}
+            >
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Novidades</SelectItem>
+                <SelectItem value="relevance">Relevância</SelectItem>
+                <SelectItem value="price-asc">Preço: Menor para Maior</SelectItem>
+                <SelectItem value="price-desc">Preço: Maior para Menor</SelectItem>
+              </SelectContent>
+            </Select>
+           )}
         </div>
       </div>
       
