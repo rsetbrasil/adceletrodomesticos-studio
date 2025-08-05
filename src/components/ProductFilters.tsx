@@ -13,7 +13,6 @@ import { Search } from 'lucide-react';
 import type { Category } from '@/lib/types';
 import { useMemo } from 'react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 
 interface ProductFiltersProps {
@@ -33,7 +32,6 @@ export default function ProductFilters({
   currentFilters
 }: ProductFiltersProps) {
   
-  const isMobile = useIsMobile();
   const subcategories = useMemo(() => {
     if (currentFilters.category === 'all') {
       return [];
@@ -73,7 +71,7 @@ export default function ProductFilters({
               </SelectContent>
             </Select>
            )}
-           {!isMobile && (
+           <div className="hidden md:block">
             <Select
                 value={currentFilters.sort}
                 onValueChange={(value) => onFilterChange({ sort: value })}
@@ -88,7 +86,7 @@ export default function ProductFilters({
                 <SelectItem value="price-desc">Preço: Maior para Menor</SelectItem>
               </SelectContent>
             </Select>
-           )}
+           </div>
         </div>
       </div>
       
