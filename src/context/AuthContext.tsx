@@ -72,10 +72,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    if (user?.role === 'admin') {
-      fetchUsers();
-    }
-  }, [user]);
+    fetchUsers();
+  }, []);
 
   const login = async (username: string, pass: string) => {
     try {

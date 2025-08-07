@@ -19,7 +19,7 @@ import { useCart } from '@/context/CartContext';
 import { PackagePlus, X } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
-import type { Product } from '@/lib/types';
+import type { Product, Category } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 

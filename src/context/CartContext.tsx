@@ -18,6 +18,17 @@ const saveDataToLocalStorage = (key: string, data: any) => {
     }
 };
 
+const loadDataFromLocalStorage = (key: string) => {
+    if (typeof window === 'undefined') return null;
+    try {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : null;
+    } catch (error) {
+        console.error(`Failed to load ${key} from localStorage`, error);
+        return null;
+    }
+}
+
 interface CartContextType {
   cartItems: CartItem[];
   addToCart: (product: Product) => void;
@@ -112,8 +123,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             setOrders(loadedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             
             // Load Cart from localStorage
-            const storedCart = localStorage.getItem('cartItems');
-            if (storedCart) setCartItems(JSON.parse(storedCart));
+            const storedCart = loadDataFromLocalStorage('cartItems');
+            if (storedCart) setCartItems(storedCart);
 
         } catch (error) {
             console.error("Failed to load data from Firestore:", error);
