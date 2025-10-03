@@ -42,36 +42,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (error) {
             console.error("Failed to read user from localStorage", error);
             localStorage.removeItem('user');
+        } 
+    };
+
+    const fetchUsers = async () => {
+        try {
+            const usersCollection = collection(db, 'users');
+            const querySnapshot = await getDocs(usersCollection);
+
+            if (querySnapshot.empty) {
+                const batch = writeBatch(db);
+                initialUsers.forEach(u => {
+                    const docRef = doc(db, 'users', u.id);
+                    batch.set(docRef, u);
+                });
+                await batch.commit();
+                setUsers(initialUsers);
+            } else {
+                const fetchedUsers = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as User[];
+                setUsers(fetchedUsers);
+            }
+        } catch (error) {
+            console.error("Error fetching users from Firestore:", error);
         } finally {
             setIsLoading(false);
         }
-    };
+      };
+
     checkUser();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-        const usersCollection = collection(db, 'users');
-        const querySnapshot = await getDocs(usersCollection);
-
-        if (querySnapshot.empty) {
-            const batch = writeBatch(db);
-            initialUsers.forEach(u => {
-                const docRef = doc(db, 'users', u.id);
-                batch.set(docRef, u);
-            });
-            await batch.commit();
-            setUsers(initialUsers);
-        } else {
-            const fetchedUsers = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as User[];
-            setUsers(fetchedUsers);
-        }
-    } catch (error) {
-        console.error("Error fetching users from Firestore:", error);
-    }
-  };
-
-  useEffect(() => {
     fetchUsers();
   }, []);
 

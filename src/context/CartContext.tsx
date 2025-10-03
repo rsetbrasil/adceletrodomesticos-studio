@@ -142,11 +142,26 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
         const batch = writeBatch(db);
         
-        data.products.forEach(p => batch.set(doc(db, 'products', p.id), p));
-        data.orders.forEach(o => batch.set(doc(db, 'orders', o.id), o));
-        data.categories.forEach(c => batch.set(doc(db, 'categories', c.id), c));
+        const productsCollectionRef = collection(db, "products");
+        const productsSnapshot = await getDocs(productsCollectionRef);
+        productsSnapshot.forEach(doc => batch.delete(doc.ref));
+        
+        const ordersCollectionRef = collection(db, "orders");
+        const ordersSnapshot = await getDocs(ordersCollectionRef);
+        ordersSnapshot.forEach(doc => batch.delete(doc.ref));
 
-        await batch.commit();
+        const categoriesCollectionRef = collection(db, "categories");
+        const categoriesSnapshot = await getDocs(categoriesCollectionRef);
+        categoriesSnapshot.forEach(doc => batch.delete(doc.ref));
+
+        await batch.commit(); // Commit deletions first
+
+        const addBatch = writeBatch(db);
+        data.products.forEach(p => addBatch.set(doc(db, 'products', p.id), p));
+        data.orders.forEach(o => addBatch.set(doc(db, 'orders', o.id), o));
+        data.categories.forEach(c => addBatch.set(doc(db, 'categories', c.id), c));
+
+        await addBatch.commit();
         setProducts(data.products || []);
         setOrders(data.orders || []);
         setCategories(data.categories || []);
@@ -207,8 +222,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const updateProduct = async (updatedProduct: Product) => {
     try {
-        await updateDoc(doc(db, 'products', updatedProduct.id), updatedProduct);
-        setProducts(prev => prev.map((p) => p.id === updatedProduct.id ? updatedProduct : p));
+        const productRef = doc(db, 'products', updatedProduct.id);
+        const productToUpdate = { ...updatedProduct };
+        await setDoc(productRef, productToUpdate, { merge: true });
+
+        setProducts(prev => prev.map((p) => p.id === updatedProduct.id ? productToUpdate : p));
         toast({
             title: 'Produto Atualizado!',
             description: `O produto "${updatedProduct.name}" foi atualizado.`,

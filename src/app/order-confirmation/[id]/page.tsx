@@ -59,6 +59,8 @@ export default function OrderConfirmationPage() {
     const orderId = params.id as string;
     if (orderId) {
         fetchOrder(orderId);
+    } else if (lastOrder) {
+        fetchOrder(lastOrder.id);
     } else {
         router.push('/');
     }
