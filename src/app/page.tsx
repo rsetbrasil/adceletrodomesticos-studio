@@ -5,6 +5,9 @@ import { useCart } from '@/context/CartContext';
 import type { Product } from '@/lib/types';
 import ProductCard from '@/components/ProductCard';
 import ProductFilters from '@/components/ProductFilters';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function Home() {
   const { products: allProducts, categories } = useCart();
@@ -64,31 +67,55 @@ export default function Home() {
   }, [filters, allProducts]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <header className="mb-8 text-center">
-        <h1 className="text-4xl font-bold font-headline text-primary">Nosso Catálogo</h1>
-        <p className="text-muted-foreground mt-2">
-          Explore nossa seleção de produtos de alta qualidade.
-        </p>
-      </header>
-
-      <ProductFilters
-        categories={categories}
-        onFilterChange={handleFilterChange}
-        currentFilters={filters}
-      />
-
-      {filteredAndSortedProducts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {filteredAndSortedProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+    <>
+      <section className="relative w-full h-[400px] bg-muted/30 text-primary-foreground mb-12">
+        <Image
+          src="https://picsum.photos/seed/banner/1600/400"
+          alt="Banner de promoção"
+          fill
+          className="object-cover -z-10 brightness-50"
+          priority
+          data-ai-hint="living room"
+        />
+        <div className="container mx-auto flex flex-col items-center justify-center h-full text-center space-y-4 px-4">
+          <h1 className="text-4xl md:text-6xl font-bold font-headline text-background">Renove seu Lar</h1>
+          <p className="text-lg md:text-xl max-w-2xl text-background/90">
+            As melhores ofertas em móveis e eletrodomésticos para deixar sua casa do jeito que você sempre sonhou.
+          </p>
+          <Link href="#catalog">
+            <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+              Ver Ofertas
+            </Button>
+          </Link>
         </div>
-      ) : (
-        <div className="text-center py-16">
-          <p className="text-lg text-muted-foreground">Nenhum produto encontrado.</p>
-        </div>
-      )}
-    </div>
+      </section>
+
+      <div id="catalog" className="container mx-auto px-4 py-8">
+        <header className="mb-8 text-center">
+          <h2 className="text-4xl font-bold font-headline text-primary">Nosso Catálogo</h2>
+          <p className="text-muted-foreground mt-2">
+            Explore nossa seleção de produtos de alta qualidade.
+          </p>
+        </header>
+
+        <ProductFilters
+          categories={categories}
+          onFilterChange={handleFilterChange}
+          currentFilters={filters}
+        />
+
+        {filteredAndSortedProducts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {filteredAndSortedProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <p className="text-lg text-muted-foreground">Nenhum produto encontrado.</p>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
