@@ -281,6 +281,23 @@ export default function OrdersAdminPage() {
                                     <Pencil className="h-4 w-4" />
                                     <span className="sr-only">Gerenciar Pedido</span>
                                   </Button>
+                                    {(user?.role === 'admin' || user?.role === 'gerente') && (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                    <Users className="h-4 w-4" />
+                                                    <span className="sr-only">Atribuir Vendedor</span>
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                {sellers.map(s => (
+                                                    <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
+                                                        {s.name}
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    )}
                                   <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
                                           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -289,23 +306,6 @@ export default function OrdersAdminPage() {
                                           </Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
-                                          {(user?.role === 'admin' || user?.role === 'gerente') && (
-                                              <DropdownMenuSub>
-                                                  <DropdownMenuSubTrigger>
-                                                      <Users className="mr-2 h-4 w-4" />
-                                                      Atribuir Vendedor
-                                                  </DropdownMenuSubTrigger>
-                                                  <DropdownMenuPortal>
-                                                      <DropdownMenuSubContent>
-                                                          {sellers.map(s => (
-                                                              <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
-                                                                  {s.name}
-                                                              </DropdownMenuItem>
-                                                          ))}
-                                                      </DropdownMenuSubContent>
-                                                  </DropdownMenuPortal>
-                                              </DropdownMenuSub>
-                                          )}
                                           <AlertDialog>
                                               <AlertDialogTrigger asChild>
                                                   <DropdownMenuItem
@@ -572,3 +572,6 @@ export default function OrdersAdminPage() {
   );
 }
 
+
+
+    
