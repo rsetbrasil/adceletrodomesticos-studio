@@ -86,7 +86,6 @@ export default function Home() {
       {saleProducts.length > 0 && (
         <section className="w-full mb-12 py-8 bg-muted/50">
             <div className="container mx-auto">
-                <h2 className="text-3xl font-bold font-headline text-primary mb-6 text-center">🔥 Produtos em Promoção</h2>
                 <Carousel
                     opts={{
                     align: "start",
