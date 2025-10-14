@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -72,7 +73,7 @@ export default function FinanceiroPage() {
     const sellerCommissions = new Map<string, { name: string; total: number; count: number }>();
 
     orders.forEach(order => {
-        if (order.commission && order.commission > 0) {
+        if (order.status === 'Entregue' && order.commission && order.commission > 0) {
             const sellerId = order.sellerId;
             const current = sellerCommissions.get(sellerId) || { name: order.sellerName, total: 0, count: 0 };
             current.total += order.commission;
@@ -141,12 +142,12 @@ export default function FinanceiroPage() {
         </Card>
          <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Comissões</CardTitle>
+            <CardTitle className="text-sm font-medium">Comissões (Pedidos Entregues)</CardTitle>
             <Percent className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(commissionSummary.totalCommission)}</div>
-            <p className="text-xs text-muted-foreground">Soma de todas as comissões a pagar</p>
+            <p className="text-xs text-muted-foreground">Soma das comissões a pagar</p>
           </CardContent>
         </Card>
       </div>
@@ -191,7 +192,7 @@ export default function FinanceiroPage() {
         <Card>
           <CardHeader>
               <CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" /> Resumo de Comissões por Vendedor</CardTitle>
-              <CardDescription>Total de comissões calculadas para cada vendedor.</CardDescription>
+              <CardDescription>Total de comissões calculadas para cada vendedor (apenas de pedidos entregues).</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
