@@ -30,12 +30,12 @@ interface ProductFiltersProps {
 export default function ProductFilters({ onFilterChange, categories, currentFilters }: ProductFiltersProps) {
 
   return (
-    <div className="bg-card p-4 rounded-lg shadow-sm mb-8">
-       <div className="flex flex-wrap gap-2">
+    <div className="bg-card p-4 rounded-lg shadow-sm mb-8 overflow-x-auto">
+       <div className="flex gap-2">
         <Button
           variant={currentFilters.category === 'all' ? 'secondary' : 'ghost'}
           onClick={() => onFilterChange({ category: 'all' })}
-          className="text-xs px-2"
+          className="text-xs px-2 flex-shrink-0"
         >
           Todas
         </Button>
@@ -46,7 +46,7 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
                 key={cat.id}
                 variant={currentFilters.category === cat.name ? 'secondary' : 'ghost'}
                 onClick={() => onFilterChange({ category: cat.name })}
-                className="capitalize text-xs px-2"
+                className="capitalize text-xs px-2 flex-shrink-0"
               >
                 {cat.name}
               </Button>
@@ -58,7 +58,7 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
               <DropdownMenuTrigger asChild>
                 <Button
                   variant={currentFilters.category === cat.name ? 'secondary' : 'ghost'}
-                  className="capitalize text-xs px-2"
+                  className="capitalize text-xs px-2 flex-shrink-0"
                   onClick={() => onFilterChange({ category: cat.name, subcategory: 'all' })}
                 >
                   {cat.name}
