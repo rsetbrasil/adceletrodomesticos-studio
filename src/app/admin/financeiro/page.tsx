@@ -92,14 +92,15 @@ export default function FinanceiroPage() {
     const sellerCommissions = new Map<string, { name: string; total: number; count: number }>();
 
     orders.forEach(order => {
-        if (order.status === 'Entregue') {
+        if (order.status === 'Entregue' && order.sellerId) {
             const sellerId = order.sellerId;
             const commission = typeof order.commission === 'number'
                 ? order.commission
                 : calculateCommissionForOrder(order, products);
 
             if (commission > 0) {
-                const current = sellerCommissions.get(sellerId) || { name: order.sellerName, total: 0, count: 0 };
+                const sellerName = order.sellerName || users.find(u => u.id === sellerId)?.name || 'Vendedor Desconhecido';
+                const current = sellerCommissions.get(sellerId) || { name: sellerName, total: 0, count: 0 };
                 current.total += commission;
                 current.count += 1;
                 sellerCommissions.set(sellerId, current);
