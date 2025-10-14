@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 import { addMonths } from 'date-fns';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query, onSnapshot } from 'firebase/firestore';
+import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { useAudit } from './AuditContext';
 import { useRouter } from 'next/navigation';
 
@@ -114,7 +114,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: "Erro de Conexão", description: "Não foi possível carregar os produtos.", variant: "destructive" });
     });
     
-    const categoriesUnsubscribe = onSnapshot(collection(db, 'categories'), async (categoriesSnapshot) => {
+    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), async (categoriesSnapshot) => {
         if (!activeListeners) return;
         let loadedCategories: Category[];
         if (categoriesSnapshot.empty) {
@@ -136,7 +136,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         } else {
             loadedCategories = categoriesSnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Category[];
         }
-        setCategories(loadedCategories.sort((a,b) => a.order - b.order));
+        setCategories(loadedCategories);
     }, (error) => {
         console.error("Failed to load categories from Firestore:", error);
     });
