@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CartSheet } from '@/components/CartSheet';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -22,12 +23,20 @@ export default function ProductDetailPage() {
   const { products, addToCart } = useCart();
   const id = params.id as string;
   const [isClient, setIsClient] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   const product = products.find((p) => p.id === id);
+  
+  const handleAddToCart = () => {
+    if (!product) return;
+    addToCart(product);
+    setIsCartOpen(true);
+  };
+
 
   if (!isClient) {
     return (
@@ -54,6 +63,7 @@ export default function ProductDetailPage() {
   const installmentValue = maxInstallments > 0 ? product.price / maxInstallments : product.price;
 
   return (
+    <>
     <div className="container mx-auto max-w-6xl py-12 px-4">
       <Button variant="ghost" onClick={() => router.back()} className="mb-8">
         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -135,7 +145,7 @@ export default function ProductDetailPage() {
           <div className="mt-8">
             {product.stock > 0 ? (
               <>
-                <Button size="lg" onClick={() => addToCart(product)} className="w-full md:w-auto bg-accent hover:bg-accent/90">
+                <Button size="lg" onClick={handleAddToCart} className="w-full md:w-auto bg-accent hover:bg-accent/90">
                   <ShoppingCart className="mr-2 h-5 w-5" />
                   Adicionar ao Carrinho
                 </Button>
@@ -158,5 +168,9 @@ export default function ProductDetailPage() {
         </CardContent>
       </Card>
     </div>
+    <CartSheet open={isCartOpen} onOpenChange={setIsCartOpen}>
+      <></>
+    </CartSheet>
+    </>
   );
 }

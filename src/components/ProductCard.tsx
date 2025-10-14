@@ -15,6 +15,8 @@ import { Badge } from './ui/badge';
 import { useCart } from '@/context/CartContext';
 import type { Product } from '@/lib/types';
 import { ShoppingCart } from 'lucide-react';
+import { useState } from 'react';
+import { CartSheet } from './CartSheet';
 
 interface ProductCardProps {
   product: Product;
@@ -22,6 +24,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -33,6 +36,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     addToCart(product);
+    setIsCartOpen(true);
   }
 
   const imageUrl = (product.imageUrls && product.imageUrls.length > 0) 
@@ -40,6 +44,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     : 'https://placehold.co/600x600.png';
 
   return (
+    <>
     <Link href={`/products/${product.id}`} className="block h-full" aria-label={`Ver detalhes de ${product.name}`}>
       <Card className="flex flex-col overflow-hidden h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
         <CardHeader className="p-0">
@@ -81,5 +86,9 @@ export default function ProductCard({ product }: ProductCardProps) {
         </CardFooter>
       </Card>
     </Link>
+    <CartSheet open={isCartOpen} onOpenChange={setIsCartOpen}>
+      <></>
+    </CartSheet>
+    </>
   );
 }

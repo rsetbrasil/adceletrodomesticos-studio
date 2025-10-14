@@ -421,10 +421,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
     setCartItems(updatedCart);
     saveDataToLocalStorage('cartItems', updatedCart);
-    toast({
-        title: "Produto adicionado!",
-        description: `${product.name} foi adicionado ao seu carrinho.`,
-    });
+    // toast({
+    //     title: "Produto adicionado!",
+    //     description: `${product.name} foi adicionado ao seu carrinho.`,
+    // });
   };
 
   const removeFromCart = (productId: string) => {
