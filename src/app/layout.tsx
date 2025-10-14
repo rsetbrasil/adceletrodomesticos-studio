@@ -94,17 +94,15 @@ NEXT_PUBLIC_FIREBASE_APP_ID="SEU_APP_ID"`}
         />
       </head>
       <body className="font-body antialiased">
-        <AuditProvider>
-          <AuthProviderWithAudit>
-            <PermissionsProvider>
-              <SettingsProvider>
-                <CartProvider>
-                  <AppContent>{children}</AppContent>
-                </CartProvider>
-              </SettingsProvider>
-            </PermissionsProvider>
-          </AuthProviderWithAudit>
-        </AuditProvider>
+        <AuthProviderWithAudit>
+          <PermissionsProvider>
+            <SettingsProvider>
+              <CartProvider>
+                <AppContent>{children}</AppContent>
+              </CartProvider>
+            </SettingsProvider>
+          </PermissionsProvider>
+        </AuthProviderWithAudit>
       </body>
     </html>
   );

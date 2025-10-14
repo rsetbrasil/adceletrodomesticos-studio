@@ -7,6 +7,7 @@ import { initialPermissions } from '@/lib/permissions';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from './AuthContext';
 import { useAudit } from './AuditContext';
 
 interface PermissionsContextType {
@@ -22,6 +23,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     const [permissions, setPermissions] = useState<RolePermissions | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
+    const { user } = useAuth();
     const { logAction } = useAudit();
     
     useEffect(() => {
@@ -54,7 +56,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
             const permissionsRef = doc(db, 'config', 'rolePermissions');
             await setDoc(permissionsRef, newPermissions);
             setPermissions(newPermissions);
-            logAction('Atualização de Permissões', 'As permissões de acesso dos perfis foram alteradas.');
+            logAction('Atualização de Permissões', 'As permissões de acesso dos perfis foram alteradas.', user);
             toast({
                 title: "Permissões Salvas!",
                 description: "As regras de acesso foram atualizadas com sucesso.",
@@ -63,7 +65,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error updating permissions in Firestore:", error);
             toast({ title: "Erro", description: "Não foi possível salvar as permissões.", variant: "destructive" });
         }
-    }, [toast, logAction]);
+    }, [toast, logAction, user]);
 
     const resetPermissions = useCallback(async () => {
         await updatePermissions(initialPermissions);

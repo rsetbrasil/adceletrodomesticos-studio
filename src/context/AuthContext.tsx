@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -8,20 +9,20 @@ import type { User } from '@/lib/types';
 import { initialUsers } from '@/lib/users';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where, getDoc } from 'firebase/firestore';
-import { useAudit } from './AuditContext';
+import { AuditProvider, useAudit } from './AuditContext';
 
 interface AuthContextType {
   user: User | null;
   users: User[];
   initialUsers: User[];
-  login: (user: string, pass: string, logAction: (action: string, details: string) => void) => void;
-  logout: (logAction: (action: string, details: string) => void) => void;
-  addUser: (data: Omit<User, 'id'>, logAction: (action: string, details: string) => void) => Promise<boolean>;
-  updateUser: (userId: string, data: Partial<Omit<User, 'id'>>, logAction: (action: string, details: string) => void) => Promise<void>;
+  login: (user: string, pass: string, logAction: Function) => void;
+  logout: (logAction: Function) => void;
+  addUser: (data: Omit<User, 'id'>, logAction: Function) => Promise<boolean>;
+  updateUser: (userId: string, data: Partial<Omit<User, 'id'>>, logAction: Function) => Promise<void>;
   changeMyPassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   isLoading: boolean;
   isAuthenticated: boolean;
-  restoreUsers: (users: User[], logAction: (action: string, details: string) => void) => Promise<void>;
+  restoreUsers: (users: User[], logAction: Function) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,8 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
-  const { logAction } = useAudit();
-
+  
   useEffect(() => {
     const checkUser = () => {
         setIsLoading(true);
@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fetchUsers();
   }, []);
 
-  const login = async (username: string, pass: string, logAction: (action: string, details: string) => void) => {
+  const login = async (username: string, pass: string, logAction: Function) => {
     try {
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where("username", "==", username));
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             
             setUser(userToStore); 
             localStorage.setItem('user', JSON.stringify(userToStore));
-            logAction('Login', `Usuário "${userWithId.name}" realizou login.`);
+            logAction('Login', `Usuário "${userWithId.name}" realizou login.`, userToStore);
             router.push('/admin/orders');
             toast({
                 title: 'Login bem-sucedido!',
@@ -116,16 +116,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = (logAction: (action: string, details: string) => void) => {
+  const logout = (logAction: Function) => {
     if (user) {
-        logAction('Logout', `Usuário "${user.name}" realizou logout.`);
+        logAction('Logout', `Usuário "${user.name}" realizou logout.`, user);
     }
     setUser(null);
     localStorage.removeItem('user');
     router.push('/login');
   };
 
-  const addUser = async (data: Omit<User, 'id'>, logAction: (action: string, details: string) => void): Promise<boolean> => {
+  const addUser = async (data: Omit<User, 'id'>, logAction: Function): Promise<boolean> => {
     const q = query(collection(db, 'users'), where("username", "==", data.username.toLowerCase()));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
@@ -143,7 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         await setDoc(doc(db, 'users', newUserId), newUser);
         setUsers(prev => [...prev, newUser]);
-        logAction('Criação de Usuário', `Novo usuário "${data.name}" (Perfil: ${data.role}) foi criado.`);
+        logAction('Criação de Usuário', `Novo usuário "${data.name}" (Perfil: ${data.role}) foi criado.`, user);
         toast({
             title: 'Usuário Criado!',
             description: `O usuário ${data.name} foi criado com sucesso.`,
@@ -156,7 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateUser = async (userId: string, data: Partial<Omit<User, 'id'>>, logAction: (action: string, details: string) => void) => {
+  const updateUser = async (userId: string, data: Partial<Omit<User, 'id'>>, logAction: Function) => {
     
     // Check for username uniqueness if it's being changed
     if (data.username) {
@@ -176,9 +176,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     try {
         const userRef = doc(db, 'users', userId);
-        await updateDoc(userRef, data);
         const updatedUser = users.find(u => u.id === userId);
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
         
         if (updatedUser) {
             let details = `Dados do usuário "${updatedUser.name}" foram alterados.`;
@@ -191,8 +189,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (data.password) {
                 details += ' Senha foi alterada.';
             }
-            logAction('Atualização de Usuário', details);
+            logAction('Atualização de Usuário', details, user);
         }
+        
+        await updateDoc(userRef, data);
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
         
         // If the current user is being updated, update the localStorage object too
         if (user?.id === userId) {
@@ -220,14 +221,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
           const userRef = doc(db, 'users', user.id);
           const userDoc = await getDoc(userRef);
-
+          
           if (!userDoc.exists() || userDoc.data().password !== currentPassword) {
               toast({ title: "Erro", description: "A senha atual está incorreta.", variant: "destructive" });
               return false;
           }
 
+          const { logAction: logActionFunc } = useAudit();
           await updateDoc(userRef, { password: newPassword });
-          logAction('Alteração de Senha', `O usuário "${user.name}" alterou a própria senha.`);
+          logActionFunc('Alteração de Senha', `O usuário "${user.name}" alterou a própria senha.`, user);
           toast({ title: "Senha Alterada!", description: "Sua senha foi atualizada com sucesso." });
           return true;
 
@@ -238,7 +240,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
   };
   
-  const restoreUsers = async (usersToRestore: User[], logAction: (action: string, details: string) => void) => {
+  const restoreUsers = async (usersToRestore: User[], logAction: Function) => {
       try {
         const usersCollectionRef = collection(db, "users");
         const snapshot = await getDocs(usersCollectionRef);
@@ -255,7 +257,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         await addBatch.commit();
         setUsers(usersToRestore);
-        logAction('Restauração de Usuários', 'Todos os usuários foram restaurados a partir de um backup.');
+        logAction('Restauração de Usuários', 'Todos os usuários foram restaurados a partir de um backup.', user);
       } catch (error) {
         console.error("Error restoring users to Firestore:", error);
         toast({ title: "Erro", description: "Não foi possível restaurar os usuários.", variant: "destructive" });
@@ -274,22 +276,13 @@ export const useAuth = () => {
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  // This is a hack to get the logAction without creating a circular dependency
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const audit = useContext(AuditContext);
-  return {...context, logAction: audit!.logAction };
+  return context;
 };
 
-// We need a separate context for Audit to avoid circular dependencies
-// if we were to include logAction directly in AuthContext from the start.
-const AuditContext = createContext<{ logAction: (action: string, details: string) => void } | undefined>(undefined);
-
 export const AuthProviderWithAudit = ({ children }: { children: ReactNode }) => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { logAction } = useAudit();
     return (
-        <AuditContext.Provider value={{ logAction }}>
+        <AuditProvider>
             <AuthProvider>{children}</AuthProvider>
-        </AuditContext.Provider>
+        </AuditProvider>
     );
 };

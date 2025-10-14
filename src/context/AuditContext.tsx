@@ -2,26 +2,24 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { useAuth } from './AuthContext';
-import type { AuditLog, UserRole } from '@/lib/types';
+import type { AuditLog, User, UserRole } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, setDoc, query, orderBy } from 'firebase/firestore';
 
 interface AuditContextType {
   auditLogs: AuditLog[];
-  logAction: (action: string, details: string) => void;
+  logAction: (action: string, details: string, user: User | null) => void;
+  fetchLogs: () => void;
   isLoading: boolean;
 }
 
 const AuditContext = createContext<AuditContextType | undefined>(undefined);
 
 export const AuditProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
       setIsLoading(true);
       try {
         const logsCollection = collection(db, 'auditLogs');
@@ -34,16 +32,15 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
       } finally {
         setIsLoading(false);
       }
-    };
-    
-    if (user && user.role !== 'vendedor') {
-        fetchLogs();
-    } else {
-        setIsLoading(false);
-    }
-  }, [user]);
+  }, []);
+  
+  useEffect(() => {
+    // Initial fetch
+    fetchLogs();
+  }, [fetchLogs]);
 
-  const logAction = useCallback(async (action: string, details: string) => {
+
+  const logAction = useCallback(async (action: string, details: string, user: User | null) => {
     if (!user) return;
 
     const logId = `log-${Date.now()}`;
@@ -63,10 +60,10 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Error writing audit log to Firestore:", error);
     }
-  }, [user]);
+  }, []);
 
   return (
-    <AuditContext.Provider value={{ auditLogs, logAction, isLoading }}>
+    <AuditContext.Provider value={{ auditLogs, logAction, fetchLogs, isLoading }}>
       {children}
     </AuditContext.Provider>
   );
