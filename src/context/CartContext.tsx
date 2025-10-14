@@ -8,6 +8,7 @@ import { products as initialProducts } from '@/lib/products';
 import { addMonths } from 'date-fns';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query } from 'firebase/firestore';
+import { useAudit } from './AuditContext';
 
 const saveDataToLocalStorage = (key: string, data: any) => {
     if (typeof window === 'undefined') return;
@@ -74,6 +75,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const { toast } = useToast();
+  const { logAction } = useAudit();
 
   useEffect(() => {
     const loadAllData = async () => {
@@ -165,6 +167,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setProducts(data.products || []);
         setOrders(data.orders || []);
         setCategories(data.categories || []);
+        logAction('Restauração de Backup', 'Todos os dados de produtos, pedidos e categorias foram restaurados.');
         toast({ title: 'Dados restaurados com sucesso!' });
     } catch (error) {
         console.error("Error restoring data to Firestore:", error);
@@ -182,6 +185,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         ordersSnapshot.docs.forEach(d => batch.delete(d.ref));
         await batch.commit();
         setOrders([]);
+        logAction('Reset de Pedidos', 'Todos os pedidos e clientes foram zerados.');
     } catch (error) {
         console.error("Error resetting orders in Firestore:", error);
     } finally {
@@ -196,6 +200,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         subcategories: Array.from(new Set(initialProducts.filter(p => p.category === catName && p.subcategory).map(p => p.subcategory!))).sort()
     })).sort((a, b) => a.name.localeCompare(b.name));
     await restoreCartData({ products: initialProducts, orders: [], categories: initialCats });
+    logAction('Reset da Loja', 'Todos os dados da loja foram resetados para o padrão.');
     clearCart();
   };
 
@@ -210,6 +215,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       try {
         await setDoc(doc(db, 'products', newProductId), newProduct);
         setProducts(prev => [newProduct, ...prev]);
+        logAction('Criação de Produto', `Produto "${newProduct.name}" (ID: ${newProductId}) foi criado.`);
         toast({
             title: "Produto Cadastrado!",
             description: `O produto "${newProduct.name}" foi adicionado ao catálogo.`,
@@ -227,6 +233,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         await setDoc(productRef, productToUpdate, { merge: true });
 
         setProducts(prev => prev.map((p) => p.id === updatedProduct.id ? productToUpdate : p));
+        logAction('Atualização de Produto', `Produto "${updatedProduct.name}" (ID: ${updatedProduct.id}) foi atualizado.`);
         toast({
             title: 'Produto Atualizado!',
             description: `O produto "${updatedProduct.name}" foi atualizado.`,
@@ -239,8 +246,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteProduct = async (productId: string) => {
       try {
+        const productToDelete = products.find(p => p.id === productId);
         await deleteDoc(doc(db, 'products', productId));
         setProducts(prev => prev.filter((p) => p.id !== productId));
+        if (productToDelete) {
+          logAction('Exclusão de Produto', `Produto "${productToDelete.name}" (ID: ${productId}) foi excluído.`);
+        }
         toast({
             title: 'Produto Excluído!',
             description: 'O produto foi removido do catálogo.',
@@ -266,6 +277,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
         await setDoc(doc(db, 'categories', newCategoryId), newCategory);
         setCategories(prev => [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)));
+        logAction('Criação de Categoria', `Categoria "${categoryName}" foi criada.`);
         toast({ title: "Categoria Adicionada!" });
     } catch (error) {
         console.error("Error adding category:", error);
@@ -298,6 +310,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
         setProducts(prev => prev.map(p => (p.category.toLowerCase() === oldName.toLowerCase() ? { ...p, category: newName } : p)));
         setCategories(prev => prev.map(c => (c.id === categoryId ? { ...c, name: newName } : c)).sort((a, b) => a.name.localeCompare(b.name)));
+        logAction('Atualização de Categoria', `Categoria "${oldName}" foi renomeada para "${newName}".`);
 
         toast({ title: "Categoria Renomeada!" });
     } catch (error) {
@@ -317,6 +330,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
         await deleteDoc(doc(db, 'categories', categoryId));
         setCategories(prev => prev.filter(c => c.id !== categoryId));
+        logAction('Exclusão de Categoria', `Categoria "${categoryToDelete.name}" foi excluída.`);
         toast({ title: "Categoria Excluída!", variant: "destructive" });
     } catch(e) {
         toast({ title: "Erro", description: "Falha ao excluir a categoria.", variant: "destructive" });
@@ -334,6 +348,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
         await updateDoc(doc(db, 'categories', categoryId), { subcategories: newSubcategories });
         setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, subcategories: newSubcategories } : c));
+        logAction('Criação de Subcategoria', `Subcategoria "${subcategoryName}" foi adicionada à categoria "${category.name}".`);
         toast({ title: "Subcategoria Adicionada!" });
     } catch (error) {
         console.error("Error adding subcategory:", error);
@@ -363,6 +378,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
         setProducts(prev => prev.map(p => (p.category === category.name && p.subcategory?.toLowerCase() === oldSub.toLowerCase()) ? { ...p, subcategory: newSub } : p));
         setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, subcategories: newSubs } : c));
+        logAction('Atualização de Subcategoria', `Subcategoria "${oldSub}" foi renomeada para "${newSub}" na categoria "${category.name}".`);
 
         toast({ title: "Subcategoria Renomeada!" });
     } catch (error) {
@@ -383,6 +399,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
         await updateDoc(doc(db, 'categories', categoryId), { subcategories: newSubcategories });
         setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, subcategories: newSubcategories } : c));
+        logAction('Exclusão de Subcategoria', `Subcategoria "${subcategoryName}" foi excluída da categoria "${category.name}".`);
         toast({ title: "Subcategoria Excluída!", variant: "destructive" });
     } catch (error) {
         toast({ title: "Erro", description: "Falha ao excluir a subcategoria.", variant: "destructive" });
@@ -468,6 +485,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         await manageStockForOrder(order, 'subtract');
         await setDoc(doc(db, 'orders', order.id), order);
         setOrders(prev => [order, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        logAction('Criação de Pedido', `Novo pedido #${order.id} para o cliente ${order.customer.name} no valor de R$${order.total.toFixed(2)}.`);
     } catch(e) {
         console.error("Failed to add order", e);
         throw e; // re-throw to be caught by the form
@@ -484,6 +502,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         await deleteDoc(doc(db, 'orders', orderId));
         setOrders(prev => prev.filter((order) => order.id !== orderId));
+        logAction('Exclusão de Pedido', `Pedido #${orderId} foi excluído.`);
     } catch(e) {
         console.error("Failed to delete order", e);
         toast({ title: "Erro", description: "Falha ao excluir o pedido.", variant: "destructive" });
@@ -505,6 +524,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
         setOrders(prev => prev.map((order) => order.id === orderId ? { ...order, status: newStatus } : order));
+        logAction('Atualização de Status de Pedido', `Status do pedido #${orderId} alterado de "${oldStatus}" para "${newStatus}".`);
         toast({ title: "Status do Pedido Atualizado!", description: `O pedido #${orderId} agora está como "${newStatus}".` });
     } catch(e) {
         console.error("Failed to update order status", e);
@@ -525,6 +545,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
         await updateDoc(doc(db, 'orders', orderId), { installmentDetails: updatedInstallments });
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, installmentDetails: updatedInstallments } : o));
+        logAction('Atualização de Parcela', `Parcela ${installmentNumber} do pedido #${orderId} foi marcada como "${status}".`);
     } catch(e) {
         toast({ title: "Erro", description: "Falha ao atualizar o status da parcela.", variant: "destructive" });
     }
@@ -534,12 +555,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
      const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
+    const oldDueDate = order.installmentDetails?.find(i => i.installmentNumber === installmentNumber)?.dueDate;
+
     const updatedInstallments = (order.installmentDetails || []).map((inst) =>
       inst.installmentNumber === installmentNumber ? { ...inst, dueDate: newDueDate.toISOString() } : inst
     );
      try {
         await updateDoc(doc(db, 'orders', orderId), { installmentDetails: updatedInstallments });
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, installmentDetails: updatedInstallments } : o));
+        logAction('Atualização de Vencimento', `Vencimento da parcela ${installmentNumber} do pedido #${orderId} alterado de ${oldDueDate ? new Date(oldDueDate).toLocaleDateString() : 'N/A'} para ${newDueDate.toLocaleDateString()}.`);
         toast({ title: "Vencimento Atualizado!" });
     } catch(e) {
         toast({ title: "Erro", description: "Falha ao atualizar o vencimento.", variant: "destructive" });
@@ -562,6 +586,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             }
             return order;
         }));
+        logAction('Atualização de Cliente', `Dados do cliente ${updatedCustomer.name} (CPF: ${updatedCustomer.cpf}) foram atualizados.`);
         toast({ title: "Cliente Atualizado!", description: `Os dados de ${updatedCustomer.name} foram salvos.` });
     } catch(e) {
         toast({ title: "Erro", description: "Falha ao atualizar dados do cliente.", variant: "destructive" });
@@ -572,6 +597,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
         await updateDoc(doc(db, 'orders', orderId), details);
         setOrders(prev => prev.map((order) => order.id === orderId ? { ...order, ...details } : order));
+        logAction('Atualização de Detalhes do Pedido', `Detalhes do pedido #${orderId} foram atualizados.`);
         toast({ title: "Pedido Atualizado!", description: `Os detalhes do pedido #${orderId} foram atualizados.` });
     } catch(e) {
         toast({ title: "Erro", description: "Falha ao atualizar os detalhes do pedido.", variant: "destructive" });

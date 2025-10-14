@@ -22,6 +22,8 @@ export default function AdminNav() {
     activeTab = 'users';
   } else if (pathname.includes('/configuracao')) {
     activeTab = 'configuracao';
+  } else if (pathname.includes('/auditoria')) {
+    activeTab = 'auditoria';
   }
 
   return (
@@ -43,6 +45,9 @@ export default function AdminNav() {
             </TabsTrigger>
             <TabsTrigger value="financeiro" asChild>
               <Link href="/admin/financeiro">Financeiro</Link>
+            </TabsTrigger>
+             <TabsTrigger value="auditoria" asChild>
+              <Link href="/admin/auditoria">Auditoria</Link>
             </TabsTrigger>
             <TabsTrigger value="configuracao" asChild>
               <Link href="/admin/configuracao">Configuração</Link>

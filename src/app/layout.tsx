@@ -10,6 +10,7 @@ import Footer from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
 import { usePathname } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
+import { AuditProvider } from '@/context/AuditContext';
 
 export default function RootLayout({
   children,
@@ -77,22 +78,24 @@ NEXT_PUBLIC_FIREBASE_APP_ID="SEU_APP_ID"`}
         />
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
-          <CartProvider>
-            <SettingsProvider>
-              {isSpecialRoute || isAdminRoute ? (
-                <>{children}</>
-              ) : (
-                <div className="relative flex min-h-screen flex-col bg-background">
-                  <Header />
-                  <main className="flex-1">{children}</main>
-                  <Footer />
-                </div>
-              )}
-              <Toaster />
-            </SettingsProvider>
-          </CartProvider>
-        </AuthProvider>
+        <AuditProvider>
+          <AuthProvider>
+            <CartProvider>
+              <SettingsProvider>
+                {isSpecialRoute || isAdminRoute ? (
+                  <>{children}</>
+                ) : (
+                  <div className="relative flex min-h-screen flex-col bg-background">
+                    <Header />
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                  </div>
+                )}
+                <Toaster />
+              </SettingsProvider>
+            </CartProvider>
+          </AuthProvider>
+        </AuditProvider>
       </body>
     </html>
   );

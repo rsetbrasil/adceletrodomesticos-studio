@@ -79,3 +79,13 @@ export type Category = {
   name: string;
   subcategories: string[];
 };
+
+export type AuditLog = {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  userRole: UserRole;
+  action: string;
+  details: string;
+};

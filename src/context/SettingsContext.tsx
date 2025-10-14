@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useAudit } from './AuditContext';
 
 export type StoreSettings = {
     storeName: string;
@@ -32,6 +33,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const [settings, setSettings] = useState<StoreSettings>(initialSettings);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
+    const { logAction } = useAudit();
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -64,6 +66,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             const settingsRef = doc(db, 'config', 'storeSettings');
             await setDoc(settingsRef, newSettings);
             setSettings(newSettings);
+            logAction('Atualização de Configurações', `Configurações da loja foram alteradas.`);
             toast({
                 title: "Configurações Salvas!",
                 description: "As informações da loja foram atualizadas com sucesso.",
@@ -76,12 +79,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     
     const restoreSettings = async (settingsToRestore: StoreSettings) => {
         await updateSettings(settingsToRestore);
+        logAction('Restauração de Configurações', `Configurações da loja foram restauradas de um backup.`);
     };
 
     const resetSettings = async () => {
         await updateSettings(initialSettings);
+        logAction('Reset de Configurações', `Configurações da loja foram restauradas para o padrão.`);
     };
 
+d.ts
     return (
         <SettingsContext.Provider value={{ settings, updateSettings, isLoading, restoreSettings, resetSettings }}>
             {children}

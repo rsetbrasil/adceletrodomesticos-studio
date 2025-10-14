@@ -8,6 +8,7 @@ import type { User } from '@/lib/types';
 import { initialUsers } from '@/lib/users';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where } from 'firebase/firestore';
+import { useAudit } from './AuditContext';
 
 interface AuthContextType {
   user: User | null;
@@ -30,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+  const { logAction } = useAudit();
 
   useEffect(() => {
     const checkUser = () => {
@@ -94,6 +96,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             
             setUser(userToStore); 
             localStorage.setItem('user', JSON.stringify(userToStore));
+            logAction('Login', `Usuário "${userWithId.name}" realizou login.`);
             router.push('/admin/orders');
             toast({
                 title: 'Login bem-sucedido!',
@@ -113,6 +116,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    if (user) {
+        logAction('Logout', `Usuário "${user.name}" realizou logout.`);
+    }
     setUser(null);
     localStorage.removeItem('user');
     router.push('/login');
@@ -136,6 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         await setDoc(doc(db, 'users', newUserId), newUser);
         setUsers(prev => [...prev, newUser]);
+        logAction('Criação de Usuário', `Novo usuário "${data.name}" (Perfil: ${data.role}) foi criado.`);
         toast({
             title: 'Usuário Criado!',
             description: `O usuário ${data.name} foi criado com sucesso.`,
@@ -152,7 +159,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const userRef = doc(db, 'users', userId);
         await updateDoc(userRef, data);
+        const updatedUser = users.find(u => u.id === userId);
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
+        
+        if (updatedUser) {
+            let details = `Nome alterado para "${data.name}".`;
+            if (data.password) {
+                details = `Senha do usuário "${updatedUser.name}" foi alterada.`;
+            }
+            logAction('Atualização de Usuário', details);
+        }
         
         // If the current user is being updated, update the localStorage object too
         if (user?.id === userId) {
@@ -189,6 +205,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         await addBatch.commit();
         setUsers(usersToRestore);
+        logAction('Restauração de Usuários', 'Todos os usuários foram restaurados a partir de um backup.');
       } catch (error) {
         console.error("Error restoring users to Firestore:", error);
         toast({ title: "Erro", description: "Não foi possível restaurar os usuários.", variant: "destructive" });
