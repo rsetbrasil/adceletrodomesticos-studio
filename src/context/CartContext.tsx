@@ -496,32 +496,31 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }, 0);
     }
 
-  const manageStockForOrder = async (order: Order | undefined, operation: 'add' | 'subtract') => {
-    if (!order) return;
+  const manageStockForOrder = async (order: Order | undefined, operation: 'add' | 'subtract'): Promise<boolean> => {
+    if (!order) return false;
     const batch = writeBatch(db);
-    let stockChanged = false;
-
-    const currentProducts = products;
-
+    
     for (const orderItem of order.items) {
-        const productIndex = currentProducts.findIndex(p => p.id === orderItem.id);
-        if (productIndex > -1) {
-            const product = currentProducts[productIndex];
+        const product = products.find(p => p.id === orderItem.id);
+        if (product) {
             const stockChange = orderItem.quantity;
             const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
             
             if (newStock < 0) {
-              throw new Error(`Estoque insuficiente para o produto "${product.name}". Disponível: ${product.stock}, Pedido: ${stockChange}.`);
+              toast({
+                  title: 'Estoque Insuficiente',
+                  description: `Não há estoque suficiente para ${product.name}. Disponível: ${product.stock}, Pedido: ${stockChange}.`,
+                  variant: 'destructive'
+              });
+              return false; // Indicate failure
             }
             
             batch.update(doc(db, 'products', product.id), { stock: newStock });
-            stockChanged = true;
         }
     }
-    if (stockChanged) {
-      await batch.commit();
-      // Real-time listener will update the state
-    }
+    
+    await batch.commit();
+    return true; // Indicate success
   };
 
   const addOrder = async (order: Partial<Order>) => {
@@ -534,7 +533,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             commissionPaid: false,
         } as Order;
         
-        await manageStockForOrder(orderToSave, 'subtract');
+        if (!await manageStockForOrder(orderToSave, 'subtract')) {
+          throw new Error('Falha na validação de estoque.');
+        }
+
         await setDoc(doc(db, 'orders', orderToSave.id), orderToSave);
         // Real-time listener will update the state
         
@@ -594,10 +596,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     
     try {
         if (!wasCanceledOrDeleted && isNowCanceledOrDeleted) {
-          await manageStockForOrder(orderToUpdate, 'add');
+          if (!await manageStockForOrder(orderToUpdate, 'add')) return; // Stop if stock management fails
         }
         else if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
-          await manageStockForOrder(orderToUpdate, 'subtract');
+          if (!await manageStockForOrder(orderToUpdate, 'subtract')) return; // Stop if stock management fails
         }
 
         await updateDoc(doc(db, 'orders', orderId), detailsToUpdate);
@@ -611,7 +613,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
     } catch(e) {
         console.error("Failed to update order status", e);
-        toast({ title: "Erro", description: "Falha ao atualizar o status do pedido.", variant: "destructive" });
+        // Toast is already shown in manageStockForOrder, so no need for another one here.
     }
   };
 
