@@ -41,6 +41,8 @@ interface CartContextType {
   cartCount: number;
   isCartOpen: boolean;
   setIsCartOpen: (isOpen: boolean) => void;
+  isFilterSheetOpen: boolean;
+  setFilterSheetOpen: (isOpen: boolean) => void;
   lastOrder: Order | null;
   setLastOrder: (order: Order) => void;
   orders: Order[];
@@ -81,6 +83,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isFilterSheetOpen, setFilterSheetOpen] = useState(false);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -886,6 +889,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     <CartContext.Provider
       value={{
         cartItems, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal, cartCount, isCartOpen, setIsCartOpen,
+        isFilterSheetOpen, setFilterSheetOpen,
         lastOrder, setLastOrder,
         orders, addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, updateInstallmentStatus, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
         products, addProduct, updateProduct, deleteProduct,

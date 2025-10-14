@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { FilterSheet } from '@/components/FilterSheet';
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -22,7 +23,7 @@ const formatCurrency = (value: number) => {
 
 
 export default function Home() {
-  const { products: allProducts, categories, setIsCartOpen } = useCart();
+  const { products: allProducts, categories, setIsCartOpen, setFilterSheetOpen } = useCart();
   const [filters, setFilters] = useState({
     category: 'all',
     subcategory: 'all',
@@ -41,6 +42,7 @@ export default function Home() {
         }
         return updated;
     });
+    setFilterSheetOpen(false);
   };
 
   const saleProducts = useMemo(() => {
@@ -128,7 +130,7 @@ export default function Home() {
                       <div className="p-1 h-full">
                         <Card className="h-full overflow-hidden">
                           <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 h-full">
-                            <div className="relative w-48 h-48 flex-shrink-0">
+                             <div className="relative w-48 h-48 flex-shrink-0">
                                <Badge className="absolute top-2 left-2 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
                                  Promoção
                                </Badge>
@@ -163,11 +165,13 @@ export default function Home() {
       )}
 
       <div id="catalog" className="container mx-auto px-4 py-8">
-        <ProductFilters
-          categories={categories}
-          onFilterChange={handleFilterChange}
-          currentFilters={filters}
-        />
+        <FilterSheet 
+            categories={categories}
+            onFilterChange={handleFilterChange}
+            currentFilters={filters}
+        >
+            <ProductFilters />
+        </FilterSheet>
 
         {filteredAndSortedProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
