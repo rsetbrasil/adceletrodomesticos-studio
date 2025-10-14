@@ -34,22 +34,18 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
 
   return (
     <div className="bg-card p-4 rounded-lg shadow-sm mb-8">
-       <div className="relative w-full">
-            <div className="overflow-x-auto pb-2 -mb-2">
-                <div className="flex flex-nowrap gap-2">
-                    {categories.map((cat) => (
-                        <Button
-                            key={cat.id}
-                            variant={currentFilters.category === cat.name ? 'secondary' : 'outline'}
-                            size="sm"
-                            onClick={() => handleCategoryClick(cat.name)}
-                             className="text-sm px-2 flex-shrink-0 capitalize"
-                        >
-                            {cat.name}
-                        </Button>
-                    ))}
-                </div>
-            </div>
+       <div className="flex flex-nowrap gap-2 overflow-x-auto pb-2 -mb-2">
+            {categories.map((cat) => (
+                <Button
+                    key={cat.id}
+                    variant={currentFilters.category === cat.name ? 'secondary' : 'outline'}
+                    size="sm"
+                    onClick={() => handleCategoryClick(cat.name)}
+                    className="text-sm px-2 flex-shrink-0 capitalize"
+                >
+                    {cat.name}
+                </Button>
+            ))}
        </div>
     </div>
   );
