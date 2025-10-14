@@ -35,7 +35,7 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
         <Button
           variant={currentFilters.category === 'all' ? 'secondary' : 'ghost'}
           onClick={() => onFilterChange({ category: 'all' })}
-          className="text-xs px-3"
+          className="text-xs px-2"
         >
           Todas
         </Button>
@@ -46,7 +46,7 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
                 key={cat.id}
                 variant={currentFilters.category === cat.name ? 'secondary' : 'ghost'}
                 onClick={() => onFilterChange({ category: cat.name })}
-                className="capitalize text-xs px-3"
+                className="capitalize text-xs px-2"
               >
                 {cat.name}
               </Button>
@@ -58,7 +58,7 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
               <DropdownMenuTrigger asChild>
                 <Button
                   variant={currentFilters.category === cat.name ? 'secondary' : 'ghost'}
-                  className="capitalize text-xs px-3"
+                  className="capitalize text-xs px-2"
                   onClick={() => onFilterChange({ category: cat.name, subcategory: 'all' })}
                 >
                   {cat.name}
