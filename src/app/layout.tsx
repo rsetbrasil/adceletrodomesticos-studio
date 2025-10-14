@@ -80,20 +80,20 @@ NEXT_PUBLIC_FIREBASE_APP_ID="SEU_APP_ID"`}
       <body className="font-body antialiased">
         <AuditProvider>
           <AuthProvider>
-            <CartProvider>
-              <SettingsProvider>
-                {isSpecialRoute || isAdminRoute ? (
-                  <>{children}</>
-                ) : (
-                  <div className="relative flex min-h-screen flex-col bg-background">
-                    <Header />
-                    <main className="flex-1">{children}</main>
-                    <Footer />
-                  </div>
-                )}
-                <Toaster />
-              </SettingsProvider>
-            </CartProvider>
+            <SettingsProvider>
+              <CartProvider>
+                  {isSpecialRoute || isAdminRoute ? (
+                    <>{children}</>
+                  ) : (
+                    <div className="relative flex min-h-screen flex-col bg-background">
+                      <Header />
+                      <main className="flex-1">{children}</main>
+                      <Footer />
+                    </div>
+                  )}
+                  <Toaster />
+              </CartProvider>
+            </SettingsProvider>
           </AuthProvider>
         </AuditProvider>
       </body>
