@@ -68,18 +68,19 @@ export default function Home() {
 
   return (
     <>
-      <section className="relative w-full h-[400px] bg-muted/30 text-primary-foreground mb-12">
+      <section className="relative w-full h-[400px] mb-12 text-white">
         <Image
           src="https://picsum.photos/seed/banner/1600/400"
           alt="Banner de promoção"
           fill
-          className="object-cover -z-10"
+          className="object-cover"
           priority
           data-ai-hint="living room"
         />
-        <div className="container mx-auto flex flex-col items-center justify-center h-full text-center space-y-4 px-4">
-          <h1 className="text-4xl md:text-6xl font-bold font-headline text-background">Renove seu Lar</h1>
-          <p className="text-lg md:text-xl max-w-2xl text-background/90">
+        <div className="absolute inset-0 bg-black/50" />
+        <div className="relative container mx-auto flex flex-col items-center justify-center h-full text-center space-y-4 px-4">
+          <h1 className="text-4xl md:text-6xl font-bold font-headline">Renove seu Lar</h1>
+          <p className="text-lg md:text-xl max-w-2xl text-white/90">
             As melhores ofertas em móveis e eletrodomésticos para deixar sua casa do jeito que você sempre sonhou.
           </p>
           <Link href="#catalog">
