@@ -45,7 +45,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -85,23 +85,53 @@ export default function OrdersAdminPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [installmentsInput, setInstallmentsInput] = useState(1);
   const [openDueDatePopover, setOpenDueDatePopover] = useState<string | null>(null);
+  const [filters, setFilters] = useState({
+    search: '',
+    status: 'all',
+    seller: 'all',
+  });
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const visibleOrders = useMemo(() => {
-    if (!user) return [];
-    if (user.role === 'vendedor') {
-      return orders.filter(o => o.sellerId === user.id);
-    }
-    return orders;
-  }, [orders, user]);
-
   const sellers = useMemo(() => {
-    return users.filter(u => u.role === 'vendedor');
+    return users.filter(u => u.role === 'vendedor' || u.role === 'admin' || u.role === 'gerente');
   }, [users]);
+  
+  const visibleOrders = useMemo(() => {
+    let filteredOrders = [...orders];
 
+    if (user?.role === 'vendedor') {
+      filteredOrders = filteredOrders.filter(o => o.sellerId === user.id);
+    }
+
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      filteredOrders = filteredOrders.filter(o => 
+        o.id.toLowerCase().includes(searchTerm) || 
+        o.customer.name.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    if (filters.status !== 'all') {
+      filteredOrders = filteredOrders.filter(o => o.status === filters.status);
+    }
+    
+    if (user?.role !== 'vendedor' && filters.seller !== 'all') {
+        filteredOrders = filteredOrders.filter(o => o.sellerId === filters.seller);
+    }
+
+    return filteredOrders;
+  }, [orders, user, filters]);
+
+  const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
+    setFilters(prev => ({...prev, [filterName]: value}));
+  };
+
+  const clearFilters = () => {
+    setFilters({ search: '', status: 'all', seller: 'all' });
+  };
 
   useEffect(() => {
     if (selectedOrder) {
@@ -250,6 +280,49 @@ export default function OrdersAdminPage() {
               <CardDescription>Visualize e atualize o status dos pedidos recentes.</CardDescription>
           </CardHeader>
           <CardContent>
+              <div className="flex flex-wrap gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
+                <div className="flex-grow min-w-[200px]">
+                    <Input 
+                        placeholder="Buscar por ID do pedido ou cliente..."
+                        value={filters.search}
+                        onChange={(e) => handleFilterChange('search', e.target.value)}
+                    />
+                </div>
+                <div className="flex-grow min-w-[150px]">
+                     <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Filtrar por status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos os Status</SelectItem>
+                            <SelectItem value="Processando">Processando</SelectItem>
+                            <SelectItem value="Enviado">Enviado</SelectItem>
+                            <SelectItem value="Entregue">Entregue</SelectItem>
+                            <SelectItem value="Cancelado">Cancelado</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                {user?.role !== 'vendedor' && (
+                    <div className="flex-grow min-w-[150px]">
+                        <Select value={filters.seller} onValueChange={(value) => handleFilterChange('seller', value)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Filtrar por vendedor" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos os Vendedores</SelectItem>
+                                {sellers.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+                <Button variant="ghost" onClick={clearFilters}>
+                    <X className="mr-2 h-4 w-4"/>
+                    Limpar Filtros
+                </Button>
+              </div>
+
               {visibleOrders.length > 0 ? (
                   <div className="rounded-md border">
                       <Table>
@@ -346,7 +419,7 @@ export default function OrdersAdminPage() {
                   <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
                       <PackageSearch className="mx-auto h-12 w-12" />
                       <h3 className="mt-4 text-lg font-semibold">Nenhum pedido encontrado</h3>
-                      <p className="mt-1 text-sm">Quando os clientes fizerem pedidos, eles aparecerão aqui.</p>
+                      <p className="mt-1 text-sm">Ajuste os filtros ou crie um novo pedido.</p>
                   </div>
               )}
           </CardContent>
@@ -576,3 +649,5 @@ export default function OrdersAdminPage() {
     </>
   );
 }
+
+    
