@@ -24,24 +24,20 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
   const { setIsFilterSheetOpen, setSelectedCategoryForSheet } = useCart();
 
   const handleCategoryClick = (categoryName: string) => {
-    if (categoryName === 'all') {
-      onFilterChange({ category: 'all', subcategory: 'all' });
-      return;
-    }
     setSelectedCategoryForSheet(categoryName);
     setIsFilterSheetOpen(true);
   }
 
   return (
     <div className="bg-card p-4 rounded-lg shadow-sm mb-8">
-       <div className="flex flex-nowrap gap-2 overflow-x-auto pb-2 -mb-2">
-            {categories.map((cat) => (
+       <div className="flex flex-nowrap overflow-x-auto pb-2 -mb-2">
+            {categories.map((cat, index) => (
                 <Button
                     key={cat.id}
                     variant={currentFilters.category === cat.name ? 'secondary' : 'outline'}
                     size="sm"
                     onClick={() => handleCategoryClick(cat.name)}
-                    className="text-sm px-2 flex-shrink-0 capitalize"
+                    className="text-sm px-2 flex-shrink-0 capitalize whitespace-nowrap mr-2 last:mr-0"
                 >
                     {cat.name}
                 </Button>
