@@ -31,7 +31,7 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
 
   return (
     <div className="bg-card p-4 rounded-lg shadow-sm mb-8 overflow-x-auto">
-       <div className="flex gap-2">
+       <div className="flex gap-2 flex-nowrap">
         <Button
           variant={currentFilters.category === 'all' ? 'secondary' : 'ghost'}
           onClick={() => onFilterChange({ category: 'all' })}
