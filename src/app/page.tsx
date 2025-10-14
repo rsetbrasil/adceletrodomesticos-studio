@@ -12,6 +12,8 @@ import Link from 'next/link';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import FilterSheet from '@/components/FilterSheet';
+
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -84,6 +86,11 @@ export default function Home() {
 
   return (
     <>
+      <FilterSheet 
+        categories={categories}
+        onFilterChange={handleFilterChange}
+        currentFilters={filters}
+      />
       {saleProducts.length > 0 && (
         <section className="w-full py-8 bg-muted/50">
           <div className="container mx-auto">
