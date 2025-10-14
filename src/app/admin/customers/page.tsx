@@ -1,15 +1,16 @@
+
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
-import type { Order, CustomerInfo, Installment } from '@/lib/types';
+import type { Order, CustomerInfo, Installment, Attachment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -156,47 +157,76 @@ export default function CustomersAdminPage() {
     }
     setOpenDueDatePopover(null);
   };
+    
+  const addAttachments = useCallback(async (files: File[]) => {
+      if (!selectedCustomer) return;
+
+      const newAttachments: Attachment[] = [...(selectedCustomer.attachments || [])];
+
+      for (const file of files) {
+          try {
+              const isImage = file.type.startsWith('image/');
+              let fileUrl: string;
+
+              if (isImage) {
+                  fileUrl = await resizeImage(file);
+              } else {
+                  fileUrl = await new Promise<string>((resolve, reject) => {
+                      const reader = new FileReader();
+                      reader.onload = (e) => e.target?.result ? resolve(e.target.result as string) : reject(new Error('Falha ao ler o arquivo.'));
+                      reader.onerror = reject;
+                      reader.readAsDataURL(file);
+                  });
+              }
+              const type = isImage ? 'image' : 'pdf';
+              newAttachments.push({ name: file.name, type, url: fileUrl });
+
+          } catch (error) {
+              console.error("Erro ao processar arquivo:", error);
+              toast({ title: 'Erro ao Anexar', description: 'Não foi possível processar um dos arquivos.', variant: 'destructive' });
+          }
+      }
+
+      const updatedCustomer = { ...selectedCustomer, attachments: newAttachments };
+      setSelectedCustomer(updatedCustomer);
+      updateCustomer(updatedCustomer);
+      toast({ title: 'Anexos Adicionados!', description: 'Os novos documentos foram salvos com sucesso.' });
+  }, [selectedCustomer, updateCustomer, toast]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || !selectedCustomer) return;
-
-    const files = Array.from(event.target.files);
-    const newAttachments = [...(selectedCustomer.attachments || [])];
-
-    for (const file of files) {
-      try {
-        const isImage = file.type.startsWith('image/');
-        let fileUrl: string;
-
-        if (isImage) {
-            fileUrl = await resizeImage(file);
-        } else {
-            const promise = new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    if (typeof e.target?.result === 'string') {
-                        resolve(e.target.result);
-                    } else {
-                        reject(new Error('Falha ao ler o arquivo.'));
-                    }
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-            fileUrl = await promise;
-        }
-        
-        const type = isImage ? 'image' : 'pdf';
-        newAttachments.push({ name: file.name, type, url: fileUrl });
-      } catch (error) {
-          console.error("Erro ao processar arquivo:", error);
-      }
+      if (!event.target.files) return;
+      await addAttachments(Array.from(event.target.files));
+      event.target.value = ''; // Clear the input
+  };
+  
+  const handlePaste = async () => {
+    if (!navigator.clipboard?.read) {
+        toast({ title: "Navegador não suporta esta ação", description: "Seu navegador não permite colar imagens dessa forma.", variant: "destructive" });
+        return;
     }
-    
-    const updatedCustomer = { ...selectedCustomer, attachments: newAttachments };
-    setSelectedCustomer(updatedCustomer);
-    updateCustomer(updatedCustomer);
-    event.target.value = ''; // Clear the input
+    try {
+        const clipboardItems = await navigator.clipboard.read();
+        const imageFiles: File[] = [];
+
+        for (const item of clipboardItems) {
+            const imageType = item.types.find(type => type.startsWith('image/'));
+            if (imageType) {
+                const blob = await item.getType(imageType);
+                const fileName = `colado-${new Date().toISOString()}.png`;
+                const file = new File([blob], fileName, { type: imageType });
+                imageFiles.push(file);
+            }
+        }
+
+        if (imageFiles.length > 0) {
+            await addAttachments(imageFiles);
+        } else {
+            toast({ title: "Nenhuma imagem encontrada", description: "Não há imagens na sua área de transferência para colar." });
+        }
+    } catch (err) {
+        console.error('Falha ao colar:', err);
+        toast({ title: "Falha ao colar", description: "Verifique as permissões do seu navegador para acessar a área de transferência.", variant: "destructive" });
+    }
   };
 
   const handleDeleteAttachment = (indexToDelete: number) => {
@@ -501,14 +531,20 @@ export default function CustomersAdminPage() {
                     <Card>
                         <CardContent className="pt-6">
                             <div className="grid gap-4">
-                                <div className="relative border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center">
-                                    <p className="text-sm text-muted-foreground mb-2">Clique para selecionar imagens ou PDFs</p>
-                                    <Button asChild variant="outline">
-                                        <label htmlFor="file-upload" className="cursor-pointer">
-                                            <Upload className="mr-2 h-4 w-4" />
-                                            Adicionar Arquivos
-                                        </label>
-                                    </Button>
+                                <div className="relative border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center space-y-3">
+                                    <p className="text-sm text-muted-foreground">Arraste arquivos ou clique para selecionar</p>
+                                    <div className="flex gap-2 justify-center">
+                                        <Button asChild variant="outline">
+                                            <label htmlFor="file-upload" className="cursor-pointer">
+                                                <Upload className="mr-2 h-4 w-4" />
+                                                Adicionar Arquivos
+                                            </label>
+                                        </Button>
+                                         <Button variant="outline" onClick={handlePaste}>
+                                            <ClipboardPaste className="mr-2 h-4 w-4" />
+                                            Colar da Área de Transferência
+                                        </Button>
+                                    </div>
                                     <Input id="file-upload" type="file" className="sr-only" multiple accept="image/*,application/pdf" onChange={handleFileChange} />
                                 </div>
                                 {(selectedCustomer.attachments && selectedCustomer.attachments.length > 0) ? (
@@ -637,3 +673,5 @@ export default function CustomersAdminPage() {
     </>
   );
 }
+
+    

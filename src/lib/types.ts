@@ -1,3 +1,4 @@
+
 export type Product = {
   id: string;
   name: string;
@@ -22,6 +23,12 @@ export type CartItem = {
   quantity: number;
 };
 
+export type Attachment = {
+  name: string;
+  type: 'image' | 'pdf';
+  url: string;
+};
+
 export type CustomerInfo = {
   name: string;
   cpf: string;
@@ -34,11 +41,7 @@ export type CustomerInfo = {
   neighborhood: string;
   city: string;
   state: string;
-  attachments?: {
-    name: string;
-    type: 'image' | 'pdf';
-    url: string;
-  }[];
+  attachments?: Attachment[];
 };
 
 export type Installment = {
@@ -89,3 +92,5 @@ export type AuditLog = {
   action: string;
   details: string;
 };
+
+    
