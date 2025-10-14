@@ -4,13 +4,14 @@
 import { ReactNode, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut, Shield } from 'lucide-react';
+import { LogOut, Shield, Store } from 'lucide-react';
 import AdminNav from "@/components/AdminNav";
 import { Button } from "@/components/ui/button";
 import { useAudit } from "@/context/AuditContext";
 import { hasAccess, type AppSection } from "@/lib/permissions";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/context/PermissionsContext";
+import Link from "next/link";
 
 const pathToSectionMap: { [key: string]: AppSection } = {
     '/admin/orders': 'orders',
@@ -70,15 +71,23 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         <p className="text-muted-foreground">Gerencie sua loja de forma fácil e rápida.</p>
                     </div>
                 </div>
-                 <div className="flex items-center gap-4">
-                    <div className="text-right">
-                        <p className="font-semibold">{user.name}</p>
-                        <p className="text-sm text-muted-foreground capitalize">{user.role}</p>
-                    </div>
-                    <Button variant="outline" onClick={() => logout(logAction)}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Sair
+                 <div className="flex items-center gap-2">
+                    <Button variant="outline" asChild>
+                        <Link href="/">
+                            <Store className="mr-2 h-4 w-4" />
+                            Voltar ao Catálogo
+                        </Link>
                     </Button>
+                    <div className="flex items-center gap-4">
+                        <div className="text-right">
+                            <p className="font-semibold">{user.name}</p>
+                            <p className="text-sm text-muted-foreground capitalize">{user.role}</p>
+                        </div>
+                        <Button variant="outline" onClick={() => logout(logAction)}>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Sair
+                        </Button>
+                    </div>
                 </div>
             </header>
             <AdminNav />
