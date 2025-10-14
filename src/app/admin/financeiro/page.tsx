@@ -1,9 +1,11 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import type { Product, Order } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
@@ -16,8 +18,25 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
+const calculateCommissionForOrder = (order: Order, products: Product[]): number => {
+    return order.items.reduce((totalCommission, item) => {
+        const product = products.find(p => p.id === item.id);
+        if (!product || typeof product.commissionValue === 'undefined' || product.commissionValue === null) {
+            return totalCommission;
+        }
+        if (product.commissionType === 'fixed') {
+            return totalCommission + (product.commissionValue * item.quantity);
+        }
+        if (product.commissionType === 'percentage') {
+            const itemTotal = item.price * item.quantity;
+            return totalCommission + (itemTotal * product.commissionValue / 100);
+        }
+        return totalCommission;
+    }, 0);
+};
+
 export default function FinanceiroPage() {
-  const { orders } = useCart();
+  const { orders, products } = useCart();
   const { users } = useAuth();
   const [isClient, setIsClient] = useState(false);
 
@@ -66,19 +85,25 @@ export default function FinanceiroPage() {
   }, [orders, isClient]);
 
   const commissionSummary = useMemo(() => {
-    if (!isClient || !orders || !users) {
+    if (!isClient || !orders || !users || !products) {
         return { totalCommission: 0, commissionsBySeller: [] };
     }
 
     const sellerCommissions = new Map<string, { name: string; total: number; count: number }>();
 
     orders.forEach(order => {
-        if (order.status === 'Entregue' && order.commission && order.commission > 0) {
+        if (order.status === 'Entregue') {
             const sellerId = order.sellerId;
-            const current = sellerCommissions.get(sellerId) || { name: order.sellerName, total: 0, count: 0 };
-            current.total += order.commission;
-            current.count += 1;
-            sellerCommissions.set(sellerId, current);
+            const commission = typeof order.commission === 'number'
+                ? order.commission
+                : calculateCommissionForOrder(order, products);
+
+            if (commission > 0) {
+                const current = sellerCommissions.get(sellerId) || { name: order.sellerName, total: 0, count: 0 };
+                current.total += commission;
+                current.count += 1;
+                sellerCommissions.set(sellerId, current);
+            }
         }
     });
 
@@ -89,7 +114,7 @@ export default function FinanceiroPage() {
     const totalCommission = commissionsBySeller.reduce((acc, seller) => acc + seller.total, 0);
 
     return { totalCommission, commissionsBySeller };
-  }, [orders, users, isClient]);
+  }, [orders, users, products, isClient]);
 
 
   if (!isClient) {
@@ -205,13 +230,21 @@ export default function FinanceiroPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {commissionSummary.commissionsBySeller.map(seller => (
-                    <TableRow key={seller.id}>
-                      <TableCell className="font-medium">{seller.name}</TableCell>
-                      <TableCell className="text-center">{seller.count}</TableCell>
-                      <TableCell className="text-right font-semibold">{formatCurrency(seller.total)}</TableCell>
-                    </TableRow>
-                  ))}
+                  {commissionSummary.commissionsBySeller.length > 0 ? (
+                    commissionSummary.commissionsBySeller.map(seller => (
+                      <TableRow key={seller.id}>
+                        <TableCell className="font-medium">{seller.name}</TableCell>
+                        <TableCell className="text-center">{seller.count}</TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(seller.total)}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                     <TableRow>
+                        <TableCell colSpan={3} className="h-24 text-center">
+                          Nenhuma comissão a ser exibida para pedidos entregues.
+                        </TableCell>
+                      </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
