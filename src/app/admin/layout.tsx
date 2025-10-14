@@ -5,7 +5,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut, Shield, Store, KeyRound } from 'lucide-react';
+import { LogOut, Shield, Store, KeyRound, ChevronDown } from 'lucide-react';
 import AdminNav from "@/components/AdminNav";
 import { Button } from "@/components/ui/button";
 import { hasAccess, type AppSection } from "@/lib/permissions";
@@ -18,6 +18,13 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'A senha atual é obrigatória.'),
@@ -108,29 +115,35 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                             <p className="text-muted-foreground">Gerencie sua loja de forma fácil e rápida.</p>
                         </div>
                     </div>
-                     <div className="flex items-center gap-2">
+                     <div className="flex items-center gap-4">
                         <Button variant="outline" asChild>
                             <Link href="/">
                                 <Store className="mr-2 h-4 w-4" />
                                 Voltar ao Catálogo
                             </Link>
                         </Button>
-                        <div className="flex items-center gap-4">
-                            <div className="text-right">
-                                <p className="font-semibold">{user.name}</p>
-                                <p className="text-sm text-muted-foreground capitalize">{user.role}</p>
-                            </div>
-                             <div className="flex flex-col gap-1">
-                                <Button variant="outline" size="sm" onClick={() => setIsPasswordDialogOpen(true)}>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline">
+                                    <div className="flex flex-col items-start pr-2">
+                                        <span className="font-semibold text-sm">{user.name}</span>
+                                        <span className="text-xs text-muted-foreground capitalize -mt-1">{user.role}</span>
+                                    </div>
+                                    <ChevronDown className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuItem onClick={() => setIsPasswordDialogOpen(true)}>
                                     <KeyRound className="mr-2 h-4 w-4" />
-                                    Alterar Senha
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => logout()}>
+                                    <span>Alterar Senha</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => logout()} className="text-destructive focus:text-destructive">
                                     <LogOut className="mr-2 h-4 w-4" />
-                                    Sair
-                                </Button>
-                            </div>
-                        </div>
+                                    <span>Sair</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </header>
                 <div className="print-hidden">
