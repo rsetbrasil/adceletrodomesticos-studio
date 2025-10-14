@@ -64,7 +64,7 @@ export type Order = {
   installments: number;
   installmentValue: number;
   date: string;
-  status: 'Processando' | 'Enviado' | 'Entregue' | 'Cancelado';
+  status: 'Processando' | 'Enviado' | 'Entregue' | 'Cancelado' | 'Excluído';
   paymentMethod: PaymentMethod;
   installmentDetails: Installment[];
   attachments?: Attachment[];

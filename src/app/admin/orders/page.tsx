@@ -27,10 +27,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import {
     AlertDialog,
@@ -41,11 +37,10 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -55,6 +50,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const formatCurrency = (value: number) => {
@@ -70,6 +66,7 @@ const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'o
     case 'Entregue':
       return 'outline';
     case 'Cancelado':
+    case 'Excluído':
       return 'destructive';
     default:
       return 'secondary';
@@ -77,7 +74,7 @@ const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'o
 };
 
 export default function OrdersAdminPage() {
-  const { orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails, updateInstallmentDueDate, deleteOrder } = useCart();
+  const { orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder } = useCart();
   const { user, users } = useAuth();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -90,6 +87,7 @@ export default function OrdersAdminPage() {
     status: 'all',
     seller: 'all',
   });
+  const [activeTab, setActiveTab] = useState('active');
 
   useEffect(() => {
     setIsClient(true);
@@ -99,30 +97,44 @@ export default function OrdersAdminPage() {
     return users.filter(u => u.role === 'vendedor' || u.role === 'admin' || u.role === 'gerente');
   }, [users]);
   
-  const visibleOrders = useMemo(() => {
-    let filteredOrders = [...orders];
+  const { activeOrders, deletedOrders } = useMemo(() => {
+    const active: Order[] = [];
+    const deleted: Order[] = [];
+
+    let filtered = [...orders];
 
     if (user?.role === 'vendedor') {
-      filteredOrders = filteredOrders.filter(o => o.sellerId === user.id);
+      filtered = filtered.filter(o => o.sellerId === user.id);
     }
-
+    
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
-      filteredOrders = filteredOrders.filter(o => 
+      filtered = filtered.filter(o => 
         o.id.toLowerCase().includes(searchTerm) || 
         o.customer.name.toLowerCase().includes(searchTerm)
       );
     }
-
+    
     if (filters.status !== 'all') {
-      filteredOrders = filteredOrders.filter(o => o.status === filters.status);
+      filtered = filtered.filter(o => o.status === filters.status);
     }
     
     if (user?.role !== 'vendedor' && filters.seller !== 'all') {
-        filteredOrders = filteredOrders.filter(o => o.sellerId === filters.seller);
+        filtered = filtered.filter(o => o.sellerId === filters.seller);
     }
 
-    return filteredOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    filtered.forEach(order => {
+      if (order.status === 'Excluído') {
+        deleted.push(order);
+      } else {
+        active.push(order);
+      }
+    });
+
+    return {
+        activeOrders: active.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+        deletedOrders: deleted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    };
   }, [orders, user, filters]);
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
@@ -244,9 +256,25 @@ export default function OrdersAdminPage() {
   const handleDeleteOrder = (orderId: string) => {
     deleteOrder(orderId);
     toast({
+      title: 'Pedido Movido para Lixeira!',
+      description: 'O pedido foi movido para a lixeira e pode ser restaurado.',
+    });
+  };
+
+  const handlePermanentlyDeleteOrder = (orderId: string) => {
+    permanentlyDeleteOrder(orderId);
+    toast({
       title: 'Pedido Excluído!',
       description: 'O pedido foi removido permanentemente.',
       variant: 'destructive',
+    });
+  };
+
+  const handleRestoreOrder = (orderId: string) => {
+    updateOrderStatus(orderId, 'Processando');
+    toast({
+      title: 'Pedido Restaurado!',
+      description: 'O pedido foi restaurado e movido para a lista de pedidos ativos.',
     });
   };
 
@@ -280,148 +308,186 @@ export default function OrdersAdminPage() {
               <CardDescription>Visualize e atualize o status dos pedidos recentes.</CardDescription>
           </CardHeader>
           <CardContent>
-              <div className="flex flex-wrap gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
-                <div className="flex-grow min-w-[200px]">
-                    <Input 
-                        placeholder="Buscar por ID do pedido ou cliente..."
-                        value={filters.search}
-                        onChange={(e) => handleFilterChange('search', e.target.value)}
-                    />
-                </div>
-                <div className="flex-grow min-w-[150px]">
-                     <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Filtrar por status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Todos os Status</SelectItem>
-                            <SelectItem value="Processando">Processando</SelectItem>
-                            <SelectItem value="Enviado">Enviado</SelectItem>
-                            <SelectItem value="Entregue">Entregue</SelectItem>
-                            <SelectItem value="Cancelado">Cancelado</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                {user?.role !== 'vendedor' && (
-                    <div className="flex-grow min-w-[150px]">
-                        <Select value={filters.seller} onValueChange={(value) => handleFilterChange('seller', value)}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filtrar por vendedor" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todos os Vendedores</SelectItem>
-                                {sellers.map(s => (
-                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="mb-4">
+                    <TabsTrigger value="active">Pedidos Ativos</TabsTrigger>
+                    <TabsTrigger value="deleted">Lixeira</TabsTrigger>
+                </TabsList>
+                <TabsContent value="active">
+                    <div className="flex flex-wrap gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
+                        <div className="flex-grow min-w-[200px]">
+                            <Input 
+                                placeholder="Buscar por ID do pedido ou cliente..."
+                                value={filters.search}
+                                onChange={(e) => handleFilterChange('search', e.target.value)}
+                            />
+                        </div>
+                        <div className="flex-grow min-w-[150px]">
+                            <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filtrar por status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos os Status</SelectItem>
+                                    <SelectItem value="Processando">Processando</SelectItem>
+                                    <SelectItem value="Enviado">Enviado</SelectItem>
+                                    <SelectItem value="Entregue">Entregue</SelectItem>
+                                    <SelectItem value="Cancelado">Cancelado</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {user?.role !== 'vendedor' && (
+                            <div className="flex-grow min-w-[150px]">
+                                <Select value={filters.seller} onValueChange={(value) => handleFilterChange('seller', value)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Filtrar por vendedor" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todos os Vendedores</SelectItem>
+                                        {sellers.map(s => (
+                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                        <Button variant="ghost" onClick={clearFilters}>
+                            <X className="mr-2 h-4 w-4"/>
+                            Limpar Filtros
+                        </Button>
                     </div>
-                )}
-                <Button variant="ghost" onClick={clearFilters}>
-                    <X className="mr-2 h-4 w-4"/>
-                    Limpar Filtros
-                </Button>
-              </div>
 
-              {visibleOrders.length > 0 ? (
-                  <div className="rounded-md border">
-                      <Table>
-                      <TableHeader>
-                          <TableRow>
-                          <TableHead className="w-[150px]">Pedido ID</TableHead>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Cliente</TableHead>
-                          <TableHead>Produtos</TableHead>
-                          <TableHead>Vendedor</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
-                          <TableHead className="text-center">Status</TableHead>
-                          <TableHead className="text-right">Ações</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {visibleOrders.map((order) => (
-                          <TableRow key={order.id}>
-                              <TableCell className="font-medium">{order.id}</TableCell>
-                              <TableCell>{format(new Date(order.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</TableCell>
-                              <TableCell>{order.customer.name}</TableCell>
-                              <TableCell className="text-xs max-w-[200px] truncate">{order.items.map(item => item.name).join(', ')}</TableCell>
-                              <TableCell>{order.sellerName}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
-                              <TableCell className="text-center">
-                                  <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(order)}>
-                                    <Pencil className="h-4 w-4" />
-                                    <span className="sr-only">Gerenciar Pedido</span>
-                                  </Button>
-                                    {(user?.role === 'admin' || user?.role === 'gerente') && (
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <Users className="h-4 w-4" />
-                                                    <span className="sr-only">Atribuir Vendedor</span>
+                    {activeOrders.length > 0 ? (
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[150px]">Pedido ID</TableHead>
+                                        <TableHead>Data</TableHead>
+                                        <TableHead>Cliente</TableHead>
+                                        <TableHead>Produtos</TableHead>
+                                        <TableHead>Vendedor</TableHead>
+                                        <TableHead className="text-right">Total</TableHead>
+                                        <TableHead className="text-center">Status</TableHead>
+                                        <TableHead className="text-right">Ações</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {activeOrders.map((order) => (
+                                    <TableRow key={order.id}>
+                                        <TableCell className="font-medium">{order.id}</TableCell>
+                                        <TableCell>{format(new Date(order.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</TableCell>
+                                        <TableCell>{order.customer.name}</TableCell>
+                                        <TableCell className="text-xs max-w-[200px] truncate">{order.items.map(item => item.name).join(', ')}</TableCell>
+                                        <TableCell>{order.sellerName}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(order)}>
+                                                    <Pencil className="h-4 w-4" />
+                                                    <span className="sr-only">Gerenciar Pedido</span>
                                                 </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                {sellers.map(s => (
-                                                    <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
-                                                        {s.name}
-                                                    </DropdownMenuItem>
-                                                ))}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    )}
-                                  <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                          <Button variant="ghost" className="h-8 w-8 p-0">
-                                              <span className="sr-only">Abrir menu</span>
-                                              <MoreHorizontal className="h-4 w-4" />
-                                          </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                          <AlertDialog>
-                                              <AlertDialogTrigger asChild>
-                                                  <DropdownMenuItem
-                                                      onSelect={(e) => e.preventDefault()}
-                                                      className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                                  >
-                                                      <Trash2 className="mr-2 h-4 w-4" />
-                                                      Excluir Pedido
-                                                  </DropdownMenuItem>
-                                              </AlertDialogTrigger>
-                                              <AlertDialogContent>
-                                                  <AlertDialogHeader>
-                                                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                                      <AlertDialogDescription>
-                                                          Esta ação não pode ser desfeita. Isso irá excluir permanentemente o pedido <span className="font-bold">{order.id}</span>.
-                                                      </AlertDialogDescription>
-                                                  </AlertDialogHeader>
-                                                  <AlertDialogFooter>
-                                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                      <AlertDialogAction onClick={() => handleDeleteOrder(order.id)}>
-                                                          Sim, Excluir
-                                                      </AlertDialogAction>
-                                                  </AlertDialogFooter>
-                                              </AlertDialogContent>
-                                          </AlertDialog>
-                                      </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </TableCell>
-                          </TableRow>
-                          ))}
-                      </TableBody>
-                      </Table>
-                  </div>
-              ) : (
-                  <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
-                      <PackageSearch className="mx-auto h-12 w-12" />
-                      <h3 className="mt-4 text-lg font-semibold">Nenhum pedido encontrado</h3>
-                      <p className="mt-1 text-sm">Ajuste os filtros ou crie um novo pedido.</p>
-                  </div>
-              )}
+                                                {(user?.role === 'admin' || user?.role === 'gerente') && (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                <Users className="h-4 w-4" />
+                                                                <span className="sr-only">Atribuir Vendedor</span>
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            {sellers.map(s => (
+                                                                <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
+                                                                    {s.name}
+                                                                </DropdownMenuItem>
+                                                            ))}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                )}
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteOrder(order.id)}>
+                                                    <Trash className="h-4 w-4" />
+                                                    <span className="sr-only">Excluir Pedido</span>
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    ) : (
+                        <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
+                            <PackageSearch className="mx-auto h-12 w-12" />
+                            <h3 className="mt-4 text-lg font-semibold">Nenhum pedido encontrado</h3>
+                            <p className="mt-1 text-sm">Ajuste os filtros ou crie um novo pedido.</p>
+                        </div>
+                    )}
+                </TabsContent>
+                <TabsContent value="deleted">
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Pedido ID</TableHead>
+                                    <TableHead>Cliente</TableHead>
+                                    <TableHead>Data da Exclusão</TableHead>
+                                    <TableHead className="text-right">Total</TableHead>
+                                    <TableHead className="text-right">Ações</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {deletedOrders.length > 0 ? (
+                                    deletedOrders.map(order => (
+                                        <TableRow key={order.id}>
+                                            <TableCell className="font-medium">{order.id}</TableCell>
+                                            <TableCell>{order.customer.name}</TableCell>
+                                            <TableCell>{format(new Date(order.date), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button variant="outline" size="sm" onClick={() => handleRestoreOrder(order.id)}>
+                                                        <History className="mr-2 h-4 w-4" />
+                                                        Restaurar
+                                                    </Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button variant="destructive" outline size="sm">
+                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                Excluir
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Excluir Permanentemente?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    Esta ação é irreversível e irá apagar permanentemente o pedido <span className="font-bold">{order.id}</span>. Você tem certeza?
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handlePermanentlyDeleteOrder(order.id)}>
+                                                                    Sim, Excluir
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="h-24 text-center">A lixeira está vazia.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </TabsContent>
+            </Tabs>
           </CardContent>
       </Card>
 
@@ -460,6 +526,9 @@ export default function OrdersAdminPage() {
                                   <CardTitle className="text-lg">Resumo do Pedido</CardTitle>
                               </CardHeader>
                               <CardContent>
+                                  <p className="text-sm text-muted-foreground mb-4">
+                                      Produtos: {selectedOrder.items.map(item => item.name).join(', ')}
+                                    </p>
                                   <div className="space-y-2">
                                       {selectedOrder.items.map(item => (
                                           <div key={item.id} className="flex justify-between items-center text-sm">
@@ -530,7 +599,7 @@ export default function OrdersAdminPage() {
                                   <div className="flex items-end gap-4">
                                       <div className="flex-grow">
                                           <label className="text-sm font-medium">Status do Pedido</label>
-                                          <Select value={selectedOrder.status} onValueChange={handleUpdateOrderStatus}>
+                                          <Select value={selectedOrder.status} onValueChange={(status) => updateOrderStatus(selectedOrder!.id, status as Order['status'])}>
                                               <SelectTrigger>
                                                   <SelectValue placeholder="Alterar status" />
                                               </SelectTrigger>
@@ -554,9 +623,6 @@ export default function OrdersAdminPage() {
                                     <CardTitle className="text-lg">Carnê de Pagamento</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-sm text-muted-foreground mb-4">
-                                      Produtos: {selectedOrder.items.map(item => item.name).join(', ')}
-                                    </p>
                                     {(selectedOrder.installmentDetails || []).length > 0 ? (
                                         <Table>
                                             <TableHeader>
@@ -649,5 +715,3 @@ export default function OrdersAdminPage() {
     </>
   );
 }
-
-    

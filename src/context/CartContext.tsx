@@ -44,6 +44,7 @@ interface CartContextType {
   orders: Order[];
   addOrder: (order: Order, user: User) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
+  permanentlyDeleteOrder: (orderId: string) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
   updateInstallmentStatus: (orderId: string, installmentNumber: number, status: Installment['status']) => Promise<void>;
   updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date) => Promise<void>;
@@ -513,21 +514,27 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteOrder = async (orderId: string) => {
+    await updateOrderStatus(orderId, 'Excluído');
+    logAction('Exclusão de Pedido', `Pedido #${orderId} movido para a lixeira.`);
+  };
+
+  const permanentlyDeleteOrder = async (orderId: string) => {
     const orderToDelete = orders.find(o => o.id === orderId);
-    if (!orderToDelete) return;
+    if (!orderToDelete || orderToDelete.status !== 'Excluído') {
+      toast({ title: "Erro", description: "Só é possível excluir permanentemente pedidos que estão na lixeira.", variant: "destructive" });
+      return;
+    }
     
     try {
-        if (orderToDelete.status !== 'Cancelado') {
-          await manageStockForOrder(orderToDelete, 'add');
-        }
         await deleteDoc(doc(db, 'orders', orderId));
         setOrders(prev => prev.filter((order) => order.id !== orderId));
-        logAction('Exclusão de Pedido', `Pedido #${orderId} foi excluído.`);
+        logAction('Exclusão Permanente de Pedido', `Pedido #${orderId} foi excluído permanentemente.`);
     } catch(e) {
-        console.error("Failed to delete order", e);
-        toast({ title: "Erro", description: "Falha ao excluir o pedido.", variant: "destructive" });
+        console.error("Failed to permanently delete order", e);
+        toast({ title: "Erro", description: "Falha ao excluir o pedido permanentemente.", variant: "destructive" });
     }
   };
+
 
   const updateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
     const orderToUpdate = orders.find(o => o.id === orderId);
@@ -536,16 +543,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const oldStatus = orderToUpdate.status;
     
     try {
-        if (newStatus === 'Cancelado' && oldStatus !== 'Cancelado') {
+        if ((newStatus === 'Cancelado' || newStatus === 'Excluído') && oldStatus !== 'Cancelado' && oldStatus !== 'Excluído') {
           await manageStockForOrder(orderToUpdate, 'add');
         }
-        else if (oldStatus === 'Cancelado' && newStatus !== 'Cancelado') {
+        else if ((oldStatus === 'Cancelado' || oldStatus === 'Excluído') && newStatus !== 'Cancelado' && newStatus !== 'Excluído') {
           await manageStockForOrder(orderToUpdate, 'subtract');
         }
         await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
         setOrders(prev => prev.map((order) => order.id === orderId ? { ...order, status: newStatus } : order));
         logAction('Atualização de Status de Pedido', `Status do pedido #${orderId} alterado de "${oldStatus}" para "${newStatus}".`);
-        toast({ title: "Status do Pedido Atualizado!", description: `O pedido #${orderId} agora está como "${newStatus}".` });
+        if (newStatus !== 'Excluído') {
+          toast({ title: "Status do Pedido Atualizado!", description: `O pedido #${orderId} agora está como "${newStatus}".` });
+        }
     } catch(e) {
         console.error("Failed to update order status", e);
         toast({ title: "Erro", description: "Falha ao atualizar o status do pedido.", variant: "destructive" });
@@ -640,7 +649,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       value={{
         cartItems, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal, cartCount,
         lastOrder, setLastOrder,
-        orders, addOrder, deleteOrder, updateOrderStatus, updateInstallmentStatus, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
+        orders, addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, updateInstallmentStatus, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
         products, addProduct, updateProduct, deleteProduct,
         categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory,
         isLoading,
