@@ -45,7 +45,7 @@ interface CartContextType {
   lastOrder: Order | null;
   setLastOrder: (order: Order) => void;
   orders: Order[];
-  addOrder: (order: Order, user: User) => Promise<void>;
+  addOrder: (order: Order, user?: User | null) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
   permanentlyDeleteOrder: (orderId: string) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
@@ -501,14 +501,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addOrder = async (order: Order, user: User) => {
+  const addOrder = async (order: Order, user?: User | null) => {
     try {
-        const commission = calculateCommission(order);
-        const orderWithCommission = { ...order, sellerId: user.id, sellerName: user.name, commission };
-        await manageStockForOrder(orderWithCommission, 'subtract');
-        await setDoc(doc(db, 'orders', orderWithCommission.id), orderWithCommission);
-        setOrders(prev => [orderWithCommission, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-        logAction('Criação de Pedido', `Novo pedido #${orderWithCommission.id} para ${orderWithCommission.customer.name} no valor de R$${orderWithCommission.total.toFixed(2)} foi criado por ${user.name}. Comissão: R$${commission.toFixed(2)}`, user);
+        let orderToSave: Order = { ...order, sellerId: '', sellerName: '' };
+        
+        await manageStockForOrder(orderToSave, 'subtract');
+        await setDoc(doc(db, 'orders', orderToSave.id), orderToSave);
+        setOrders(prev => [orderToSave, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        
+        const logUser = user || null;
+        const creator = logUser ? `por ${logUser.name}`: 'pelo cliente';
+        logAction('Criação de Pedido', `Novo pedido #${orderToSave.id} para ${orderToSave.customer.name} no valor de R$${orderToSave.total.toFixed(2)} foi criado ${creator}.`, logUser);
     } catch(e) {
         console.error("Failed to add order", e);
         throw e; // re-throw to be caught by the form
@@ -674,3 +677,4 @@ export const useCart = () => {
   }
   return context;
 };
+

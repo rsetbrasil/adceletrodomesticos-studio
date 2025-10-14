@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -32,7 +33,7 @@ const settingsSchema = z.object({
 export default function ConfiguracaoPage() {
   const { settings, updateSettings, isLoading: settingsLoading, restoreSettings, resetSettings } = useSettings();
   const { products, orders, categories, restoreCartData, resetOrders, resetAllCartData } = useCart();
-  const { users, restoreUsers, initialUsers } = useAuth();
+  const { user, users, restoreUsers, initialUsers } = useAuth();
   const { permissions, updatePermissions, isLoading: permissionsLoading, resetPermissions } = usePermissions();
   const { toast } = useToast();
   const { logAction } = useAudit();
@@ -92,9 +93,9 @@ export default function ConfiguracaoPage() {
         const data = JSON.parse(text);
 
         if (data.settings && data.products && data.orders && data.categories && data.users) {
-          await restoreSettings(data.settings, logAction);
+          await restoreSettings(data.settings);
           await restoreCartData({ products: data.products, orders: data.orders, categories: data.categories });
-          await restoreUsers(data.users, logAction);
+          await restoreUsers(data.users);
           if (data.permissions) {
              await updatePermissions(data.permissions);
           }
@@ -122,15 +123,15 @@ export default function ConfiguracaoPage() {
 
   const handleResetAll = async () => {
     await resetAllCartData();
-    await restoreUsers(initialUsers, logAction);
-    await resetSettings(logAction);
+    await restoreUsers(initialUsers);
+    await resetSettings();
     await resetPermissions();
     setDialogOpenFor(null);
     toast({ title: "Loja Resetada!", description: "Todos os dados foram restaurados para o padrão." });
   }
 
   function onSubmit(values: z.infer<typeof settingsSchema>) {
-    updateSettings(values, logAction);
+    updateSettings(values);
   }
 
   const handlePermissionChange = (role: UserRole, section: AppSection, checked: boolean) => {

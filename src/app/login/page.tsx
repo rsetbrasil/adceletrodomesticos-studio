@@ -3,7 +3,6 @@
 
 import { useState, FormEvent } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useAudit } from '@/context/AuditContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,13 +11,12 @@ import { Shield } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const { logAction } = useAudit();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = (e: FormEvent) => {
     e.preventDefault();
-    login(username, password, logAction);
+    login(username, password);
   };
 
   return (

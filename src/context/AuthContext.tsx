@@ -15,14 +15,14 @@ interface AuthContextType {
   user: User | null;
   users: User[];
   initialUsers: User[];
-  login: (user: string, pass: string, logAction: Function) => void;
-  logout: (logAction: Function) => void;
-  addUser: (data: Omit<User, 'id'>, logAction: Function) => Promise<boolean>;
-  updateUser: (userId: string, data: Partial<Omit<User, 'id'>>, logAction: Function) => Promise<void>;
+  login: (user: string, pass: string) => void;
+  logout: () => void;
+  addUser: (data: Omit<User, 'id'>) => Promise<boolean>;
+  updateUser: (userId: string, data: Partial<Omit<User, 'id'>>) => Promise<void>;
   changeMyPassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   isLoading: boolean;
   isAuthenticated: boolean;
-  restoreUsers: (users: User[], logAction: Function) => Promise<void>;
+  restoreUsers: (users: User[]) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+  const { logAction } = useAudit();
   
   useEffect(() => {
     const checkUser = () => {
@@ -76,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fetchUsers();
   }, []);
 
-  const login = async (username: string, pass: string, logAction: Function) => {
+  const login = async (username: string, pass: string) => {
     try {
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where("username", "==", username));
@@ -116,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = (logAction: Function) => {
+  const logout = () => {
     if (user) {
         logAction('Logout', `Usuário "${user.name}" realizou logout.`, user);
     }
@@ -125,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   };
 
-  const addUser = async (data: Omit<User, 'id'>, logAction: Function): Promise<boolean> => {
+  const addUser = async (data: Omit<User, 'id'>): Promise<boolean> => {
     const q = query(collection(db, 'users'), where("username", "==", data.username.toLowerCase()));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
@@ -156,7 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateUser = async (userId: string, data: Partial<Omit<User, 'id'>>, logAction: Function) => {
+  const updateUser = async (userId: string, data: Partial<Omit<User, 'id'>>) => {
     
     // Check for username uniqueness if it's being changed
     if (data.username) {
@@ -227,9 +228,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               return false;
           }
 
-          const { logAction: logActionFunc } = useAudit();
           await updateDoc(userRef, { password: newPassword });
-          logActionFunc('Alteração de Senha', `O usuário "${user.name}" alterou a própria senha.`, user);
+          logAction('Alteração de Senha', `O usuário "${user.name}" alterou a própria senha.`, user);
           toast({ title: "Senha Alterada!", description: "Sua senha foi atualizada com sucesso." });
           return true;
 
@@ -240,7 +240,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
   };
   
-  const restoreUsers = async (usersToRestore: User[], logAction: Function) => {
+  const restoreUsers = async (usersToRestore: User[]) => {
       try {
         const usersCollectionRef = collection(db, "users");
         const snapshot = await getDocs(usersCollectionRef);

@@ -68,8 +68,8 @@ export type Order = {
   paymentMethod: PaymentMethod;
   installmentDetails: Installment[];
   attachments?: Attachment[];
-  sellerId: string;
-  sellerName: string;
+  sellerId?: string;
+  sellerName?: string;
   commission?: number; 
 };
 

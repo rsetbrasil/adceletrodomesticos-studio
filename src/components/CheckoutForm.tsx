@@ -174,15 +174,6 @@ export default function CheckoutForm() {
   }
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
-    if (!user) {
-        toast({
-            title: "Erro de Autenticação",
-            description: "Você precisa estar logado para criar um pedido.",
-            variant: "destructive"
-        });
-        return;
-    }
-
     const lastOrderNumber = orders
       .map(o => {
           if (!o.id.startsWith('PED-')) return 0;
@@ -314,5 +305,6 @@ export default function CheckoutForm() {
     </div>
   );
 }
+
 
 

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { ReactNode, useEffect, useState } from "react";
@@ -7,7 +8,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { LogOut, Shield, Store, KeyRound } from 'lucide-react';
 import AdminNav from "@/components/AdminNav";
 import { Button } from "@/components/ui/button";
-import { useAudit } from "@/context/AuditContext";
 import { hasAccess, type AppSection } from "@/lib/permissions";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/context/PermissionsContext";
@@ -44,7 +44,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     const { permissions, isLoading: permissionsLoading } = usePermissions();
     const router = useRouter();
     const pathname = usePathname();
-    const { logAction } = useAudit();
     const { toast } = useToast();
     const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
@@ -122,7 +121,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                                     <KeyRound className="mr-2 h-4 w-4" />
                                     Alterar Senha
                                 </Button>
-                                <Button variant="outline" size="sm" onClick={() => logout(logAction)}>
+                                <Button variant="outline" size="sm" onClick={() => logout()}>
                                     <LogOut className="mr-2 h-4 w-4" />
                                     Sair
                                 </Button>
