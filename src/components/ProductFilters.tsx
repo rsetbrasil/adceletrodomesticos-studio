@@ -10,8 +10,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useMemo } from 'react';
 import type { Category } from '@/lib/types';
+import { ChevronDown } from 'lucide-react';
 
 
 interface ProductFiltersProps {
@@ -39,13 +46,6 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
   const handleSortChange = (value: string) => {
     onFilterChange({ sort: value });
   };
-  
-  const subcategories = useMemo(() => {
-    if (currentFilters.category === 'all') return [];
-    const selectedCat = categories.find(cat => cat.name === currentFilters.category);
-    return selectedCat?.subcategories || [];
-  }, [currentFilters.category, categories]);
-
 
   return (
     <div className="bg-card p-4 rounded-lg shadow-sm mb-8">
@@ -75,40 +75,46 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
         >
           Todas
         </Button>
-        {categories.map((cat) => (
-          <Button
-            key={cat.id}
-            variant={currentFilters.category === cat.name ? 'secondary' : 'ghost'}
-            onClick={() => onFilterChange({ category: cat.name })}
-            className="capitalize"
-          >
-            {cat.name}
-          </Button>
-        ))}
-      </div>
-      
-       {subcategories.length > 0 && (
-         <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t">
-            <Button
-              variant={currentFilters.subcategory === 'all' ? 'outline' : 'ghost'}
-              size="sm"
-              onClick={() => onFilterChange({ subcategory: 'all' })}
-            >
-              Todas as Subcategorias
-            </Button>
-            {subcategories.map((sub, index) => (
+        {categories.map((cat) => {
+          if (!cat.subcategories || cat.subcategories.length === 0) {
+            return (
               <Button
-                key={index}
-                variant={currentFilters.subcategory === sub ? 'outline' : 'ghost'}
-                size="sm"
-                onClick={() => onFilterChange({ subcategory: sub })}
+                key={cat.id}
+                variant={currentFilters.category === cat.name ? 'secondary' : 'ghost'}
+                onClick={() => onFilterChange({ category: cat.name })}
                 className="capitalize"
               >
-                {sub}
+                {cat.name}
               </Button>
-            ))}
-         </div>
-       )}
+            )
+          }
+
+          return (
+             <DropdownMenu key={cat.id}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={currentFilters.category === cat.name ? 'secondary' : 'ghost'}
+                  className="capitalize"
+                  onClick={() => onFilterChange({ category: cat.name })}
+                >
+                  {cat.name}
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onSelect={() => onFilterChange({ category: cat.name, subcategory: 'all' })}>
+                  Todas em {cat.name}
+                </DropdownMenuItem>
+                {cat.subcategories.map((sub, index) => (
+                  <DropdownMenuItem key={index} onSelect={() => onFilterChange({ category: cat.name, subcategory: sub })}>
+                    {sub}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        })}
+      </div>
     </div>
   );
 }
