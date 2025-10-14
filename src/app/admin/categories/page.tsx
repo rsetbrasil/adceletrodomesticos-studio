@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -7,13 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Trash, Edit, Tag, ChevronDown, ChevronRight } from 'lucide-react';
+import { PlusCircle, Trash, Edit, Tag, ChevronDown, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { Category } from '@/lib/types';
 
 export default function ManageCategoriesPage() {
-    const { categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, deleteSubcategory, updateSubcategory } = useCart();
+    const { categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, deleteSubcategory, updateSubcategory, moveCategory } = useCart();
     const { toast } = useToast();
 
     const [dialogState, setDialogState] = useState<{
@@ -73,7 +74,7 @@ export default function ManageCategoriesPage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle>Gerenciar Categorias</CardTitle>
-                        <CardDescription>Adicione, edite ou remova categorias e subcategorias.</CardDescription>
+                        <CardDescription>Adicione, edite, remova e reordene categorias e subcategorias.</CardDescription>
                     </div>
                     <Button onClick={() => openDialog('addCategory')}>
                         <PlusCircle className="mr-2 h-4 w-4" />
@@ -83,13 +84,21 @@ export default function ManageCategoriesPage() {
                 <CardContent>
                     {categories.length > 0 ? (
                         <div className="space-y-2">
-                            {categories.map((category) => (
+                            {categories.map((category, index) => (
                                 <Collapsible key={category.id} className="border rounded-lg">
                                     <div className="flex items-center justify-between w-full p-4 hover:bg-muted/50 rounded-t-lg data-[state=open]:rounded-b-none group">
-                                        <CollapsibleTrigger className="flex items-center gap-2">
-                                            <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-                                            <span className="font-semibold">{category.name}</span>
-                                        </CollapsibleTrigger>
+                                        <div className="flex items-center gap-2">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveCategory(category.id, 'up')} disabled={index === 0}>
+                                                <ArrowUp className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveCategory(category.id, 'down')} disabled={index === categories.length - 1}>
+                                                <ArrowDown className="h-4 w-4" />
+                                            </Button>
+                                            <CollapsibleTrigger className="flex items-center gap-2">
+                                                <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                                                <span className="font-semibold">{category.name}</span>
+                                            </CollapsibleTrigger>
+                                        </div>
                                         <div className="flex items-center gap-2">
                                             <Button variant="ghost" size="sm" onClick={() => openDialog('editCategory', { categoryId: category.id, categoryName: category.name })}>
                                                 <Edit className="mr-2 h-4 w-4"/> Editar Nome

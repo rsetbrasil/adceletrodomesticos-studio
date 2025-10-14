@@ -64,6 +64,7 @@ interface CartContextType {
   addSubcategory: (categoryId: string, subcategoryName: string) => Promise<void>;
   updateSubcategory: (categoryId: string, oldSub: string, newSub: string) => Promise<void>;
   deleteSubcategory: (categoryId: string, subcategoryName: string) => Promise<void>;
+  moveCategory: (categoryId: string, direction: 'up' | 'down') => Promise<void>;
   commissionPayments: CommissionPayment[];
   payCommissions: (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string) => Promise<string | null>;
   reverseCommissionPayment: (paymentId: string) => Promise<void>;
@@ -121,8 +122,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             const initialCats = Array.from(new Set(currentProducts.map(p => p.category))).map((catName, index) => ({
                 id: `cat-${Date.now()}-${index}`,
                 name: catName,
+                order: index,
                 subcategories: Array.from(new Set(currentProducts.filter(p => p.category === catName && p.subcategory).map(p => p.subcategory!))).sort()
-            })).sort((a, b) => a.name.localeCompare(b.name));
+            })).sort((a, b) => a.order - b.order);
             
             const batch = writeBatch(db);
             initialCats.forEach(c => {
@@ -134,7 +136,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         } else {
             loadedCategories = categoriesSnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Category[];
         }
-        setCategories(loadedCategories.sort((a,b) => a.name.localeCompare(b.name)));
+        setCategories(loadedCategories.sort((a,b) => a.order - b.order));
     }, (error) => {
         console.error("Failed to load categories from Firestore:", error);
     });
@@ -225,6 +227,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const initialCats = Array.from(new Set(initialProducts.map(p => p.category))).map((catName, index) => ({
         id: `cat-${Date.now()}-${index}`,
         name: catName,
+        order: index,
         subcategories: Array.from(new Set(initialProducts.filter(p => p.category === catName && p.subcategory).map(p => p.subcategory!))).sort()
     })).sort((a, b) => a.name.localeCompare(b.name));
     await restoreCartData({ products: initialProducts, orders: [], categories: initialCats });
@@ -297,9 +300,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     const newCategoryId = `cat-${Date.now()}`;
+    const newOrder = categories.length > 0 ? Math.max(...categories.map(c => c.order)) + 1 : 0;
     const newCategory: Category = {
       id: newCategoryId,
       name: categoryName,
+      order: newOrder,
       subcategories: []
     };
     try {
@@ -431,6 +436,35 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: "Erro", description: "Falha ao excluir a subcategoria.", variant: "destructive" });
     }
   };
+    
+  const moveCategory = async (categoryId: string, direction: 'up' | 'down') => {
+    const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
+    const index = sortedCategories.findIndex(c => c.id === categoryId);
+
+    if (index === -1) return;
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === sortedCategories.length - 1) return;
+
+    const otherIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    const category1 = sortedCategories[index];
+    const category2 = sortedCategories[otherIndex];
+
+    const order1 = category1.order;
+    const order2 = category2.order;
+    
+    try {
+        const batch = writeBatch(db);
+        batch.update(doc(db, 'categories', category1.id), { order: order2 });
+        batch.update(doc(db, 'categories', category2.id), { order: order1 });
+        await batch.commit();
+        // Real-time listener will handle state update
+        logAction('Reordenação de Categoria', `Categoria "${category1.name}" foi movida ${direction === 'up' ? 'para cima' : 'para baixo'}.`, user);
+    } catch(e) {
+        console.error('Error moving category:', e);
+        toast({ title: "Erro", description: "Falha ao reordenar a categoria.", variant: "destructive" });
+    }
+  };
 
   const addToCart = (product: Product) => {
     const imageUrl = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/600x600.png';
@@ -544,13 +578,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         logAction('Criação de Pedido', `Novo pedido #${orderToSave.id} para ${orderToSave.customer.name} no valor de R$${orderToSave.total?.toFixed(2)} foi criado ${creator}.`, user);
     } catch(e) {
         console.error("Failed to add order", e);
-        throw e; // re-throw to be caught by the form
+        // Re-throw to be caught by the form and prevent stock issues
+        if (e instanceof Error && e.message.startsWith('Estoque insuficiente')) {
+          throw e;
+        }
+        // If stock was modified, we need to revert it.
+        await manageStockForOrder(order as Order, 'add');
+        throw e;
     }
   };
 
   const deleteOrder = async (orderId: string) => {
     await updateOrderStatus(orderId, 'Excluído');
-    logAction('Exclusão de Pedido', `Pedido #${orderId} movido para a lixeira.`, user);
   };
 
   const permanentlyDeleteOrder = async (orderId: string) => {
@@ -576,12 +615,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!orderToUpdate) return;
 
     const oldStatus = orderToUpdate.status;
-    
-    const detailsToUpdate: Partial<Order> = { status: newStatus };
-
-    // Update stock only when status changes to or from a 'final' state like Canceled/Deleted
     const wasCanceledOrDeleted = oldStatus === 'Cancelado' || oldStatus === 'Excluído';
     const isNowCanceledOrDeleted = newStatus === 'Cancelado' || newStatus === 'Excluído';
+
+    // if moving out of canceled/deleted, subtract stock
+    if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
+        if (!await manageStockForOrder(orderToUpdate, 'subtract')) {
+            // Stop update if not enough stock
+            return;
+        }
+    }
+    
+    const detailsToUpdate: Partial<Order> = { status: newStatus };
 
     // Recalculate commission if status is 'Entregue' and commission is not manual, otherwise zero it out.
     if (newStatus === 'Entregue' && orderToUpdate.sellerId) {
@@ -595,24 +640,28 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-        if (!wasCanceledOrDeleted && isNowCanceledOrDeleted) {
-          if (!await manageStockForOrder(orderToUpdate, 'add')) return;
-        }
-        else if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
-          if (!await manageStockForOrder(orderToUpdate, 'subtract')) return;
-        }
-
         await updateDoc(doc(db, 'orders', orderId), detailsToUpdate);
+
+        // If moving TO canceled/deleted, add stock back *after* DB update
+        if (!wasCanceledOrDeleted && isNowCanceledOrDeleted) {
+            await manageStockForOrder(orderToUpdate, 'add');
+        }
         
         // Real-time listener will update the state
-
         logAction('Atualização de Status de Pedido', `Status do pedido #${orderId} alterado de "${oldStatus}" para "${newStatus}".`, user);
         
         if (newStatus !== 'Excluído') {
           toast({ title: "Status do Pedido Atualizado!", description: `O pedido #${orderId} agora está como "${newStatus}".` });
+        } else {
+          logAction('Exclusão de Pedido', `Pedido #${orderId} movido para a lixeira.`, user);
+          toast({ title: "Pedido movido para a Lixeira", description: `O pedido #${orderId} foi movido para a lixeira.` });
         }
     } catch(e) {
-        // This catch block is intentionally left empty because manageStockForOrder already shows a toast.
+        console.error('Failed to update order status:', e);
+        // If there was an error and we subtracted stock, we need to add it back.
+        if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
+            await manageStockForOrder(orderToUpdate, 'add');
+        }
     }
   };
 
@@ -778,7 +827,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         lastOrder, setLastOrder,
         orders, addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, updateInstallmentStatus, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
         products, addProduct, updateProduct, deleteProduct,
-        categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory,
+        categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory,
         commissionPayments, payCommissions, reverseCommissionPayment,
         isLoading,
         restoreCartData, resetOrders, resetAllCartData,

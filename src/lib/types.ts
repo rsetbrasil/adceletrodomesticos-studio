@@ -100,6 +100,7 @@ export type User = {
 export type Category = {
   id: string;
   name: string;
+  order: number;
   subcategories: string[];
 };
 
