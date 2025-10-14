@@ -90,12 +90,12 @@ export default function Home() {
           <div className="container mx-auto">
             {saleProducts.length === 1 ? (
               // Render single product view
-              <Card className="overflow-hidden relative">
-                 <Badge className="absolute top-4 left-4 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
-                    Promoção
-                 </Badge>
+              <Card className="overflow-hidden">
                 <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 gap-6">
                   <div className="relative w-64 h-64 flex-shrink-0">
+                     <Badge className="absolute top-2 left-2 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
+                        Promoção
+                     </Badge>
                     <Image
                       src={(saleProducts[0].imageUrls && saleProducts[0].imageUrls.length > 0) ? saleProducts[0].imageUrls[0] : 'https://placehold.co/400x400.png'}
                       alt={saleProducts[0].name}
@@ -127,12 +127,12 @@ export default function Home() {
                   {saleProducts.map((product) => (
                     <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
                       <div className="p-1 h-full">
-                        <Card className="h-full overflow-hidden relative">
-                           <Badge className="absolute top-4 left-4 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
-                             Promoção
-                           </Badge>
+                        <Card className="h-full overflow-hidden">
                           <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 h-full">
                             <div className="relative w-48 h-48 flex-shrink-0">
+                               <Badge className="absolute top-2 left-2 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
+                                 Promoção
+                               </Badge>
                               <Image
                                 src={(product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/400x400.png'}
                                 alt={product.name}
