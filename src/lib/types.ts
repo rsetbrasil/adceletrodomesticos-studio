@@ -6,6 +6,7 @@ export type Product = {
   description: string;
   longDescription: string;
   price: number;
+  cost?: number;
   imageUrls: string[];
   category: string;
   subcategory?: string;

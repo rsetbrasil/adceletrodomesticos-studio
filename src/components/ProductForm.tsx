@@ -39,6 +39,15 @@ const productSchema = z.object({
     },
     z.coerce.number({ invalid_type_error: 'Preço inválido.' }).positive('O preço deve ser positivo.')
   ),
+   cost: z.preprocess(
+    (val) => {
+      if (typeof val === 'string') {
+        return parseFloat(val.replace(/\./g, '').replace(',', '.'));
+      }
+      return val;
+    },
+    z.coerce.number({ invalid_type_error: 'Custo inválido.' }).min(0, 'O custo não pode ser negativo.').optional()
+  ),
   category: z.string().min(1, 'A categoria é obrigatória.'),
   subcategory: z.string().optional(),
   stock: z.coerce.number().int().min(0, 'O estoque não pode ser negativo.'),
@@ -94,6 +103,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
     defaultValues: productToEdit ? {
         ...productToEdit,
         price: productToEdit.price || 0,
+        cost: productToEdit.cost || 0,
         stock: productToEdit.stock || 0,
         maxInstallments: productToEdit.maxInstallments || 10,
         subcategory: productToEdit.subcategory || '',
@@ -106,6 +116,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       description: '',
       longDescription: '',
       price: 0,
+      cost: 0,
       category: categories.length > 0 ? categories[0].name : '',
       subcategory: '',
       stock: 0,
@@ -121,6 +132,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
     const defaultValues = productToEdit ? {
         ...productToEdit,
         price: productToEdit.price || 0,
+        cost: productToEdit.cost || 0,
         stock: productToEdit.stock || 0,
         maxInstallments: productToEdit.maxInstallments || 10,
         subcategory: productToEdit.subcategory || '',
@@ -133,6 +145,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       description: '',
       longDescription: '',
       price: 0,
+      cost: 0,
       category: categories.length > 0 ? categories[0].name : '',
       subcategory: '',
       stock: 0,
@@ -249,7 +262,28 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                       name="price"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Preço (R$)</FormLabel>
+                          <FormLabel>Preço de Venda (R$)</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              inputMode="decimal"
+                              value={formatBRL(field.value)}
+                              onChange={(e) => {
+                                const rawValue = e.target.value.replace(/\D/g, '');
+                                field.onChange(Number(rawValue) / 100);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="cost"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Preço de Custo (R$)</FormLabel>
                           <FormControl>
                             <Input
                               {...field}

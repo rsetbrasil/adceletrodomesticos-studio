@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
-import { DollarSign, CheckCircle, Clock, Percent, Award, FileText } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, Percent, Award, FileText, TrendingUp } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -31,18 +31,27 @@ export default function FinanceiroPage() {
   }, []);
 
   const financialSummary = useMemo(() => {
-    if (!isClient || !orders) {
-      return { totalVendido: 0, totalRecebido: 0, totalPendente: 0, monthlyData: [] };
+    if (!isClient || !orders || !products) {
+      return { totalVendido: 0, totalRecebido: 0, totalPendente: 0, lucroBruto: 0, monthlyData: [] };
     }
 
     let totalVendido = 0;
     let totalRecebido = 0;
     let totalPendente = 0;
+    let lucroBruto = 0;
     const monthlySales: { [key: string]: number } = {};
 
     orders.forEach(order => {
       if (order.status !== 'Cancelado' && order.status !== 'Excluído') {
         totalVendido += order.total;
+
+        order.items.forEach(item => {
+            const product = products.find(p => p.id === item.id);
+            const cost = product?.cost || 0;
+            const itemRevenue = item.price * item.quantity;
+            const itemCost = cost * item.quantity;
+            lucroBruto += (itemRevenue - itemCost);
+        });
 
         const monthKey = format(parseISO(order.date), 'MMM/yy', { locale: ptBR });
         if (!monthlySales[monthKey]) {
@@ -67,8 +76,8 @@ export default function FinanceiroPage() {
     
     const monthlyData = Object.entries(monthlySales).map(([name, total]) => ({ name, total })).reverse();
 
-    return { totalVendido, totalRecebido, totalPendente, monthlyData };
-  }, [orders, isClient]);
+    return { totalVendido, totalRecebido, totalPendente, lucroBruto, monthlyData };
+  }, [orders, products, isClient]);
 
   const commissionSummary = useMemo(() => {
     if (!isClient || !orders || !users) {
@@ -139,12 +148,12 @@ export default function FinanceiroPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Recebido</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-sm font-medium">Lucro Bruto</CardTitle>
+            <TrendingUp className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(financialSummary.totalRecebido)}</div>
-            <p className="text-xs text-muted-foreground">Soma de parcelas pagas e pagamentos à vista</p>
+            <div className="text-2xl font-bold">{formatCurrency(financialSummary.lucroBruto)}</div>
+            <p className="text-xs text-muted-foreground">Receita total - Custo dos produtos</p>
           </CardContent>
         </Card>
         <Card>
@@ -253,4 +262,3 @@ export default function FinanceiroPage() {
     </div>
   );
 }
-
