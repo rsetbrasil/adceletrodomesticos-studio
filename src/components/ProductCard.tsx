@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -43,7 +44,12 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <Link href={`/products/${product.id}`} className="block h-full" aria-label={`Ver detalhes de ${product.name}`}>
       <Card className="flex flex-col overflow-hidden h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-        <CardHeader className="p-0">
+        <CardHeader className="p-0 relative">
+          {product.onSale && (
+            <Badge className="absolute top-2 left-2 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
+              Promoção
+            </Badge>
+          )}
           <div className="relative aspect-square w-full">
             <Image
               src={imageUrl}

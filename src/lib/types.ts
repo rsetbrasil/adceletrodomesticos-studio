@@ -7,6 +7,7 @@ export type Product = {
   longDescription: string;
   price: number;
   cost?: number;
+  onSale?: boolean;
   imageUrls: string[];
   category: string;
   subcategory?: string;

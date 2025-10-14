@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,6 +26,7 @@ import type { Product, Category } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { Checkbox } from './ui/checkbox';
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto é obrigatório.'),
@@ -48,6 +50,7 @@ const productSchema = z.object({
     },
     z.coerce.number({ invalid_type_error: 'Custo inválido.' }).min(0, 'O custo não pode ser negativo.').optional()
   ),
+  onSale: z.boolean().optional(),
   category: z.string().min(1, 'A categoria é obrigatória.'),
   subcategory: z.string().optional(),
   stock: z.coerce.number().int().min(0, 'O estoque não pode ser negativo.'),
@@ -104,6 +107,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         ...productToEdit,
         price: productToEdit.price || 0,
         cost: productToEdit.cost || 0,
+        onSale: productToEdit.onSale ?? false,
         stock: productToEdit.stock || 0,
         maxInstallments: productToEdit.maxInstallments || 10,
         subcategory: productToEdit.subcategory || '',
@@ -117,6 +121,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       longDescription: '',
       price: 0,
       cost: 0,
+      onSale: false,
       category: categories.length > 0 ? categories[0].name : '',
       subcategory: '',
       stock: 0,
@@ -133,6 +138,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         ...productToEdit,
         price: productToEdit.price || 0,
         cost: productToEdit.cost || 0,
+        onSale: productToEdit.onSale ?? false,
         stock: productToEdit.stock || 0,
         maxInstallments: productToEdit.maxInstallments || 10,
         subcategory: productToEdit.subcategory || '',
@@ -146,6 +152,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       longDescription: '',
       price: 0,
       cost: 0,
+      onSale: false,
       category: categories.length > 0 ? categories[0].name : '',
       subcategory: '',
       stock: 0,
@@ -387,7 +394,28 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                       )}
                     />
                 </div>
-                 
+                 <FormField
+                    control={form.control}
+                    name="onSale"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <FormLabel className="text-base">
+                                    Produto em Promoção
+                                </FormLabel>
+                                <FormDescription>
+                                    Marque para exibir um selo de "Promoção" neste produto.
+                                </FormDescription>
+                            </div>
+                            <FormControl>
+                                <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            </FormControl>
+                        </FormItem>
+                    )}
+                 />
             </div>
 
             <div className="space-y-4">
