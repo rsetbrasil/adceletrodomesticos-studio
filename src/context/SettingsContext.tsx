@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { useAudit } from './AuditContext';
 import { useAuth } from './AuthContext';
 
@@ -40,36 +40,30 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
 
     useEffect(() => {
-        const fetchSettings = async () => {
-            setIsLoading(true);
-            try {
-                const settingsRef = doc(db, 'config', 'storeSettings');
-                const docSnap = await getDoc(settingsRef);
-
-                if (docSnap.exists()) {
-                    setSettings(docSnap.data() as StoreSettings);
-                } else {
-                    // Seed the database if settings don't exist
-                    await setDoc(settingsRef, initialSettings);
-                    setSettings(initialSettings);
-                }
-            } catch (error) {
-                console.error("Failed to load settings from Firestore:", error);
+        const settingsRef = doc(db, 'config', 'storeSettings');
+        const unsubscribe = onSnapshot(settingsRef, async (docSnap) => {
+            if (docSnap.exists()) {
+                setSettings(docSnap.data() as StoreSettings);
+            } else {
+                await setDoc(settingsRef, initialSettings);
                 setSettings(initialSettings);
-                toast({ title: "Erro de Conexão", description: "Não foi possível carregar as configurações da loja.", variant: "destructive" });
-            } finally {
-                setIsLoading(false);
             }
-        };
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Failed to load settings from Firestore:", error);
+            setSettings(initialSettings);
+            setIsLoading(false);
+            toast({ title: "Erro de Conexão", description: "Não foi possível carregar as configurações da loja.", variant: "destructive" });
+        });
 
-        fetchSettings();
+        return () => unsubscribe();
     }, [toast]);
 
     const updateSettings = async (newSettings: StoreSettings) => {
         try {
             const settingsRef = doc(db, 'config', 'storeSettings');
             await setDoc(settingsRef, newSettings);
-            setSettings(newSettings);
+            // Real-time listener will update state
             logAction('Atualização de Configurações', `Configurações da loja foram alteradas.`, user);
             toast({
                 title: "Configurações Salvas!",

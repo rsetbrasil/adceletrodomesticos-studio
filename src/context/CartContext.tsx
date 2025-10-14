@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 import { addMonths } from 'date-fns';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query } from 'firebase/firestore';
+import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query, onSnapshot } from 'firebase/firestore';
 import { useAudit } from './AuditContext';
 
 const saveDataToLocalStorage = (key: string, data: any) => {
@@ -83,65 +83,74 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { logAction, user } = useAudit();
 
   useEffect(() => {
-    const loadAllData = async () => {
-        setIsLoading(true);
-        try {
-            // Load Products
-            const productsSnapshot = await getDocs(collection(db, 'products'));
-            let loadedProducts: Product[];
-            if (productsSnapshot.empty) {
-                const batch = writeBatch(db);
-                initialProducts.forEach(p => {
-                    const docRef = doc(db, 'products', p.id);
-                    batch.set(docRef, p);
-                });
-                await batch.commit();
-                loadedProducts = initialProducts;
-            } else {
-                loadedProducts = productsSnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Product[];
-            }
-            setProducts(loadedProducts);
-            
-            // Load Categories
-            const categoriesSnapshot = await getDocs(query(collection(db, 'categories')));
-            let loadedCategories: Category[];
-            if (categoriesSnapshot.empty) {
-                const initialCats = Array.from(new Set(loadedProducts.map(p => p.category))).map((catName, index) => ({
-                    id: `cat-${Date.now()}-${index}`,
-                    name: catName,
-                    subcategories: Array.from(new Set(loadedProducts.filter(p => p.category === catName && p.subcategory).map(p => p.subcategory!))).sort()
-                })).sort((a, b) => a.name.localeCompare(b.name));
-                
-                const batch = writeBatch(db);
-                initialCats.forEach(c => {
-                    const docRef = doc(db, 'categories', c.id);
-                    batch.set(docRef, c);
-                });
-                await batch.commit();
-                loadedCategories = initialCats;
-            } else {
-                loadedCategories = categoriesSnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Category[];
-            }
-            setCategories(loadedCategories.sort((a,b) => a.name.localeCompare(b.name)));
+    setIsLoading(true);
+    let activeListeners = true;
 
-            // Load Orders
-            const ordersSnapshot = await getDocs(collection(db, 'orders'));
-            const loadedOrders = ordersSnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Order[];
-            setOrders(loadedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-            
-            // Load Cart from localStorage
-            const storedCart = loadDataFromLocalStorage('cartItems');
-            if (storedCart) setCartItems(storedCart);
-
-        } catch (error) {
-            console.error("Failed to load data from Firestore:", error);
-            toast({ title: "Erro de Conexão", description: "Não foi possível carregar os dados da loja. Verifique as regras do Firestore.", variant: "destructive" });
-        } finally {
-            setIsLoading(false);
+    const productsUnsubscribe = onSnapshot(collection(db, 'products'), async (productsSnapshot) => {
+        if (!activeListeners) return;
+        let loadedProducts: Product[];
+        if (productsSnapshot.empty) {
+            const batch = writeBatch(db);
+            initialProducts.forEach(p => {
+                const docRef = doc(db, 'products', p.id);
+                batch.set(docRef, p);
+            });
+            await batch.commit();
+            loadedProducts = initialProducts;
+        } else {
+            loadedProducts = productsSnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Product[];
         }
-    };
+        setProducts(loadedProducts);
+    }, (error) => {
+        console.error("Failed to load products from Firestore:", error);
+        toast({ title: "Erro de Conexão", description: "Não foi possível carregar os produtos.", variant: "destructive" });
+    });
+    
+    const categoriesUnsubscribe = onSnapshot(collection(db, 'categories'), async (categoriesSnapshot) => {
+        if (!activeListeners) return;
+        let loadedCategories: Category[];
+        if (categoriesSnapshot.empty) {
+            const currentProducts = (await getDocs(collection(db, 'products'))).docs.map(d => d.data() as Product);
+            const initialCats = Array.from(new Set(currentProducts.map(p => p.category))).map((catName, index) => ({
+                id: `cat-${Date.now()}-${index}`,
+                name: catName,
+                subcategories: Array.from(new Set(currentProducts.filter(p => p.category === catName && p.subcategory).map(p => p.subcategory!))).sort()
+            })).sort((a, b) => a.name.localeCompare(b.name));
+            
+            const batch = writeBatch(db);
+            initialCats.forEach(c => {
+                const docRef = doc(db, 'categories', c.id);
+                batch.set(docRef, c);
+            });
+            await batch.commit();
+            loadedCategories = initialCats;
+        } else {
+            loadedCategories = categoriesSnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Category[];
+        }
+        setCategories(loadedCategories.sort((a,b) => a.name.localeCompare(b.name)));
+    }, (error) => {
+        console.error("Failed to load categories from Firestore:", error);
+    });
 
-    loadAllData();
+    const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (ordersSnapshot) => {
+        if (!activeListeners) return;
+        const loadedOrders = ordersSnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Order[];
+        setOrders(loadedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Failed to load orders from Firestore:", error);
+        setIsLoading(false);
+    });
+
+    const storedCart = loadDataFromLocalStorage('cartItems');
+    if (storedCart) setCartItems(storedCart);
+
+    return () => {
+        activeListeners = false;
+        productsUnsubscribe();
+        categoriesUnsubscribe();
+        ordersUnsubscribe();
+    };
   }, [toast]);
   
   const restoreCartData = async (data: { products: Product[], orders: Order[], categories: Category[] }) => {
@@ -169,10 +178,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         data.categories.forEach(c => addBatch.set(doc(db, 'categories', c.id), c));
 
         await addBatch.commit();
-        setProducts(data.products || []);
-        setOrders(data.orders || []);
-        setCategories(data.categories || []);
-        logAction('Restauração de Backup', 'Todos os dados de produtos, pedidos e categorias foram restaurados.');
+        // Real-time listeners will update the state
+        logAction('Restauração de Backup', 'Todos os dados de produtos, pedidos e categorias foram restaurados.', user);
         toast({ title: 'Dados restaurados com sucesso!' });
     } catch (error) {
         console.error("Error restoring data to Firestore:", error);
@@ -189,8 +196,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const batch = writeBatch(db);
         ordersSnapshot.docs.forEach(d => batch.delete(d.ref));
         await batch.commit();
-        setOrders([]);
-        logAction('Reset de Pedidos', 'Todos os pedidos e clientes foram zerados.');
+        // Real-time listener will update the state
+        logAction('Reset de Pedidos', 'Todos os pedidos e clientes foram zerados.', user);
     } catch (error) {
         console.error("Error resetting orders in Firestore:", error);
     } finally {
@@ -205,7 +212,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         subcategories: Array.from(new Set(initialProducts.filter(p => p.category === catName && p.subcategory).map(p => p.subcategory!))).sort()
     })).sort((a, b) => a.name.localeCompare(b.name));
     await restoreCartData({ products: initialProducts, orders: [], categories: initialCats });
-    logAction('Reset da Loja', 'Todos os dados da loja foram resetados para o padrão.');
+    logAction('Reset da Loja', 'Todos os dados da loja foram resetados para o padrão.', user);
     clearCart();
   };
 
@@ -219,8 +226,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       };
       try {
         await setDoc(doc(db, 'products', newProductId), newProduct);
-        setProducts(prev => [newProduct, ...prev]);
-        logAction('Criação de Produto', `Produto "${newProduct.name}" (ID: ${newProductId}) foi criado.`);
+        // Real-time listener will update the state
+        logAction('Criação de Produto', `Produto "${newProduct.name}" (ID: ${newProductId}) foi criado.`, user);
         toast({
             title: "Produto Cadastrado!",
             description: `O produto "${newProduct.name}" foi adicionado ao catálogo.`,
@@ -237,8 +244,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const productToUpdate = { ...updatedProduct };
         await setDoc(productRef, productToUpdate, { merge: true });
 
-        setProducts(prev => prev.map((p) => p.id === updatedProduct.id ? productToUpdate : p));
-        logAction('Atualização de Produto', `Produto "${updatedProduct.name}" (ID: ${updatedProduct.id}) foi atualizado.`);
+        // Real-time listener will update the state
+        logAction('Atualização de Produto', `Produto "${updatedProduct.name}" (ID: ${updatedProduct.id}) foi atualizado.`, user);
         toast({
             title: 'Produto Atualizado!',
             description: `O produto "${updatedProduct.name}" foi atualizado.`,
@@ -253,9 +260,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       try {
         const productToDelete = products.find(p => p.id === productId);
         await deleteDoc(doc(db, 'products', productId));
-        setProducts(prev => prev.filter((p) => p.id !== productId));
+        // Real-time listener will update the state
         if (productToDelete) {
-          logAction('Exclusão de Produto', `Produto "${productToDelete.name}" (ID: ${productId}) foi excluído.`);
+          logAction('Exclusão de Produto', `Produto "${productToDelete.name}" (ID: ${productId}) foi excluído.`, user);
         }
         toast({
             title: 'Produto Excluído!',
@@ -281,8 +288,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     };
     try {
         await setDoc(doc(db, 'categories', newCategoryId), newCategory);
-        setCategories(prev => [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)));
-        logAction('Criação de Categoria', `Categoria "${categoryName}" foi criada.`);
+        // Real-time listener will update the state
+        logAction('Criação de Categoria', `Categoria "${categoryName}" foi criada.`, user);
         toast({ title: "Categoria Adicionada!" });
     } catch (error) {
         console.error("Error adding category:", error);
@@ -313,9 +320,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
         await batch.commit();
 
-        setProducts(prev => prev.map(p => (p.category.toLowerCase() === oldName.toLowerCase() ? { ...p, category: newName } : p)));
-        setCategories(prev => prev.map(c => (c.id === categoryId ? { ...c, name: newName } : c)).sort((a, b) => a.name.localeCompare(b.name)));
-        logAction('Atualização de Categoria', `Categoria "${oldName}" foi renomeada para "${newName}".`);
+        // Real-time listeners will update the state
+        logAction('Atualização de Categoria', `Categoria "${oldName}" foi renomeada para "${newName}".`, user);
 
         toast({ title: "Categoria Renomeada!" });
     } catch (error) {
@@ -334,8 +340,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
     try {
         await deleteDoc(doc(db, 'categories', categoryId));
-        setCategories(prev => prev.filter(c => c.id !== categoryId));
-        logAction('Exclusão de Categoria', `Categoria "${categoryToDelete.name}" foi excluída.`);
+        // Real-time listener will update the state
+        logAction('Exclusão de Categoria', `Categoria "${categoryToDelete.name}" foi excluída.`, user);
         toast({ title: "Categoria Excluída!", variant: "destructive" });
     } catch(e) {
         toast({ title: "Erro", description: "Falha ao excluir a categoria.", variant: "destructive" });
@@ -352,8 +358,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const newSubcategories = [...category.subcategories, subcategoryName].sort();
     try {
         await updateDoc(doc(db, 'categories', categoryId), { subcategories: newSubcategories });
-        setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, subcategories: newSubcategories } : c));
-        logAction('Criação de Subcategoria', `Subcategoria "${subcategoryName}" foi adicionada à categoria "${category.name}".`);
+        // Real-time listener will update the state
+        logAction('Criação de Subcategoria', `Subcategoria "${subcategoryName}" foi adicionada à categoria "${category.name}".`, user);
         toast({ title: "Subcategoria Adicionada!" });
     } catch (error) {
         console.error("Error adding subcategory:", error);
@@ -381,9 +387,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         });
         await batch.commit();
 
-        setProducts(prev => prev.map(p => (p.category === category.name && p.subcategory?.toLowerCase() === oldSub.toLowerCase()) ? { ...p, subcategory: newSub } : p));
-        setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, subcategories: newSubs } : c));
-        logAction('Atualização de Subcategoria', `Subcategoria "${oldSub}" foi renomeada para "${newSub}" na categoria "${category.name}".`);
+        // Real-time listeners will update the state
+        logAction('Atualização de Subcategoria', `Subcategoria "${oldSub}" foi renomeada para "${newSub}" na categoria "${category.name}".`, user);
 
         toast({ title: "Subcategoria Renomeada!" });
     } catch (error) {
@@ -403,8 +408,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const newSubcategories = category.subcategories.filter(s => s.toLowerCase() !== subcategoryName.toLowerCase());
     try {
         await updateDoc(doc(db, 'categories', categoryId), { subcategories: newSubcategories });
-        setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, subcategories: newSubcategories } : c));
-        logAction('Exclusão de Subcategoria', `Subcategoria "${subcategoryName}" foi excluída da categoria "${category.name}".`);
+        // Real-time listener will update the state
+        logAction('Exclusão de Subcategoria', `Subcategoria "${subcategoryName}" foi excluída da categoria "${category.name}".`, user);
         toast({ title: "Subcategoria Excluída!", variant: "destructive" });
     } catch (error) {
         toast({ title: "Erro", description: "Falha ao excluir a subcategoria.", variant: "destructive" });
@@ -475,12 +480,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const batch = writeBatch(db);
     let stockChanged = false;
 
-    const updatedProductState = [...products];
+    const currentProducts = products;
 
     for (const orderItem of order.items) {
-        const productIndex = updatedProductState.findIndex(p => p.id === orderItem.id);
+        const productIndex = currentProducts.findIndex(p => p.id === orderItem.id);
         if (productIndex > -1) {
-            const product = updatedProductState[productIndex];
+            const product = currentProducts[productIndex];
             const stockChange = orderItem.quantity;
             const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
             
@@ -489,14 +494,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
               throw new Error("Estoque insuficiente");
             }
             
-            updatedProductState[productIndex] = { ...product, stock: newStock };
             batch.update(doc(db, 'products', product.id), { stock: newStock });
             stockChanged = true;
         }
     }
     if (stockChanged) {
       await batch.commit();
-      setProducts(updatedProductState);
+      // Real-time listener will update the state
     }
   };
 
@@ -512,10 +516,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         
         await manageStockForOrder(orderToSave, 'subtract');
         await setDoc(doc(db, 'orders', orderToSave.id), orderToSave);
-        setOrders(prev => [orderToSave, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        // Real-time listener will update the state
         
         const creator = user ? `por ${user.name}`: 'pelo cliente';
-        logAction('Criação de Pedido', `Novo pedido #${orderToSave.id} para ${orderToSave.customer.name} no valor de R$${orderToSave.total.toFixed(2)} foi criado ${creator}.`);
+        logAction('Criação de Pedido', `Novo pedido #${orderToSave.id} para ${orderToSave.customer.name} no valor de R$${orderToSave.total.toFixed(2)} foi criado ${creator}.`, user);
     } catch(e) {
         console.error("Failed to add order", e);
         throw e; // re-throw to be caught by the form
@@ -524,7 +528,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteOrder = async (orderId: string) => {
     await updateOrderStatus(orderId, 'Excluído');
-    logAction('Exclusão de Pedido', `Pedido #${orderId} movido para a lixeira.`);
+    logAction('Exclusão de Pedido', `Pedido #${orderId} movido para a lixeira.`, user);
   };
 
   const permanentlyDeleteOrder = async (orderId: string) => {
@@ -536,8 +540,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     
     try {
         await deleteDoc(doc(db, 'orders', orderId));
-        setOrders(prev => prev.filter((order) => order.id !== orderId));
-        logAction('Exclusão Permanente de Pedido', `Pedido #${orderId} foi excluído permanentemente.`);
+        // Real-time listener will update the state
+        logAction('Exclusão Permanente de Pedido', `Pedido #${orderId} foi excluído permanentemente.`, user);
     } catch(e) {
         console.error("Failed to permanently delete order", e);
         toast({ title: "Erro", description: "Falha ao excluir o pedido permanentemente.", variant: "destructive" });
@@ -571,13 +575,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
         await updateDoc(doc(db, 'orders', orderId), detailsToUpdate);
         
-        setOrders(prev => prev.map((order) => 
-            order.id === orderId 
-            ? { ...order, ...detailsToUpdate } 
-            : order
-        ));
+        // Real-time listener will update the state
 
-        logAction('Atualização de Status de Pedido', `Status do pedido #${orderId} alterado de "${oldStatus}" para "${newStatus}".`);
+        logAction('Atualização de Status de Pedido', `Status do pedido #${orderId} alterado de "${oldStatus}" para "${newStatus}".`, user);
         
         if (newStatus !== 'Excluído') {
           toast({ title: "Status do Pedido Atualizado!", description: `O pedido #${orderId} agora está como "${newStatus}".` });
@@ -600,8 +600,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     try {
         await updateDoc(doc(db, 'orders', orderId), { installmentDetails: updatedInstallments });
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, installmentDetails: updatedInstallments } : o));
-        logAction('Atualização de Parcela', `Parcela ${installmentNumber} do pedido #${orderId} foi marcada como "${status}".`);
+        // Real-time listener will update the state
+        logAction('Atualização de Parcela', `Parcela ${installmentNumber} do pedido #${orderId} foi marcada como "${status}".`, user);
     } catch(e) {
         toast({ title: "Erro", description: "Falha ao atualizar o status da parcela.", variant: "destructive" });
     }
@@ -618,8 +618,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
      try {
         await updateDoc(doc(db, 'orders', orderId), { installmentDetails: updatedInstallments });
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, installmentDetails: updatedInstallments } : o));
-        logAction('Atualização de Vencimento', `Vencimento da parcela ${installmentNumber} do pedido #${orderId} alterado de ${oldDueDate ? new Date(oldDueDate).toLocaleDateString() : 'N/A'} para ${newDueDate.toLocaleDateString()}.`);
+        // Real-time listener will update the state
+        logAction('Atualização de Vencimento', `Vencimento da parcela ${installmentNumber} do pedido #${orderId} alterado de ${oldDueDate ? new Date(oldDueDate).toLocaleDateString() : 'N/A'} para ${newDueDate.toLocaleDateString()}.`, user);
         toast({ title: "Vencimento Atualizado!" });
     } catch(e) {
         toast({ title: "Erro", description: "Falha ao atualizar o vencimento.", variant: "destructive" });
@@ -636,13 +636,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         });
         await batch.commit();
 
-        setOrders(prev => prev.map((order) => {
-            if (order.customer.cpf === updatedCustomer.cpf) {
-                return { ...order, customer: { ...order.customer, ...updatedCustomer } };
-            }
-            return order;
-        }));
-        logAction('Atualização de Cliente', `Dados do cliente ${updatedCustomer.name} (CPF: ${updatedCustomer.cpf}) foram atualizados.`);
+        // Real-time listener will update the state
+        logAction('Atualização de Cliente', `Dados do cliente ${updatedCustomer.name} (CPF: ${updatedCustomer.cpf}) foram atualizados.`, user);
         toast({ title: "Cliente Atualizado!", description: `Os dados de ${updatedCustomer.name} foram salvos.` });
     } catch(e) {
         toast({ title: "Erro", description: "Falha ao atualizar dados do cliente.", variant: "destructive" });
@@ -663,8 +658,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     try {
         await updateDoc(doc(db, 'orders', orderId), detailsToUpdate);
-        setOrders(prev => prev.map((o) => o.id === orderId ? { ...o, ...detailsToUpdate } : o));
-        logAction('Atualização de Detalhes do Pedido', `Detalhes do pedido #${orderId} foram atualizados.`);
+        // Real-time listener will update the state
+        logAction('Atualização de Detalhes do Pedido', `Detalhes do pedido #${orderId} foram atualizados.`, user);
         toast({ title: "Pedido Atualizado!", description: `Os detalhes do pedido #${orderId} foram atualizados.` });
     } catch(e) {
         toast({ title: "Erro", description: "Falha ao atualizar os detalhes do pedido.", variant: "destructive" });

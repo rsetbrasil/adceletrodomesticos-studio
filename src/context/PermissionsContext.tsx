@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import type { RolePermissions } from '@/lib/types';
 import { initialPermissions } from '@/lib/permissions';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './AuthContext';
 import { useAudit } from './AuditContext';
@@ -27,35 +27,30 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     const { logAction } = useAudit();
     
     useEffect(() => {
-        const fetchPermissions = async () => {
-            setIsLoading(true);
-            try {
-                const permissionsRef = doc(db, 'config', 'rolePermissions');
-                const docSnap = await getDoc(permissionsRef);
-
-                if (docSnap.exists()) {
-                    setPermissions(docSnap.data() as RolePermissions);
-                } else {
-                    await setDoc(permissionsRef, initialPermissions);
-                    setPermissions(initialPermissions);
-                }
-            } catch (error) {
-                console.error("Failed to load permissions from Firestore:", error);
-                setPermissions(initialPermissions); // Fallback to initial hardcoded permissions
-                toast({ title: "Erro de Conexão", description: "Não foi possível carregar as permissões de acesso.", variant: "destructive" });
-            } finally {
-                setIsLoading(false);
+        const permissionsRef = doc(db, 'config', 'rolePermissions');
+        const unsubscribe = onSnapshot(permissionsRef, async (docSnap) => {
+            if (docSnap.exists()) {
+                setPermissions(docSnap.data() as RolePermissions);
+            } else {
+                await setDoc(permissionsRef, initialPermissions);
+                setPermissions(initialPermissions);
             }
-        };
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Failed to load permissions from Firestore:", error);
+            setPermissions(initialPermissions); // Fallback
+            setIsLoading(false);
+            toast({ title: "Erro de Conexão", description: "Não foi possível carregar as permissões de acesso.", variant: "destructive" });
+        });
 
-        fetchPermissions();
+        return () => unsubscribe();
     }, [toast]);
 
     const updatePermissions = useCallback(async (newPermissions: RolePermissions) => {
         try {
             const permissionsRef = doc(db, 'config', 'rolePermissions');
             await setDoc(permissionsRef, newPermissions);
-            setPermissions(newPermissions);
+            // Real-time listener will update the state
             logAction('Atualização de Permissões', 'As permissões de acesso dos perfis foram alteradas.', user);
             toast({
                 title: "Permissões Salvas!",

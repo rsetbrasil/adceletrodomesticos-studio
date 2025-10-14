@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { User } from '@/lib/types';
 import { initialUsers } from '@/lib/users';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where, getDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where, getDoc, onSnapshot } from 'firebase/firestore';
 import { AuditProvider, useAudit } from './AuditContext';
 
 interface AuthContextType {
@@ -48,33 +48,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.removeItem('user');
         } 
     };
-
-    const fetchUsers = async () => {
-        try {
-            const usersCollection = collection(db, 'users');
-            const querySnapshot = await getDocs(usersCollection);
-
-            if (querySnapshot.empty) {
-                const batch = writeBatch(db);
-                initialUsers.forEach(u => {
-                    const docRef = doc(db, 'users', u.id);
-                    batch.set(docRef, u);
-                });
-                await batch.commit();
-                setUsers(initialUsers);
-            } else {
-                const fetchedUsers = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as User[];
-                setUsers(fetchedUsers);
-            }
-        } catch (error) {
-            console.error("Error fetching users from Firestore:", error);
-        } finally {
-            setIsLoading(false);
-        }
-      };
-
     checkUser();
-    fetchUsers();
+
+    const usersCollection = collection(db, 'users');
+    const unsubscribe = onSnapshot(usersCollection, async (querySnapshot) => {
+        if (querySnapshot.empty) {
+            const batch = writeBatch(db);
+            initialUsers.forEach(u => {
+                const docRef = doc(db, 'users', u.id);
+                batch.set(docRef, u);
+            });
+            await batch.commit();
+            setUsers(initialUsers);
+        } else {
+            const fetchedUsers = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as User[];
+            setUsers(fetchedUsers);
+        }
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching users from Firestore:", error);
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const login = async (username: string, pass: string) => {
@@ -143,7 +139,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     try {
         await setDoc(doc(db, 'users', newUserId), newUser);
-        setUsers(prev => [...prev, newUser]);
+        // Real-time listener will update the state
         logAction('Criação de Usuário', `Novo usuário "${data.name}" (Perfil: ${data.role}) foi criado.`, user);
         toast({
             title: 'Usuário Criado!',
@@ -194,7 +190,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         
         await updateDoc(userRef, data);
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
+        // Real-time listener will update the state
         
         // If the current user is being updated, update the localStorage object too
         if (user?.id === userId) {
@@ -256,7 +252,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             addBatch.set(docRef, u);
         });
         await addBatch.commit();
-        setUsers(usersToRestore);
+        // Real-time listener will update the state
         logAction('Restauração de Usuários', 'Todos os usuários foram restaurados a partir de um backup.', user);
       } catch (error) {
         console.error("Error restoring users to Firestore:", error);
