@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -89,7 +90,10 @@ export default function Home() {
           <div className="container mx-auto">
             {saleProducts.length === 1 ? (
               // Render single product view
-              <Card className="overflow-hidden">
+              <Card className="overflow-hidden relative">
+                 <Badge className="absolute top-4 left-4 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
+                    Promoção
+                 </Badge>
                 <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 gap-6">
                   <div className="relative w-64 h-64 flex-shrink-0">
                     <Image
@@ -123,7 +127,10 @@ export default function Home() {
                   {saleProducts.map((product) => (
                     <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
                       <div className="p-1 h-full">
-                        <Card className="h-full overflow-hidden">
+                        <Card className="h-full overflow-hidden relative">
+                           <Badge className="absolute top-4 left-4 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
+                             Promoção
+                           </Badge>
                           <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 h-full">
                             <div className="relative w-48 h-48 flex-shrink-0">
                               <Image
