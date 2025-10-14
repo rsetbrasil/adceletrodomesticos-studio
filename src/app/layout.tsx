@@ -1,9 +1,8 @@
 
-
 'use client';
 
 import './globals.css';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProviderWithAudit } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { SettingsProvider } from '@/context/SettingsContext';
 import { PermissionsProvider } from '@/context/PermissionsContext';
@@ -95,8 +94,8 @@ NEXT_PUBLIC_FIREBASE_APP_ID="SEU_APP_ID"`}
         />
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
-          <AuditProvider>
+        <AuditProvider>
+          <AuthProviderWithAudit>
             <PermissionsProvider>
               <SettingsProvider>
                 <CartProvider>
@@ -104,8 +103,8 @@ NEXT_PUBLIC_FIREBASE_APP_ID="SEU_APP_ID"`}
                 </CartProvider>
               </SettingsProvider>
             </PermissionsProvider>
-          </AuditProvider>
-        </AuthProvider>
+          </AuthProviderWithAudit>
+        </AuditProvider>
       </body>
     </html>
   );
