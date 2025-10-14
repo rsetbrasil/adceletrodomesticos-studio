@@ -122,7 +122,7 @@ export default function OrdersAdminPage() {
         filteredOrders = filteredOrders.filter(o => o.sellerId === filters.seller);
     }
 
-    return filteredOrders;
+    return filteredOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [orders, user, filters]);
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {

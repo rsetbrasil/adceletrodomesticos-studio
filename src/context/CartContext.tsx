@@ -454,7 +454,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const calculateCommission = (order: Order) => {
         return order.items.reduce((totalCommission, item) => {
             const product = products.find(p => p.id === item.id);
-            if (!product || !product.commissionType || !product.commissionValue) {
+            if (!product || !product.commissionType || typeof product.commissionValue === 'undefined' || product.commissionValue === null) {
                 return totalCommission;
             }
             if (product.commissionType === 'fixed') {
@@ -621,7 +621,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       // Se o vendedor for alterado, recalcular a comissão
       if ('sellerId' in details && details.sellerId) {
-          detailsToUpdate.commission = calculateCommission(order);
+          const tempOrder = {...order, ...details};
+          detailsToUpdate.commission = calculateCommission(tempOrder);
       }
 
     try {
