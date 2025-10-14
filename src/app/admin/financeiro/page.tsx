@@ -7,21 +7,24 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import type { Product, Order } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
-import { DollarSign, CheckCircle, Clock, Percent, User, Award } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, Percent, Award, FileText } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useRouter } from 'next/navigation';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
 export default function FinanceiroPage() {
-  const { orders, products } = useCart();
+  const { orders, products, payCommissions } = useCart();
   const { users } = useAuth();
   const [isClient, setIsClient] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
@@ -38,7 +41,7 @@ export default function FinanceiroPage() {
     const monthlySales: { [key: string]: number } = {};
 
     orders.forEach(order => {
-      if (order.status !== 'Cancelado') {
+      if (order.status !== 'Cancelado' && order.status !== 'Excluído') {
         totalVendido += order.total;
 
         const monthKey = format(parseISO(order.date), 'MMM/yy', { locale: ptBR });
@@ -68,20 +71,22 @@ export default function FinanceiroPage() {
   }, [orders, isClient]);
 
   const commissionSummary = useMemo(() => {
-    if (!isClient || !orders || !users || !products) {
-        return { totalCommission: 0, commissionsBySeller: [] };
+    if (!isClient || !orders || !users) {
+        return { totalPendingCommission: 0, commissionsBySeller: [] };
     }
 
-    const sellerCommissions = new Map<string, { name: string; total: number; count: number }>();
+    const sellerCommissions = new Map<string, { name: string; total: number; count: number; orderIds: string[] }>();
 
     orders.forEach(order => {
-        if (order.status === 'Entregue' && order.sellerId && typeof order.commission === 'number' && order.commission > 0) {
+        // Only include commissions from delivered and unpaid orders
+        if (order.status === 'Entregue' && order.sellerId && typeof order.commission === 'number' && order.commission > 0 && !order.commissionPaid) {
             const sellerId = order.sellerId;
             const sellerName = order.sellerName || users.find(u => u.id === sellerId)?.name || 'Vendedor Desconhecido';
             
-            const current = sellerCommissions.get(sellerId) || { name: sellerName, total: 0, count: 0 };
+            const current = sellerCommissions.get(sellerId) || { name: sellerName, total: 0, count: 0, orderIds: [] };
             current.total += order.commission;
             current.count += 1;
+            current.orderIds.push(order.id);
             sellerCommissions.set(sellerId, current);
         }
     });
@@ -90,10 +95,18 @@ export default function FinanceiroPage() {
       .map(([id, data]) => ({ id, ...data }))
       .sort((a,b) => b.total - a.total);
 
-    const totalCommission = commissionsBySeller.reduce((acc, seller) => acc + seller.total, 0);
+    const totalPendingCommission = commissionsBySeller.reduce((acc, seller) => acc + seller.total, 0);
 
-    return { totalCommission, commissionsBySeller };
-  }, [orders, users, products, isClient]);
+    return { totalPendingCommission, commissionsBySeller };
+  }, [orders, users, isClient]);
+
+  const handlePayCommission = async (sellerId: string, sellerName: string, amount: number, orderIds: string[]) => {
+      const period = format(new Date(), 'MMMM/yyyy', { locale: ptBR });
+      const paymentId = await payCommissions(sellerId, sellerName, amount, orderIds, period);
+      if (paymentId) {
+          router.push(`/admin/commission-receipt/${paymentId}`);
+      }
+  };
 
 
   if (!isClient) {
@@ -146,12 +159,12 @@ export default function FinanceiroPage() {
         </Card>
          <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Comissões (Pedidos Entregues)</CardTitle>
+            <CardTitle className="text-sm font-medium">Comissões a Pagar</CardTitle>
             <Percent className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(commissionSummary.totalCommission)}</div>
-            <p className="text-xs text-muted-foreground">Soma das comissões a pagar</p>
+            <div className="text-2xl font-bold">{formatCurrency(commissionSummary.totalPendingCommission)}</div>
+            <p className="text-xs text-muted-foreground">Soma das comissões pendentes</p>
           </CardContent>
         </Card>
       </div>
@@ -195,8 +208,8 @@ export default function FinanceiroPage() {
 
         <Card>
           <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" /> Resumo de Comissões por Vendedor</CardTitle>
-              <CardDescription>Total de comissões calculadas para cada vendedor (apenas de pedidos entregues).</CardDescription>
+              <CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" /> Comissões a Pagar</CardTitle>
+              <CardDescription>Total de comissões pendentes para cada vendedor (apenas de pedidos entregues).</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
@@ -206,6 +219,7 @@ export default function FinanceiroPage() {
                     <TableHead>Vendedor</TableHead>
                     <TableHead className="text-center">Nº de Vendas</TableHead>
                     <TableHead className="text-right">Comissão Total</TableHead>
+                    <TableHead className="text-right">Ação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -215,12 +229,18 @@ export default function FinanceiroPage() {
                         <TableCell className="font-medium">{seller.name}</TableCell>
                         <TableCell className="text-center">{seller.count}</TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(seller.total)}</TableCell>
+                        <TableCell className="text-right">
+                            <Button size="sm" onClick={() => handlePayCommission(seller.id, seller.name, seller.total, seller.orderIds)}>
+                                <DollarSign className="mr-2 h-4 w-4" />
+                                Pagar Comissão
+                            </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                      <TableRow>
-                        <TableCell colSpan={3} className="h-24 text-center">
-                          Nenhuma comissão a ser exibida para pedidos entregues.
+                        <TableCell colSpan={4} className="h-24 text-center">
+                          Nenhuma comissão pendente de pagamento.
                         </TableCell>
                       </TableRow>
                   )}
@@ -233,3 +253,4 @@ export default function FinanceiroPage() {
     </div>
   );
 }
+

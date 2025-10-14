@@ -70,7 +70,18 @@ export type Order = {
   attachments?: Attachment[];
   sellerId?: string;
   sellerName?: string;
-  commission?: number; 
+  commission?: number;
+  commissionPaid?: boolean;
+};
+
+export type CommissionPayment = {
+    id: string;
+    sellerId: string;
+    sellerName: string;
+    amount: number;
+    paymentDate: string;
+    period: string;
+    orderIds: string[];
 };
 
 export type UserRole = 'admin' | 'gerente' | 'vendedor';
@@ -104,7 +115,8 @@ export type AppSection =
     | 'customers' 
     | 'products' 
     | 'categories' 
-    | 'financeiro' 
+    | 'financeiro'
+    | 'minhas-comissoes'
     | 'auditoria'
     | 'configuracao'
     | 'users';

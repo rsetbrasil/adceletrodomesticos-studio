@@ -8,6 +8,7 @@ export const ALL_SECTIONS: { id: AppSection, label: string }[] = [
     { id: 'products', label: 'Produtos' },
     { id: 'categories', label: 'Categorias' },
     { id: 'financeiro', label: 'Financeiro' },
+    { id: 'minhas-comissoes', label: 'Minhas Comissões' },
     { id: 'auditoria', label: 'Auditoria' },
     { id: 'configuracao', label: 'Configurações' },
     { id: 'users', label: 'Usuários' },
@@ -18,6 +19,7 @@ export const initialPermissions: RolePermissions = {
         'orders',
         'customers',
         'products',
+        'minhas-comissoes',
     ],
     gerente: [
         'orders',
@@ -25,6 +27,7 @@ export const initialPermissions: RolePermissions = {
         'products',
         'categories',
         'financeiro',
+        'minhas-comissoes',
         'auditoria',
         'configuracao',
     ],
@@ -34,6 +37,7 @@ export const initialPermissions: RolePermissions = {
         'products',
         'categories',
         'financeiro',
+        'minhas-comissoes',
         'auditoria',
         'configuracao',
         'users',
@@ -42,6 +46,7 @@ export const initialPermissions: RolePermissions = {
 
 
 export function hasAccess(role: UserRole, section: AppSection, permissions: RolePermissions): boolean {
+    if (role === 'admin') return true; // Admin always has access
     const rolePermissions = permissions[role];
     if (!rolePermissions) {
         return false;

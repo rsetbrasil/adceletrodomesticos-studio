@@ -34,6 +34,7 @@ const pathToSectionMap: { [key: string]: AppSection } = {
     '/admin/products': 'products',
     '/admin/categories': 'categories',
     '/admin/financeiro': 'financeiro',
+    '/admin/minhas-comissoes': 'minhas-comissoes',
     '/admin/auditoria': 'auditoria',
     '/admin/configuracao': 'configuracao',
     '/admin/users': 'users',
@@ -64,7 +65,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }
 
         if (!totalLoading && isAuthenticated && user && permissions) {
-            const currentSection = Object.entries(pathToSectionMap).find(([path]) => pathname.startsWith(path))?.[1];
+            // Find the most specific matching path
+            const currentSection = Object.entries(pathToSectionMap)
+                .filter(([path]) => pathname.startsWith(path))
+                .sort((a,b) => b[0].length - a[0].length)[0]?.[1];
             
             if (currentSection && !hasAccess(user.role, currentSection, permissions)) {
                 toast({

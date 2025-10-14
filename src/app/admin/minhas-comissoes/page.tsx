@@ -1,0 +1,232 @@
+
+
+'use client';
+
+import { useState, useMemo } from 'react';
+import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DollarSign, History, PiggyBank, BadgePercent, Eye } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+};
+
+export default function MyCommissionsPage() {
+  const { orders, commissionPayments } = useCart();
+  const { user, users } = useAuth();
+  
+  const pendingCommissions = useMemo(() => {
+    if (!user || !orders) return [];
+    
+    let userOrders = orders.filter(o => 
+        o.status === 'Entregue' && 
+        o.sellerId === user.id && 
+        !o.commissionPaid
+    );
+    return userOrders;
+  }, [orders, user]);
+
+  const totalPending = pendingCommissions.reduce((acc, order) => acc + (order.commission || 0), 0);
+
+  const myPaidCommissions = useMemo(() => {
+    if (!user || !commissionPayments) return [];
+    return commissionPayments
+      .filter(p => p.sellerId === user.id)
+      .sort((a,b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime());
+  }, [commissionPayments, user]);
+
+
+  if (!user) {
+    return <p>Carregando...</p>;
+  }
+
+  const isManagerOrAdmin = user.role === 'admin' || user.role === 'gerente';
+
+  return (
+    <div className="space-y-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BadgePercent className="h-6 w-6" />
+            Minhas Comissões
+          </CardTitle>
+          <CardDescription>
+            Acompanhe suas comissões a receber e o histórico de pagamentos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 mb-8">
+                <Card className="bg-amber-500/10 border-amber-500/20">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Saldo a Receber</CardTitle>
+                        <DollarSign className="h-4 w-4 text-amber-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-amber-600">{formatCurrency(totalPending)}</div>
+                        <p className="text-xs text-muted-foreground">Comissões de {pendingCommissions.length} vendas entregues.</p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-green-500/10 border-green-500/20">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Já Recebido</CardTitle>
+                        <PiggyBank className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-600">{formatCurrency(myPaidCommissions.reduce((acc, p) => acc + p.amount, 0))}</div>
+                        <p className="text-xs text-muted-foreground">Total de {myPaidCommissions.length} pagamentos recebidos.</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Tabs defaultValue="pending">
+                <TabsList>
+                    <TabsTrigger value="pending">Comissões Pendentes</TabsTrigger>
+                    <TabsTrigger value="history">Histórico de Pagamentos</TabsTrigger>
+                    {isManagerOrAdmin && <TabsTrigger value="all_history">Histórico Geral</TabsTrigger>}
+                </TabsList>
+                <TabsContent value="pending" className="mt-4">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Comissões a Receber</CardTitle>
+                            <CardDescription>Esta é a lista de todas as vendas concluídas cuja comissão ainda não foi paga.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Data da Venda</TableHead>
+                                            <TableHead>Pedido ID</TableHead>
+                                            <TableHead>Cliente</TableHead>
+                                            <TableHead className="text-right">Valor da Comissão</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {pendingCommissions.length > 0 ? (
+                                            pendingCommissions.map(order => (
+                                                <TableRow key={order.id}>
+                                                    <TableCell>{format(parseISO(order.date), "dd/MM/yyyy")}</TableCell>
+                                                    <TableCell className="font-mono">{order.id}</TableCell>
+                                                    <TableCell>{order.customer.name}</TableCell>
+                                                    <TableCell className="text-right font-semibold">{formatCurrency(order.commission || 0)}</TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="h-24 text-center">Você não tem comissões pendentes.</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                     </Card>
+                </TabsContent>
+                <TabsContent value="history" className="mt-4">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Meus Pagamentos Recebidos</CardTitle>
+                             <CardDescription>Histórico de todos os pagamentos de comissão que você já recebeu.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Data do Pagamento</TableHead>
+                                            <TableHead>Período</TableHead>
+                                            <TableHead className="text-right">Valor Recebido</TableHead>
+                                            <TableHead className="text-right">Ação</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {myPaidCommissions.length > 0 ? (
+                                            myPaidCommissions.map(payment => (
+                                                <TableRow key={payment.id}>
+                                                    <TableCell>{format(parseISO(payment.paymentDate), "dd/MM/yyyy")}</TableCell>
+                                                    <TableCell className="capitalize">{payment.period}</TableCell>
+                                                    <TableCell className="text-right font-semibold">{formatCurrency(payment.amount)}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button variant="outline" size="sm" asChild>
+                                                            <Link href={`/admin/commission-receipt/${payment.id}`}>
+                                                                <Eye className="mr-2 h-4 w-4" />
+                                                                Ver Comprovante
+                                                            </Link>
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="h-24 text-center">Nenhum pagamento recebido ainda.</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                     </Card>
+                </TabsContent>
+                {isManagerOrAdmin && (
+                    <TabsContent value="all_history" className="mt-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Histórico Geral de Pagamentos</CardTitle>
+                                <CardDescription>Histórico de todos os pagamentos de comissão para todos os vendedores.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="rounded-md border">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Data</TableHead>
+                                                <TableHead>Vendedor</TableHead>
+                                                <TableHead>Período</TableHead>
+                                                <TableHead className="text-right">Valor</TableHead>
+                                                <TableHead className="text-right">Ação</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {commissionPayments.length > 0 ? (
+                                                commissionPayments.sort((a,b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime()).map(payment => (
+                                                    <TableRow key={payment.id}>
+                                                        <TableCell>{format(parseISO(payment.paymentDate), "dd/MM/yyyy")}</TableCell>
+                                                        <TableCell>{payment.sellerName}</TableCell>
+                                                        <TableCell className="capitalize">{payment.period}</TableCell>
+                                                        <TableCell className="text-right font-semibold">{formatCurrency(payment.amount)}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button variant="outline" size="sm" asChild>
+                                                                <Link href={`/admin/commission-receipt/${payment.id}`}>
+                                                                    <Eye className="mr-2 h-4 w-4" />
+                                                                    Ver Comprovante
+                                                                </Link>
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            ) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={5} className="h-24 text-center">Nenhum pagamento foi realizado ainda.</TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                )}
+            </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+

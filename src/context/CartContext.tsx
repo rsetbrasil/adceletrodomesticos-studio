@@ -3,13 +3,14 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem, Order, Product, Installment, CustomerInfo, Category, User } from '@/lib/types';
+import type { CartItem, Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 import { addMonths } from 'date-fns';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query, onSnapshot } from 'firebase/firestore';
 import { useAudit } from './AuditContext';
+import { useRouter } from 'next/navigation';
 
 const saveDataToLocalStorage = (key: string, data: any) => {
     if (typeof window === 'undefined') return;
@@ -44,7 +45,7 @@ interface CartContextType {
   lastOrder: Order | null;
   setLastOrder: (order: Order) => void;
   orders: Order[];
-  addOrder: (order: Order, user?: User | null) => Promise<void>;
+  addOrder: (order: Partial<Order>) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
   permanentlyDeleteOrder: (orderId: string) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
@@ -63,6 +64,8 @@ interface CartContextType {
   addSubcategory: (categoryId: string, subcategoryName: string) => Promise<void>;
   updateSubcategory: (categoryId: string, oldSub: string, newSub: string) => Promise<void>;
   deleteSubcategory: (categoryId: string, subcategoryName: string) => Promise<void>;
+  commissionPayments: CommissionPayment[];
+  payCommissions: (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string) => Promise<string | null>;
   isLoading: boolean;
   restoreCartData: (data: { products: Product[], orders: Order[], categories: Category[] }) => Promise<void>;
   resetOrders: () => Promise<void>;
@@ -79,8 +82,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
   const { toast } = useToast();
   const { logAction, user } = useAudit();
+  const router = useRouter();
+
 
   useEffect(() => {
     setIsLoading(true);
@@ -141,6 +147,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         console.error("Failed to load orders from Firestore:", error);
         setIsLoading(false);
     });
+    
+    const commissionPaymentsUnsubscribe = onSnapshot(collection(db, 'commissionPayments'), (snapshot) => {
+        if (!activeListeners) return;
+        const loadedPayments = snapshot.docs.map(d => d.data() as CommissionPayment);
+        setCommissionPayments(loadedPayments);
+    }, (error) => {
+        console.error("Failed to load commission payments from Firestore:", error);
+    });
 
     const storedCart = loadDataFromLocalStorage('cartItems');
     if (storedCart) setCartItems(storedCart);
@@ -150,6 +164,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         productsUnsubscribe();
         categoriesUnsubscribe();
         ordersUnsubscribe();
+        commissionPaymentsUnsubscribe();
     };
   }, [toast]);
   
@@ -504,22 +519,22 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addOrder = async (order: Order, user?: User | null) => {
+  const addOrder = async (order: Partial<Order>) => {
     try {
-        // Explicitly set sellerId and sellerName to empty strings
-        const orderToSave: Order = {
+        const orderToSave = {
             ...order,
             sellerId: '',
             sellerName: '',
-            commission: 0
-        };
+            commission: 0,
+            commissionPaid: false,
+        } as Order;
         
         await manageStockForOrder(orderToSave, 'subtract');
         await setDoc(doc(db, 'orders', orderToSave.id), orderToSave);
         // Real-time listener will update the state
         
         const creator = user ? `por ${user.name}`: 'pelo cliente';
-        logAction('Criação de Pedido', `Novo pedido #${orderToSave.id} para ${orderToSave.customer.name} no valor de R$${orderToSave.total.toFixed(2)} foi criado ${creator}.`, user);
+        logAction('Criação de Pedido', `Novo pedido #${orderToSave.id} para ${orderToSave.customer.name} no valor de R$${orderToSave.total?.toFixed(2)} foi criado ${creator}.`, user);
     } catch(e) {
         console.error("Failed to add order", e);
         throw e; // re-throw to be caught by the form
@@ -554,15 +569,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!orderToUpdate) return;
 
     const oldStatus = orderToUpdate.status;
-    const wasCanceledOrDeleted = oldStatus === 'Cancelado' || oldStatus === 'Excluído';
-    const isNowCanceledOrDeleted = newStatus === 'Cancelado' || newStatus === 'Excluído';
     
     const detailsToUpdate: Partial<Order> = { status: newStatus };
 
+    // Update stock only when status changes to or from a 'final' state like Canceled/Deleted
+    const wasCanceledOrDeleted = oldStatus === 'Cancelado' || oldStatus === 'Excluído';
+    const isNowCanceledOrDeleted = newStatus === 'Cancelado' || newStatus === 'Excluído';
+
+    // Recalculate commission if status is 'Entregue', otherwise zero it out.
     if (newStatus === 'Entregue') {
         detailsToUpdate.commission = calculateCommission(orderToUpdate);
     } else {
+        // If status is not 'Entregue', commission should be 0 and not paid
         detailsToUpdate.commission = 0;
+        detailsToUpdate.commissionPaid = false;
     }
     
     try {
@@ -650,10 +670,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       let detailsToUpdate = { ...details };
 
-      // Se o vendedor for alterado, recalcular a comissão
+      // If the seller is being changed, recalculate the commission for the order
       if ('sellerId' in details && details.sellerId) {
-          const tempOrder = {...order, ...details};
-          detailsToUpdate.commission = calculateCommission(tempOrder);
+          const tempOrderForCommissionCalc = {...order, ...detailsToUpdate};
+          detailsToUpdate.commission = calculateCommission(tempOrderForCommissionCalc);
       }
 
     try {
@@ -666,6 +686,43 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const payCommissions = async (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string): Promise<string | null> => {
+    const paymentId = `comp-${sellerId}-${Date.now()}`;
+    const payment: CommissionPayment = {
+        id: paymentId,
+        sellerId,
+        sellerName,
+        amount,
+        paymentDate: new Date().toISOString(),
+        period,
+        orderIds
+    };
+    try {
+        const batch = writeBatch(db);
+
+        // Create the payment record
+        const paymentRef = doc(db, 'commissionPayments', paymentId);
+        batch.set(paymentRef, payment);
+
+        // Mark orders' commissions as paid
+        orderIds.forEach(orderId => {
+            const orderRef = doc(db, 'orders', orderId);
+            batch.update(orderRef, { commissionPaid: true });
+        });
+
+        await batch.commit();
+        
+        logAction('Pagamento de Comissão', `Comissão de ${sellerName} no valor de R$${amount.toFixed(2)} referente a ${period} foi paga.`, user);
+        toast({ title: "Comissão Paga!", description: `O pagamento para ${sellerName} foi registrado.` });
+        return paymentId;
+
+    } catch (e) {
+        console.error("Error paying commissions:", e);
+        toast({ title: "Erro", description: "Não foi possível registrar o pagamento da comissão.", variant: "destructive" });
+        return null;
+    }
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -674,6 +731,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         orders, addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, updateInstallmentStatus, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
         products, addProduct, updateProduct, deleteProduct,
         categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory,
+        commissionPayments, payCommissions,
         isLoading,
         restoreCartData, resetOrders, resetAllCartData,
       }}

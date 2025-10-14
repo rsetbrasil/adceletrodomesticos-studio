@@ -14,13 +14,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
@@ -28,9 +21,8 @@ import { useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import type { Order, CustomerInfo, User } from '@/lib/types';
+import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
-import { useAuth } from '@/context/AuthContext';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -57,8 +49,7 @@ const formatCurrency = (value: number) => {
 };
 
 export default function CheckoutForm() {
-  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, products, orders } = useCart();
-  const { user } = useAuth();
+  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, orders } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -198,7 +189,7 @@ export default function CheckoutForm() {
         paymentDate: null,
     }));
 
-    const order: Omit<Order, 'sellerId' | 'sellerName'> = {
+    const order: Partial<Order> = {
       id: orderId,
       customer: {
         name: values.name,
@@ -224,7 +215,7 @@ export default function CheckoutForm() {
     };
     
     try {
-        await addOrder(order as Order, user);
+        await addOrder(order);
         setLastOrder(order as Order);
         clearCart();
     
@@ -305,6 +296,3 @@ export default function CheckoutForm() {
     </div>
   );
 }
-
-
-
