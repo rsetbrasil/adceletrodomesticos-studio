@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -65,6 +64,7 @@ interface CartContextType {
   updateSubcategory: (categoryId: string, oldSub: string, newSub: string) => Promise<void>;
   deleteSubcategory: (categoryId: string, subcategoryName: string) => Promise<void>;
   moveCategory: (categoryId: string, direction: 'up' | 'down') => Promise<void>;
+  reorderSubcategories: (categoryId: string, draggedSub: string, targetSub: string) => Promise<void>;
   commissionPayments: CommissionPayment[];
   payCommissions: (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string) => Promise<string | null>;
   reverseCommissionPayment: (paymentId: string) => Promise<void>;
@@ -466,6 +466,31 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const reorderSubcategories = async (categoryId: string, draggedSub: string, targetSub: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return;
+
+    const subs = Array.from(category.subcategories);
+    const draggedIndex = subs.indexOf(draggedSub);
+    const targetIndex = subs.indexOf(targetSub);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Remove the dragged subcategory and insert it before the target
+    const [removed] = subs.splice(draggedIndex, 1);
+    subs.splice(targetIndex, 0, removed);
+    
+    try {
+        await updateDoc(doc(db, 'categories', categoryId), { subcategories: subs });
+        logAction('Reordenação de Subcategoria', `Subcategorias da categoria "${category.name}" foram reordenadas.`, user);
+        // Real-time listener will update UI
+    } catch (e) {
+        console.error('Error reordering subcategories:', e);
+        toast({ title: "Erro", description: "Falha ao reordenar as subcategorias.", variant: "destructive" });
+    }
+  };
+
+
   const addToCart = (product: Product) => {
     const imageUrl = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/600x600.png';
     const updatedCart = [...cartItems];
@@ -827,7 +852,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         lastOrder, setLastOrder,
         orders, addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, updateInstallmentStatus, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
         products, addProduct, updateProduct, deleteProduct,
-        categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory,
+        categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories,
         commissionPayments, payCommissions, reverseCommissionPayment,
         isLoading,
         restoreCartData, resetOrders, resetAllCartData,
@@ -845,6 +870,3 @@ export const useCart = () => {
   }
   return context;
 };
-
-
-    

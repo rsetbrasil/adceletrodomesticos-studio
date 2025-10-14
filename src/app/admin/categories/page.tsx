@@ -8,13 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Trash, Edit, Tag, ChevronDown, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { PlusCircle, Trash, Edit, Tag, ChevronDown, ChevronRight, ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { Category } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 export default function ManageCategoriesPage() {
-    const { categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, deleteSubcategory, updateSubcategory, moveCategory } = useCart();
+    const { categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, deleteSubcategory, updateSubcategory, moveCategory, reorderSubcategories } = useCart();
     const { toast } = useToast();
 
     const [dialogState, setDialogState] = useState<{
@@ -23,6 +24,9 @@ export default function ManageCategoriesPage() {
     }>( { mode: null } );
 
     const [inputValue, setInputValue] = useState('');
+    const [draggedSub, setDraggedSub] = useState<{ categoryId: string; name: string } | null>(null);
+    const [dragOverSub, setDragOverSub] = useState<{ categoryId: string; name: string } | null>(null);
+
 
     const openDialog = (mode: typeof dialogState.mode, data?: any) => {
         setDialogState({ mode, data });
@@ -67,6 +71,31 @@ export default function ManageCategoriesPage() {
         }
     };
 
+    const handleDragStart = (e: React.DragEvent, categoryId: string, subName: string) => {
+        setDraggedSub({ categoryId, name: subName });
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e: React.DragEvent, categoryId: string, subName: string) => {
+        e.preventDefault();
+        if (draggedSub?.categoryId === categoryId && draggedSub?.name !== subName) {
+            setDragOverSub({ categoryId, name: subName });
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent, targetCategoryId: string, targetSubName: string) => {
+        e.preventDefault();
+        if (draggedSub && draggedSub.categoryId === targetCategoryId && draggedSub.name !== targetSubName) {
+            reorderSubcategories(draggedSub.categoryId, draggedSub.name, targetSubName);
+        }
+        handleDragEnd();
+    };
+
+    const handleDragEnd = () => {
+        setDraggedSub(null);
+        setDragOverSub(null);
+    };
+
 
     return (
         <>
@@ -85,7 +114,7 @@ export default function ManageCategoriesPage() {
                     {categories.length > 0 ? (
                         <div className="space-y-2">
                             {categories.map((category, index) => (
-                                <Collapsible key={category.id} className="border rounded-lg">
+                                <Collapsible key={category.id} className="border rounded-lg" defaultOpen>
                                     <div className="flex items-center justify-between w-full p-4 hover:bg-muted/50 rounded-t-lg data-[state=open]:rounded-b-none group">
                                         <div className="flex items-center gap-2">
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveCategory(category.id, 'up')} disabled={index === 0}>
@@ -114,10 +143,26 @@ export default function ManageCategoriesPage() {
                                     <CollapsibleContent>
                                         <div className="p-4 pt-0">
                                             {category.subcategories && category.subcategories.length > 0 ? (
-                                                <ul className="space-y-2 pl-6">
+                                                <ul className="space-y-1 pl-6">
                                                     {category.subcategories.map(sub => (
-                                                        <li key={sub} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
-                                                            <span>{sub}</span>
+                                                        <li 
+                                                          key={sub} 
+                                                          className={cn(
+                                                            "flex items-center justify-between p-2 rounded-md bg-muted/50 transition-all",
+                                                            draggedSub?.name === sub && "opacity-50",
+                                                            dragOverSub?.name === sub && "bg-primary/20 ring-2 ring-primary"
+                                                          )}
+                                                          draggable
+                                                          onDragStart={(e) => handleDragStart(e, category.id, sub)}
+                                                          onDragOver={(e) => handleDragOver(e, category.id, sub)}
+                                                          onDrop={(e) => handleDrop(e, category.id, sub)}
+                                                          onDragEnd={handleDragEnd}
+                                                          onDragLeave={() => setDragOverSub(null)}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+                                                                <span>{sub}</span>
+                                                            </div>
                                                             <div className="flex items-center">
                                                                 <Button variant="ghost" size="icon" onClick={() => openDialog('editSubcategory', { categoryId: category.id, oldSubName: sub })}>
                                                                     <Edit className="h-4 w-4"/>
@@ -130,7 +175,7 @@ export default function ManageCategoriesPage() {
                                                     ))}
                                                 </ul>
                                             ) : (
-                                                <p className="text-sm text-muted-foreground text-center pl-6 py-2">Nenhuma subcategoria.</p>
+                                                <p className="text-sm text-muted-foreground text-center pl-6 py-2">Nenhuma subcategoria. Arraste para reordenar.</p>
                                             )}
                                         </div>
                                     </CollapsibleContent>
