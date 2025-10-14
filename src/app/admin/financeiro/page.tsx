@@ -18,23 +18,6 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-const calculateCommissionForOrder = (order: Order, products: Product[]): number => {
-    return order.items.reduce((totalCommission, item) => {
-        const product = products.find(p => p.id === item.id);
-        if (!product || typeof product.commissionValue === 'undefined' || product.commissionValue === null) {
-            return totalCommission;
-        }
-        if (product.commissionType === 'fixed') {
-            return totalCommission + (product.commissionValue * item.quantity);
-        }
-        if (product.commissionType === 'percentage') {
-            const itemTotal = item.price * item.quantity;
-            return totalCommission + (itemTotal * product.commissionValue / 100);
-        }
-        return totalCommission;
-    }, 0);
-};
-
 export default function FinanceiroPage() {
   const { orders, products } = useCart();
   const { users } = useAuth();
@@ -92,19 +75,14 @@ export default function FinanceiroPage() {
     const sellerCommissions = new Map<string, { name: string; total: number; count: number }>();
 
     orders.forEach(order => {
-        if (order.status === 'Entregue' && order.sellerId) {
+        if (order.status === 'Entregue' && order.sellerId && typeof order.commission === 'number' && order.commission > 0) {
             const sellerId = order.sellerId;
-            const commission = typeof order.commission === 'number'
-                ? order.commission
-                : calculateCommissionForOrder(order, products);
-
-            if (commission > 0) {
-                const sellerName = order.sellerName || users.find(u => u.id === sellerId)?.name || 'Vendedor Desconhecido';
-                const current = sellerCommissions.get(sellerId) || { name: sellerName, total: 0, count: 0 };
-                current.total += commission;
-                current.count += 1;
-                sellerCommissions.set(sellerId, current);
-            }
+            const sellerName = order.sellerName || users.find(u => u.id === sellerId)?.name || 'Vendedor Desconhecido';
+            
+            const current = sellerCommissions.get(sellerId) || { name: sellerName, total: 0, count: 0 };
+            current.total += order.commission;
+            current.count += 1;
+            sellerCommissions.set(sellerId, current);
         }
     });
 
