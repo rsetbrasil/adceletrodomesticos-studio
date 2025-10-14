@@ -511,8 +511,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
             
             if (newStock < 0) {
-              toast({title: "Estoque Insuficiente", description: `Não há estoque suficiente para ${product.name}`, variant: "destructive"});
-              throw new Error("Estoque insuficiente");
+              throw new Error(`Estoque insuficiente para o produto "${product.name}". Disponível: ${product.stock}, Pedido: ${stockChange}.`);
             }
             
             batch.update(doc(db, 'products', product.id), { stock: newStock });

@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
+import { AlertTriangle } from 'lucide-react';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -49,7 +50,7 @@ const formatCurrency = (value: number) => {
 };
 
 export default function CheckoutForm() {
-  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, orders } = useCart();
+  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, orders, products } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -86,6 +87,20 @@ export default function CheckoutForm() {
     });
     return Array.from(customerMap.values());
   }, [orders]);
+  
+  const cartItemsWithStock = useMemo(() => {
+    return cartItems.map(item => {
+      const productInfo = products.find(p => p.id === item.id);
+      return {
+        ...item,
+        stock: productInfo?.stock ?? 0,
+        hasEnoughStock: (productInfo?.stock ?? 0) >= item.quantity,
+      };
+    });
+  }, [cartItems, products]);
+
+  const isCartValid = cartItemsWithStock.every(item => item.hasEnoughStock);
+
 
   const handleCpfBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const cpf = e.target.value.replace(/\D/g, '');
@@ -229,7 +244,7 @@ export default function CheckoutForm() {
         console.error("Failed to process order:", error);
         toast({
             title: "Erro ao Finalizar Pedido",
-            description: "Não foi possível completar o pedido. Verifique o estoque e tente novamente.",
+            description: error instanceof Error ? error.message : "Não foi possível completar o pedido.",
             variant: "destructive"
         });
     }
@@ -240,7 +255,7 @@ export default function CheckoutForm() {
       <div>
         <h3 className="text-xl font-semibold mb-4 font-headline">Resumo do Pedido</h3>
         <div className="space-y-4">
-          {cartItems.map((item) => (
+          {cartItemsWithStock.map((item) => (
             <div key={item.id} className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="relative h-16 w-16 rounded-md overflow-hidden">
@@ -249,6 +264,12 @@ export default function CheckoutForm() {
                 <div>
                   <p className="font-semibold">{item.name}</p>
                   <p className="text-sm text-muted-foreground">Qtd: {item.quantity}</p>
+                   {!item.hasEnoughStock && (
+                      <div className="flex items-center gap-1 text-xs text-destructive mt-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          <span>Estoque: {item.stock}. Ajuste a quantidade.</span>
+                      </div>
+                  )}
                 </div>
               </div>
               <p className="font-semibold">{formatCurrency(item.price * item.quantity)}</p>
@@ -290,7 +311,9 @@ export default function CheckoutForm() {
             </div>
           </div>
           
-          <Button type="submit" size="lg" className="w-full text-lg">Finalizar Compra</Button>
+          <Button type="submit" size="lg" className="w-full text-lg" disabled={!isCartValid || form.formState.isSubmitting}>
+            Finalizar Compra
+          </Button>
         </form>
       </Form>
     </div>

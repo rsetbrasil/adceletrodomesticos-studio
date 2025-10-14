@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Image from 'next/image';
@@ -14,9 +15,10 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from './ui/button';
 import { useCart } from '@/context/CartContext';
-import { Minus, Plus, Trash2, ShoppingCart } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
+import { useMemo } from 'react';
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -26,7 +28,21 @@ const formatCurrency = (value: number) => {
 };
 
 export function CartSheet({ children }: { children: React.ReactNode }) {
-  const { cartItems, updateQuantity, removeFromCart, getCartTotal, cartCount, isCartOpen, setIsCartOpen } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, getCartTotal, cartCount, isCartOpen, setIsCartOpen, products } = useCart();
+  
+  const cartItemsWithStock = useMemo(() => {
+    return cartItems.map(item => {
+      const productInfo = products.find(p => p.id === item.id);
+      return {
+        ...item,
+        stock: productInfo?.stock ?? 0,
+        hasEnoughStock: (productInfo?.stock ?? 0) >= item.quantity,
+      };
+    });
+  }, [cartItems, products]);
+
+  const isCartValid = cartItemsWithStock.every(item => item.hasEnoughStock);
+
 
   return (
     <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
@@ -39,7 +55,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
           <>
             <ScrollArea className="flex-grow pr-4 -mr-6 my-4">
               <div className="flex flex-col gap-6">
-                {cartItems.map((item) => (
+                {cartItemsWithStock.map((item) => (
                   <div key={item.id} className="flex items-start gap-4">
                     <div className="relative h-20 w-20 rounded-md overflow-hidden flex-shrink-0">
                       <Image
@@ -71,6 +87,12 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
+                       {!item.hasEnoughStock && (
+                          <div className="flex items-center gap-1 text-xs text-destructive mt-2">
+                              <AlertTriangle className="h-3 w-3" />
+                              <span>Estoque: {item.stock}. Ajuste a quantidade.</span>
+                          </div>
+                       )}
                     </div>
                     <Button
                       variant="ghost"
@@ -94,7 +116,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                      <div className="space-y-2">
                         <SheetClose asChild>
                           <Link href="/checkout" className="w-full">
-                            <Button size="lg" className="w-full bg-accent hover:bg-accent/90">
+                            <Button size="lg" className="w-full bg-accent hover:bg-accent/90" disabled={!isCartValid}>
                                 Finalizar Compra
                             </Button>
                           </Link>
@@ -124,4 +146,3 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     </Sheet>
   );
 }
-
