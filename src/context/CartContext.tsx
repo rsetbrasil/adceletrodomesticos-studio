@@ -65,6 +65,7 @@ interface CartContextType {
   deleteSubcategory: (categoryId: string, subcategoryName: string) => Promise<void>;
   moveCategory: (categoryId: string, direction: 'up' | 'down') => Promise<void>;
   reorderSubcategories: (categoryId: string, draggedSub: string, targetSub: string) => Promise<void>;
+  moveSubcategory: (sourceCategoryId: string, subName: string, targetCategoryId: string) => Promise<void>;
   commissionPayments: CommissionPayment[];
   payCommissions: (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string) => Promise<string | null>;
   reverseCommissionPayment: (paymentId: string) => Promise<void>;
@@ -490,6 +491,42 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const moveSubcategory = async (sourceCategoryId: string, subName: string, targetCategoryId: string) => {
+    const sourceCategory = categories.find(c => c.id === sourceCategoryId);
+    const targetCategory = categories.find(c => c.id === targetCategoryId);
+
+    if (!sourceCategory || !targetCategory) return;
+    if (targetCategory.subcategories.some(s => s.toLowerCase() === subName.toLowerCase())) {
+        toast({ title: 'Subcategoria já existe', description: `A categoria "${targetCategory.name}" já possui uma subcategoria chamada "${subName}".`, variant: "destructive" });
+        return;
+    }
+
+    const newSourceSubs = sourceCategory.subcategories.filter(s => s.toLowerCase() !== subName.toLowerCase());
+    const newTargetSubs = [...targetCategory.subcategories, subName].sort();
+    
+    try {
+        const batch = writeBatch(db);
+        // Update products
+        products.forEach(p => {
+            if (p.category === sourceCategory.name && p.subcategory?.toLowerCase() === subName.toLowerCase()) {
+                batch.update(doc(db, 'products', p.id), { category: targetCategory.name });
+            }
+        });
+        // Update categories
+        batch.update(doc(db, 'categories', sourceCategoryId), { subcategories: newSourceSubs });
+        batch.update(doc(db, 'categories', targetCategoryId), { subcategories: newTargetSubs });
+        
+        await batch.commit();
+
+        logAction('Movimentação de Subcategoria', `Subcategoria "${subName}" foi movida de "${sourceCategory.name}" para "${targetCategory.name}".`, user);
+        toast({ title: 'Subcategoria Movida!', description: `"${subName}" agora faz parte de "${targetCategory.name}".`});
+
+    } catch(e) {
+        console.error('Error moving subcategory:', e);
+        toast({ title: "Erro", description: "Falha ao mover a subcategoria.", variant: "destructive" });
+    }
+  };
+
 
   const addToCart = (product: Product) => {
     const imageUrl = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/600x600.png';
@@ -852,7 +889,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         lastOrder, setLastOrder,
         orders, addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, updateInstallmentStatus, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
         products, addProduct, updateProduct, deleteProduct,
-        categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories,
+        categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         commissionPayments, payCommissions, reverseCommissionPayment,
         isLoading,
         restoreCartData, resetOrders, resetAllCartData,

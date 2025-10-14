@@ -15,7 +15,7 @@ import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 export default function ManageCategoriesPage() {
-    const { categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, deleteSubcategory, updateSubcategory, moveCategory, reorderSubcategories } = useCart();
+    const { categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, deleteSubcategory, updateSubcategory, moveCategory, reorderSubcategories, moveSubcategory } = useCart();
     const { toast } = useToast();
 
     const [dialogState, setDialogState] = useState<{
@@ -25,7 +25,7 @@ export default function ManageCategoriesPage() {
 
     const [inputValue, setInputValue] = useState('');
     const [draggedSub, setDraggedSub] = useState<{ categoryId: string; name: string } | null>(null);
-    const [dragOverSub, setDragOverSub] = useState<{ categoryId: string; name: string } | null>(null);
+    const [dragOver, setDragOver] = useState<{ categoryId: string; subName?: string } | null>(null);
 
 
     const openDialog = (mode: typeof dialogState.mode, data?: any) => {
@@ -76,24 +76,37 @@ export default function ManageCategoriesPage() {
         e.dataTransfer.effectAllowed = 'move';
     };
 
-    const handleDragOver = (e: React.DragEvent, categoryId: string, subName: string) => {
+    const handleDragOver = (e: React.DragEvent, categoryId: string, subName?: string) => {
         e.preventDefault();
-        if (draggedSub?.categoryId === categoryId && draggedSub?.name !== subName) {
-            setDragOverSub({ categoryId, name: subName });
-        }
+        setDragOver({ categoryId, subName });
     };
 
-    const handleDrop = (e: React.DragEvent, targetCategoryId: string, targetSubName: string) => {
+    const handleDropOnSub = (e: React.DragEvent, targetCategoryId: string, targetSubName: string) => {
         e.preventDefault();
-        if (draggedSub && draggedSub.categoryId === targetCategoryId && draggedSub.name !== targetSubName) {
-            reorderSubcategories(draggedSub.categoryId, draggedSub.name, targetSubName);
+        if (draggedSub && (draggedSub.categoryId !== targetCategoryId || draggedSub.name !== targetSubName)) {
+            if (draggedSub.categoryId === targetCategoryId) {
+                // Reorder within the same category
+                reorderSubcategories(draggedSub.categoryId, draggedSub.name, targetSubName);
+            } else {
+                // Move to another category
+                moveSubcategory(draggedSub.categoryId, draggedSub.name, targetCategoryId);
+            }
+        }
+        handleDragEnd();
+    };
+    
+    const handleDropOnCategory = (e: React.DragEvent, targetCategoryId: string) => {
+        e.preventDefault();
+        if (draggedSub && draggedSub.categoryId !== targetCategoryId) {
+             moveSubcategory(draggedSub.categoryId, draggedSub.name, targetCategoryId);
         }
         handleDragEnd();
     };
 
+
     const handleDragEnd = () => {
         setDraggedSub(null);
-        setDragOverSub(null);
+        setDragOver(null);
     };
 
 
@@ -140,7 +153,15 @@ export default function ManageCategoriesPage() {
                                             </Button>
                                         </div>
                                     </div>
-                                    <CollapsibleContent>
+                                    <CollapsibleContent
+                                        onDragOver={(e) => handleDragOver(e, category.id)}
+                                        onDrop={(e) => handleDropOnCategory(e, category.id)}
+                                        onDragLeave={() => setDragOver(null)}
+                                        className={cn(
+                                            "transition-colors",
+                                            dragOver?.categoryId === category.id && !dragOver.subName && "bg-primary/10"
+                                        )}
+                                    >
                                         <div className="p-4 pt-0">
                                             {category.subcategories && category.subcategories.length > 0 ? (
                                                 <ul className="space-y-1 pl-6">
@@ -149,15 +170,14 @@ export default function ManageCategoriesPage() {
                                                           key={sub} 
                                                           className={cn(
                                                             "flex items-center justify-between p-2 rounded-md bg-muted/50 transition-all",
-                                                            draggedSub?.name === sub && "opacity-50",
-                                                            dragOverSub?.name === sub && "bg-primary/20 ring-2 ring-primary"
+                                                            draggedSub?.name === sub && draggedSub?.categoryId === category.id && "opacity-50",
+                                                            dragOver?.subName === sub && dragOver?.categoryId === category.id && "bg-primary/20 ring-2 ring-primary"
                                                           )}
                                                           draggable
                                                           onDragStart={(e) => handleDragStart(e, category.id, sub)}
                                                           onDragOver={(e) => handleDragOver(e, category.id, sub)}
-                                                          onDrop={(e) => handleDrop(e, category.id, sub)}
+                                                          onDrop={(e) => handleDropOnSub(e, category.id, sub)}
                                                           onDragEnd={handleDragEnd}
-                                                          onDragLeave={() => setDragOverSub(null)}
                                                         >
                                                             <div className="flex items-center gap-2">
                                                                 <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
@@ -175,7 +195,9 @@ export default function ManageCategoriesPage() {
                                                     ))}
                                                 </ul>
                                             ) : (
-                                                <p className="text-sm text-muted-foreground text-center pl-6 py-2">Nenhuma subcategoria. Arraste para reordenar.</p>
+                                                <div className="text-sm text-muted-foreground text-center pl-6 py-4 border-2 border-dashed rounded-md">
+                                                    Arraste uma subcategoria para cá.
+                                                </div>
                                             )}
                                         </div>
                                     </CollapsibleContent>
