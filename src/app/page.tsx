@@ -85,7 +85,7 @@ export default function Home() {
   return (
     <>
       {saleProducts.length > 0 && (
-        <section className="w-full mb-12 py-8 bg-muted/50">
+        <section className="w-full py-8 bg-muted/50">
           <div className="container mx-auto">
             {saleProducts.length === 1 ? (
               // Render single product view
