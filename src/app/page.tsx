@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -93,9 +92,9 @@ export default function Home() {
               <Card className="overflow-hidden">
                 <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 gap-6">
                   <div className="relative w-64 h-64 flex-shrink-0">
-                     <Badge className="absolute top-2 left-2 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
+                    <Badge className="absolute top-2 left-2 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
                         Promoção
-                     </Badge>
+                    </Badge>
                     <Image
                       src={(saleProducts[0].imageUrls && saleProducts[0].imageUrls.length > 0) ? saleProducts[0].imageUrls[0] : 'https://placehold.co/400x400.png'}
                       alt={saleProducts[0].name}
@@ -164,13 +163,6 @@ export default function Home() {
       )}
 
       <div id="catalog" className="container mx-auto px-4 py-8">
-        <header className="mb-8 text-center">
-          <h2 className="text-4xl font-bold font-headline text-primary">Nosso Catálogo</h2>
-          <p className="text-muted-foreground mt-2">
-            Explore nossa seleção de produtos de alta qualidade.
-          </p>
-        </header>
-
         <ProductFilters
           categories={categories}
           onFilterChange={handleFilterChange}
