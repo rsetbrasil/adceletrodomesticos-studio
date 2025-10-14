@@ -9,7 +9,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Category } from '@/lib/types';
-import { ChevronDown } from 'lucide-react';
 
 
 interface ProductFiltersProps {
@@ -63,7 +62,6 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
                   onClick={() => onFilterChange({ category: cat.name, subcategory: 'all' })}
                 >
                   {cat.name}
-                  <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
