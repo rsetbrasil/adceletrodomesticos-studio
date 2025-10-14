@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -102,6 +103,10 @@ export default function CarnetPage() {
                     <div>
                         <p className="text-xs text-muted-foreground">PARCELA</p>
                         <p className="font-semibold">{installment.installmentNumber} de {order.installments}</p>
+                    </div>
+                    <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground">VENDEDOR(A)</p>
+                        <p className="font-semibold">{order.sellerName}</p>
                     </div>
                 </div>
                 <div className="flex justify-between items-end bg-muted/50 rounded p-4 mt-2">

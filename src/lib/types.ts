@@ -65,6 +65,8 @@ export type Order = {
   paymentMethod: PaymentMethod;
   installmentDetails: Installment[];
   attachments?: Attachment[];
+  sellerId: string;
+  sellerName: string;
 };
 
 export type UserRole = 'admin' | 'gerente' | 'vendedor';

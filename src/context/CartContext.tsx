@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem, Order, Product, Installment, CustomerInfo, Category } from '@/lib/types';
+import type { CartItem, Order, Product, Installment, CustomerInfo, Category, User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 import { addMonths } from 'date-fns';
@@ -41,7 +41,7 @@ interface CartContextType {
   lastOrder: Order | null;
   setLastOrder: (order: Order) => void;
   orders: Order[];
-  addOrder: (order: Order) => Promise<void>;
+  addOrder: (order: Order, user: User) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
   updateInstallmentStatus: (orderId: string, installmentNumber: number, status: Installment['status']) => Promise<void>;
@@ -480,12 +480,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addOrder = async (order: Order) => {
+  const addOrder = async (order: Order, user: User) => {
     try {
-        await manageStockForOrder(order, 'subtract');
-        await setDoc(doc(db, 'orders', order.id), order);
-        setOrders(prev => [order, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-        logAction('Criação de Pedido', `Novo pedido #${order.id} para o cliente ${order.customer.name} no valor de R$${order.total.toFixed(2)}.`);
+        const orderWithSeller = { ...order, sellerId: user.id, sellerName: user.name };
+        await manageStockForOrder(orderWithSeller, 'subtract');
+        await setDoc(doc(db, 'orders', orderWithSeller.id), orderWithSeller);
+        setOrders(prev => [orderWithSeller, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        logAction('Criação de Pedido', `Novo pedido #${orderWithSeller.id} para ${orderWithSeller.customer.name} no valor de R$${orderWithSeller.total.toFixed(2)} foi criado por ${user.name}.`);
     } catch(e) {
         console.error("Failed to add order", e);
         throw e; // re-throw to be caught by the form

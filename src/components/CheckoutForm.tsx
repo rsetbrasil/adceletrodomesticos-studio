@@ -29,6 +29,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
+import { useAuth } from '@/context/AuthContext';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -57,6 +58,7 @@ const formatCurrency = (value: number) => {
 
 export default function CheckoutForm() {
   const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, products, orders } = useCart();
+  const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -183,6 +185,15 @@ export default function CheckoutForm() {
   }
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
+    if (!user) {
+        toast({
+            title: "Erro de Autenticação",
+            description: "Você precisa estar logado para criar um pedido.",
+            variant: "destructive"
+        });
+        return;
+    }
+
     const lastOrderNumber = orders
       .map(o => {
           if (!o.id.startsWith('PED-')) return 0;
@@ -229,10 +240,12 @@ export default function CheckoutForm() {
       status: 'Processando',
       paymentMethod: 'Crediário',
       installmentDetails,
+      sellerId: user.id,
+      sellerName: user.name,
     };
     
     try {
-        await addOrder(order);
+        await addOrder(order, user);
         setLastOrder(order);
         clearCart();
     
