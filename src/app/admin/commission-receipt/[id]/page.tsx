@@ -12,9 +12,6 @@ import { Printer, ArrowLeft } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import { useToast } from '@/hooks/use-toast';
 
 
 const formatCurrency = (value: number) => {
@@ -28,7 +25,6 @@ export default function CommissionReceiptPage() {
   const { commissionPayments, orders, isLoading } = useCart();
   const { settings } = useSettings();
   const receiptRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
 
   const { payment, relatedOrders } = useMemo(() => {
     if (isLoading || !commissionPayments || !orders) {
@@ -46,50 +42,6 @@ export default function CommissionReceiptPage() {
     return { payment: foundPayment, relatedOrders: foundOrders };
   }, [isLoading, commissionPayments, orders, params.id]);
 
-
-  const handlePrint = async () => {
-    const input = receiptRef.current;
-    if (!input) return;
-    
-    const canvas = await html2canvas(input, {
-        scale: 2, 
-        useCORS: true,
-        backgroundColor: '#ffffff'
-    });
-
-    const imgData = canvas.toDataURL('image/png');
-    
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-    const canvasAspectRatio = canvasWidth / canvasHeight;
-    
-    let finalPdfWidth = pdfWidth - 20; // with margin
-    let finalPdfHeight = finalPdfWidth / canvasAspectRatio;
-
-    if (finalPdfHeight > pdfHeight - 20) {
-        finalPdfHeight = pdfHeight - 20;
-        finalPdfWidth = finalPdfHeight * canvasAspectRatio;
-    }
-
-    const x = (pdfWidth - finalPdfWidth) / 2;
-    const y = 10;
-
-    pdf.addImage(imgData, 'PNG', x, y, finalPdfWidth, finalPdfHeight);
-    pdf.save(`recibo-comissao-${payment?.sellerName.replace(' ', '-')}-${payment?.period.replace('/', '-')}.pdf`);
-
-    toast({
-        title: "PDF Gerado!",
-        description: "O comprovante foi baixado com sucesso.",
-    });
-  };
 
   if (isLoading) {
     return <div className="p-8 text-center">Carregando comprovante...</div>;
@@ -115,9 +67,9 @@ export default function CommissionReceiptPage() {
              <h1 className="text-2xl font-bold">Comprovante de Pagamento de Comissão</h1>
              <p className="text-muted-foreground">ID do Pagamento: {payment.id}</p>
           </div>
-          <Button onClick={handlePrint}>
+          <Button onClick={() => window.print()}>
             <Printer className="mr-2 h-4 w-4" />
-            Gerar PDF
+            Imprimir
           </Button>
         </header>
 
