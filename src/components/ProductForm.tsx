@@ -212,19 +212,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="paymentCondition"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Condição de Pagamento (Opcional)</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Ex: 1ª parcela no ato da entrega..." {...field} rows={2} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                
                 <FormField
                   control={form.control}
                   name="description"
@@ -232,7 +220,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                     <FormItem>
                       <FormLabel>Descrição Curta</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Descreva os detalhes do produto..." {...field} rows={3} />
+                        <Textarea placeholder="Descreva os detalhes do produto..." {...field} rows={2} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -245,12 +233,13 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                     <FormItem>
                       <FormLabel>Descrição Longa</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Forneça uma descrição completa e detalhada do produto." {...field} rows={6} />
+                        <Textarea placeholder="Forneça uma descrição completa e detalhada do produto." {...field} rows={4} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -269,7 +258,6 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                               }}
                             />
                           </FormControl>
-                          {(price || 0) > 0 && (maxInstallments || 0) > 1 && ( <p className="text-sm text-muted-foreground mt-2"> {maxInstallments}x de {formatCurrency(installmentValue)} </p> )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -356,11 +344,64 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                           <FormControl>
                             <Input type="number" min="1" {...field} value={field.value ?? 1} />
                           </FormControl>
+                          {(price || 0) > 0 && (maxInstallments || 0) > 1 && ( <p className="text-xs text-muted-foreground mt-1"> {maxInstallments}x de {formatCurrency(installmentValue)} </p> )}
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                 </div>
+                 
+            </div>
+
+            <div className="space-y-4">
+                 <FormField
+                   control={form.control}
+                   name="imageUrls"
+                   render={() => (
+                     <FormItem>
+                       <FormLabel>Imagens do Produto</FormLabel>
+                       <FormControl>
+                         <Input type="file" accept="image/*" onChange={handleImageChange} multiple className="file:text-primary file:font-semibold cursor-pointer"/>
+                       </FormControl>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
+                
+                <ScrollArea className="h-80 w-full rounded-md border">
+                    <div className="p-4">
+                        <h4 className="mb-4 font-medium text-sm leading-none">Pré-visualização</h4>
+                         {imagePreviews.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-4">
+                                {imagePreviews.map((src, index) => (
+                                    <div key={index} className="relative group">
+                                        <Image src={src} alt={`Preview ${index}`} width={100} height={100} className="w-full h-auto object-contain rounded-md aspect-square" />
+                                        <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeImage(index)}>
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                         ) : (
+                            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                                <p>Nenhuma imagem selecionada</p>
+                            </div>
+                         )}
+                    </div>
+                </ScrollArea>
+                <FormField
+                  control={form.control}
+                  name="paymentCondition"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Condição de Pagamento (Opcional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: 1ª parcela no ato da entrega..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                  <div className="space-y-4 pt-4 border-t">
                     <FormLabel>Comissão do Vendedor</FormLabel>
                     <FormField
@@ -418,44 +459,6 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                         )}
                         />
                 </div>
-            </div>
-
-            <div className="space-y-4">
-                 <FormField
-                   control={form.control}
-                   name="imageUrls"
-                   render={() => (
-                     <FormItem>
-                       <FormLabel>Imagens do Produto</FormLabel>
-                       <FormControl>
-                         <Input type="file" accept="image/*" onChange={handleImageChange} multiple className="file:text-primary file:font-semibold cursor-pointer"/>
-                       </FormControl>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-                
-                <ScrollArea className="h-80 w-full rounded-md border">
-                    <div className="p-4">
-                        <h4 className="mb-4 font-medium text-sm leading-none">Pré-visualização</h4>
-                         {imagePreviews.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-4">
-                                {imagePreviews.map((src, index) => (
-                                    <div key={index} className="relative group">
-                                        <Image src={src} alt={`Preview ${index}`} width={100} height={100} className="w-full h-auto object-contain rounded-md aspect-square" />
-                                        <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeImage(index)}>
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                         ) : (
-                            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                                <p>Nenhuma imagem selecionada</p>
-                            </div>
-                         )}
-                    </div>
-                </ScrollArea>
             </div>
         </div>
 
