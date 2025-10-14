@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ReactNode, useEffect } from "react";
@@ -6,10 +7,12 @@ import { useRouter } from "next/navigation";
 import { LogOut, Shield } from 'lucide-react';
 import AdminNav from "@/components/AdminNav";
 import { Button } from "@/components/ui/button";
+import { useAudit } from "@/context/AuditContext";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const { user, isAuthenticated, isLoading, logout } = useAuth();
     const router = useRouter();
+    const { logAction } = useAudit();
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
@@ -40,7 +43,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         <p className="font-semibold">{user.name}</p>
                         <p className="text-sm text-muted-foreground capitalize">{user.role}</p>
                     </div>
-                    <Button variant="outline" onClick={logout}>
+                    <Button variant="outline" onClick={() => logout(logAction)}>
                         <LogOut className="mr-2 h-4 w-4" />
                         Sair
                     </Button>

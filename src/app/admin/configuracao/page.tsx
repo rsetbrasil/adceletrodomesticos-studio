@@ -16,6 +16,7 @@ import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2 } fr
 import type { StoreSettings } from '@/context/SettingsContext';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useAudit } from '@/context/AuditContext';
 
 const settingsSchema = z.object({
   storeName: z.string().min(3, 'O nome da loja é obrigatório.'),
@@ -28,6 +29,7 @@ export default function ConfiguracaoPage() {
   const { products, orders, categories, restoreCartData, resetOrders, resetAllCartData } = useCart();
   const { users, restoreUsers, initialUsers } = useAuth();
   const { toast } = useToast();
+  const { logAction } = useAudit();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [dialogOpenFor, setDialogOpenFor] = useState<'resetOrders' | 'resetAll' | null>(null);
@@ -77,9 +79,9 @@ export default function ConfiguracaoPage() {
 
         // Basic validation to check if it's a valid backup file
         if (data.settings && data.products && data.orders && data.categories && data.users) {
-          await restoreSettings(data.settings);
+          await restoreSettings(data.settings, logAction);
           await restoreCartData({ products: data.products, orders: data.orders, categories: data.categories });
-          await restoreUsers(data.users);
+          await restoreUsers(data.users, logAction);
           toast({ title: 'Backup Restaurado!', description: 'Os dados da loja foram restaurados com sucesso.' });
         } else {
           throw new Error('Formato de arquivo de backup inválido.');
@@ -105,14 +107,14 @@ export default function ConfiguracaoPage() {
 
   const handleResetAll = async () => {
     await resetAllCartData();
-    await restoreUsers(initialUsers);
-    await resetSettings();
+    await restoreUsers(initialUsers, logAction);
+    await resetSettings(logAction);
     setDialogOpenFor(null);
     toast({ title: "Loja Resetada!", description: "Todos os dados foram restaurados para o padrão." });
   }
 
   function onSubmit(values: z.infer<typeof settingsSchema>) {
-    updateSettings(values);
+    updateSettings(values, logAction);
   }
 
   if (settingsLoading) {

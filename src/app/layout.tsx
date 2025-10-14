@@ -2,7 +2,7 @@
 'use client';
 
 import './globals.css';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { SettingsProvider } from '@/context/SettingsContext';
 import Header from '@/components/Header';
@@ -12,17 +12,35 @@ import { usePathname } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
 import { AuditProvider } from '@/context/AuditContext';
 
+// This is a new component that wraps the main content
+// It has access to all the contexts defined in the main RootLayout
+const AppContent = ({ children }: { children: React.ReactNode }) => {
+  const pathname = usePathname();
+  const isSpecialRoute = pathname.startsWith('/carnet') || pathname.startsWith('/login');
+  const isAdminRoute = pathname.startsWith('/admin');
+
+  return (
+    <>
+      {isSpecialRoute || isAdminRoute ? (
+        <>{children}</>
+      ) : (
+        <div className="relative flex min-h-screen flex-col bg-background">
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </div>
+      )}
+      <Toaster />
+    </>
+  );
+};
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-  const isSpecialRoute = pathname.startsWith('/carnet') || pathname.startsWith('/login');
-  const isAdminRoute = pathname.startsWith('/admin');
-
-  // Verifica se a chave de API do Firebase está configurada.
-  // A verificação `!== 'SUA_API_KEY'` é um fallback para o caso de o valor padrão não ter sido trocado.
   const isFirebaseConfigured = process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== 'SUA_API_KEY';
 
   if (!isFirebaseConfigured) {
@@ -65,9 +83,6 @@ NEXT_PUBLIC_FIREBASE_APP_ID="SEU_APP_ID"`}
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        {/* We can't use the Metadata object in a client component, 
-            so we add title and other head tags manually,
-            child layouts will still override this. */}
         <title>ADC MÓVEIS E ELETROS</title>
         <meta name="description" content="ADC MÓVEIS E ELETROS - Sua loja de móveis e eletrodomésticos." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -78,24 +93,15 @@ NEXT_PUBLIC_FIREBASE_APP_ID="SEU_APP_ID"`}
         />
       </head>
       <body className="font-body antialiased">
-        <AuditProvider>
-          <AuthProvider>
+        <AuthProvider>
+          <AuditProvider>
             <SettingsProvider>
               <CartProvider>
-                  {isSpecialRoute || isAdminRoute ? (
-                    <>{children}</>
-                  ) : (
-                    <div className="relative flex min-h-screen flex-col bg-background">
-                      <Header />
-                      <main className="flex-1">{children}</main>
-                      <Footer />
-                    </div>
-                  )}
-                  <Toaster />
+                <AppContent>{children}</AppContent>
               </CartProvider>
             </SettingsProvider>
-          </AuthProvider>
-        </AuditProvider>
+          </AuditProvider>
+        </AuthProvider>
       </body>
     </html>
   );

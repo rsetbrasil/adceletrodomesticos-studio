@@ -19,6 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAudit } from '@/context/AuditContext';
 
 const userEditFormSchema = z.object({
     name: z.string().min(3, 'O nome é obrigatório.'),
@@ -53,6 +54,7 @@ export default function ManageUsersPage() {
     const { user: currentUser, users, updateUser, addUser, isLoading: isAuthLoading } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
+    const { logAction } = useAudit();
 
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -94,13 +96,13 @@ export default function ManageUsersPage() {
             dataToUpdate.password = values.password;
         }
 
-        await updateUser(userToEdit.id, dataToUpdate);
+        await updateUser(userToEdit.id, dataToUpdate, logAction);
         setIsEditDialogOpen(false);
     };
 
     const handleCreateUser = async (values: z.infer<typeof userCreateFormSchema>) => {
         const { confirmPassword, ...userData } = values;
-        const success = await addUser(userData);
+        const success = await addUser(userData, logAction);
 
         if (success) {
             createForm.reset();

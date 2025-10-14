@@ -8,19 +8,18 @@ import type { User } from '@/lib/types';
 import { initialUsers } from '@/lib/users';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where } from 'firebase/firestore';
-import { useAudit } from './AuditContext';
 
 interface AuthContextType {
   user: User | null;
   users: User[];
   initialUsers: User[];
-  login: (user: string, pass: string) => void;
-  logout: () => void;
-  addUser: (data: Omit<User, 'id'>) => Promise<boolean>;
-  updateUser: (userId: string, data: Partial<Omit<User, 'id'>>) => Promise<void>;
+  login: (user: string, pass: string, logAction: (action: string, details: string) => void) => void;
+  logout: (logAction: (action: string, details: string) => void) => void;
+  addUser: (data: Omit<User, 'id'>, logAction: (action: string, details: string) => void) => Promise<boolean>;
+  updateUser: (userId: string, data: Partial<Omit<User, 'id'>>, logAction: (action: string, details: string) => void) => Promise<void>;
   isLoading: boolean;
   isAuthenticated: boolean;
-  restoreUsers: (users: User[]) => Promise<void>;
+  restoreUsers: (users: User[], logAction: (action: string, details: string) => void) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,7 +30,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
-  const { logAction } = useAudit();
 
   useEffect(() => {
     const checkUser = () => {
@@ -75,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fetchUsers();
   }, []);
 
-  const login = async (username: string, pass: string) => {
+  const login = async (username: string, pass: string, logAction: (action: string, details: string) => void) => {
     try {
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where("username", "==", username));
@@ -115,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
+  const logout = (logAction: (action: string, details: string) => void) => {
     if (user) {
         logAction('Logout', `Usuário "${user.name}" realizou logout.`);
     }
@@ -124,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   };
 
-  const addUser = async (data: Omit<User, 'id'>): Promise<boolean> => {
+  const addUser = async (data: Omit<User, 'id'>, logAction: (action: string, details: string) => void): Promise<boolean> => {
     const q = query(collection(db, 'users'), where("username", "==", data.username.toLowerCase()));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
@@ -155,7 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateUser = async (userId: string, data: Partial<Omit<User, 'id'>>) => {
+  const updateUser = async (userId: string, data: Partial<Omit<User, 'id'>>, logAction: (action: string, details: string) => void) => {
     try {
         const userRef = doc(db, 'users', userId);
         await updateDoc(userRef, data);
@@ -188,7 +186,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  const restoreUsers = async (usersToRestore: User[]) => {
+  const restoreUsers = async (usersToRestore: User[], logAction: (action: string, details: string) => void) => {
       try {
         const usersCollectionRef = collection(db, "users");
         const snapshot = await getDocs(usersCollectionRef);

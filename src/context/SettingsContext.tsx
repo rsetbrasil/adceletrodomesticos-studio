@@ -5,7 +5,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { useAudit } from './AuditContext';
 
 export type StoreSettings = {
     storeName: string;
@@ -21,10 +20,10 @@ const initialSettings: StoreSettings = {
 
 interface SettingsContextType {
     settings: StoreSettings;
-    updateSettings: (newSettings: StoreSettings) => Promise<void>;
+    updateSettings: (newSettings: StoreSettings, logAction: (action: string, details: string) => void) => Promise<void>;
     isLoading: boolean;
-    restoreSettings: (settings: StoreSettings) => Promise<void>;
-    resetSettings: () => Promise<void>;
+    restoreSettings: (settings: StoreSettings, logAction: (action: string, details: string) => void) => Promise<void>;
+    resetSettings: (logAction: (action: string, details: string) => void) => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -33,7 +32,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const [settings, setSettings] = useState<StoreSettings>(initialSettings);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
-    const { logAction } = useAudit();
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -61,7 +59,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         fetchSettings();
     }, [toast]);
 
-    const updateSettings = async (newSettings: StoreSettings) => {
+    const updateSettings = async (newSettings: StoreSettings, logAction: (action: string, details: string) => void) => {
         try {
             const settingsRef = doc(db, 'config', 'storeSettings');
             await setDoc(settingsRef, newSettings);
@@ -77,17 +75,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         }
     };
     
-    const restoreSettings = async (settingsToRestore: StoreSettings) => {
-        await updateSettings(settingsToRestore);
+    const restoreSettings = async (settingsToRestore: StoreSettings, logAction: (action: string, details: string) => void) => {
+        await updateSettings(settingsToRestore, logAction);
         logAction('Restauração de Configurações', `Configurações da loja foram restauradas de um backup.`);
     };
 
-    const resetSettings = async () => {
-        await updateSettings(initialSettings);
+    const resetSettings = async (logAction: (action: string, details: string) => void) => {
+        await updateSettings(initialSettings, logAction);
         logAction('Reset de Configurações', `Configurações da loja foram restauradas para o padrão.`);
     };
 
-d.ts
     return (
         <SettingsContext.Provider value={{ settings, updateSettings, isLoading, restoreSettings, resetSettings }}>
             {children}
