@@ -12,7 +12,6 @@ import Link from 'next/link';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FilterSheet } from '@/components/FilterSheet';
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -23,7 +22,7 @@ const formatCurrency = (value: number) => {
 
 
 export default function Home() {
-  const { products: allProducts, categories, setIsCartOpen, setFilterSheetOpen } = useCart();
+  const { products: allProducts, categories, setIsCartOpen } = useCart();
   const [filters, setFilters] = useState({
     category: 'all',
     subcategory: 'all',
@@ -42,7 +41,6 @@ export default function Home() {
         }
         return updated;
     });
-    setFilterSheetOpen(false);
   };
 
   const saleProducts = useMemo(() => {
@@ -165,14 +163,12 @@ export default function Home() {
       )}
 
       <div id="catalog" className="container mx-auto px-4 py-8">
-        <FilterSheet 
-            categories={categories}
+        <ProductFilters
             onFilterChange={handleFilterChange}
+            categories={categories}
             currentFilters={filters}
-        >
-            <ProductFilters />
-        </FilterSheet>
-
+        />
+        
         {filteredAndSortedProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {filteredAndSortedProducts.map((product) => (
