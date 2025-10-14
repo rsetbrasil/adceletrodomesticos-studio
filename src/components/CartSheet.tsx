@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -24,11 +25,11 @@ const formatCurrency = (value: number) => {
     }).format(value);
 };
 
-export function CartSheet({ children, open, onOpenChange }: { children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) {
-  const { cartItems, updateQuantity, removeFromCart, getCartTotal, cartCount } = useCart();
+export function CartSheet({ children }: { children: React.ReactNode }) {
+  const { cartItems, updateQuantity, removeFromCart, getCartTotal, cartCount, isCartOpen, setIsCartOpen } = useCart();
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent className="flex flex-col">
         <SheetHeader>
@@ -90,13 +91,20 @@ export function CartSheet({ children, open, onOpenChange }: { children: React.Re
                         <span>Total:</span>
                         <span>{formatCurrency(getCartTotal())}</span>
                     </div>
-                    <SheetClose asChild>
-                      <Link href="/checkout" className="w-full">
-                        <Button size="lg" className="w-full bg-accent hover:bg-accent/90">
-                            Finalizar Compra
-                        </Button>
-                      </Link>
-                    </SheetClose>
+                     <div className="space-y-2">
+                        <SheetClose asChild>
+                          <Link href="/checkout" className="w-full">
+                            <Button size="lg" className="w-full bg-accent hover:bg-accent/90">
+                                Finalizar Compra
+                            </Button>
+                          </Link>
+                        </SheetClose>
+                        <SheetClose asChild>
+                           <Button size="lg" variant="outline" className="w-full">
+                                Continuar Comprando
+                            </Button>
+                        </SheetClose>
+                    </div>
                 </div>
             </SheetFooter>
           </>
@@ -106,7 +114,7 @@ export function CartSheet({ children, open, onOpenChange }: { children: React.Re
             <p className="text-lg font-semibold">Seu carrinho está vazio.</p>
             <p className="text-sm text-muted-foreground">Adicione produtos para continuar.</p>
              <SheetClose asChild>
-                <Button variant="outline" className="mt-6" onClick={() => onOpenChange(false)}>
+                <Button variant="outline" className="mt-6">
                     Continuar comprando
                 </Button>
             </SheetClose>
@@ -116,3 +124,4 @@ export function CartSheet({ children, open, onOpenChange }: { children: React.Re
     </Sheet>
   );
 }
+

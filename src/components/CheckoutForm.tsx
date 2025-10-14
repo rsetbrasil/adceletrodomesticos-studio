@@ -50,7 +50,6 @@ const checkoutSchema = z.object({
   neighborhood: z.string().min(2, 'Bairro é obrigatório.'),
   city: z.string().min(2, 'Cidade é obrigatória.'),
   state: z.string().min(2, 'Estado é obrigatório.'),
-  installments: z.coerce.number().min(1, 'Selecione o número de parcelas.'),
 });
 
 const formatCurrency = (value: number) => {
@@ -77,7 +76,6 @@ export default function CheckoutForm() {
       neighborhood: '',
       city: 'Fortaleza',
       state: 'CE',
-      installments: 1,
     },
   });
 
@@ -170,16 +168,6 @@ export default function CheckoutForm() {
 
 
   const total = getCartTotal();
-  const installmentsCount = form.watch('installments');
-
-  const maxAllowedInstallments = cartItems.length > 0 
-    ? Math.min(...cartItems.map(item => {
-        const product = products.find(p => p.id === item.id);
-        return product?.maxInstallments || 12;
-      }))
-    : 12;
-  
-  const installmentValue = total > 0 && installmentsCount > 0 ? total / installmentsCount : 0;
   
   if (cartItems.length === 0) {
       return null;
@@ -206,7 +194,8 @@ export default function CheckoutForm() {
       
     const orderId = `PED-${String(lastOrderNumber + 1).padStart(4, '0')}`;
     
-    const finalInstallments = values.installments;
+    // Default to 1 installment, seller will change it later
+    const finalInstallments = 1;
     const finalInstallmentValue = total / finalInstallments;
     const orderDate = new Date();
 
@@ -288,13 +277,17 @@ export default function CheckoutForm() {
             <span>Total</span>
             <span>{formatCurrency(total)}</span>
           </div>
+           <div className="mt-4 p-4 bg-muted rounded-lg text-center">
+              <p className="font-bold text-md text-accent">Pagamento via Crediário</p>
+              <p className="text-sm text-muted-foreground">O vendedor definirá o número de parcelas com você.</p>
+            </div>
         </div>
       </div>
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <div>
-            <h3 className="text-xl font-semibold mb-4 font-headline">1. Informações do Cliente</h3>
+            <h3 className="text-xl font-semibold mb-4 font-headline">Informações do Cliente</h3>
             <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} onBlur={handleCpfBlur} /></FormControl><FormMessage /></FormItem> )} />
@@ -315,43 +308,11 @@ export default function CheckoutForm() {
             </div>
           </div>
           
-          <div>
-            <h3 className="text-xl font-semibold mb-4 font-headline">2. Opções de Parcelamento (Crediário)</h3>
-            <FormField
-              control={form.control}
-              name="installments"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Número de Parcelas</FormLabel>
-                   <Select onValueChange={(value) => field.onChange(Number(value))} value={String(field.value)}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o número de parcelas" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Array.from({ length: maxAllowedInstallments }, (_, i) => i + 1).map((i) => (
-                        <SelectItem key={i} value={String(i)}>
-                          {i}x de {formatCurrency(total / i)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {installmentValue > 0 && (
-                <div className="mt-4 p-4 bg-muted rounded-lg text-center">
-                    <p className="font-bold text-lg text-accent">{installmentsCount}x de {formatCurrency(installmentValue)}</p>
-                </div>
-            )}
-          </div>
-
           <Button type="submit" size="lg" className="w-full text-lg">Finalizar Compra</Button>
         </form>
       </Form>
     </div>
   );
 }
+
 

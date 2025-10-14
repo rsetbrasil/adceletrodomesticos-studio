@@ -40,6 +40,8 @@ interface CartContextType {
   clearCart: () => void;
   getCartTotal: () => number;
   cartCount: number;
+  isCartOpen: boolean;
+  setIsCartOpen: (isOpen: boolean) => void;
   lastOrder: Order | null;
   setLastOrder: (order: Order) => void;
   orders: Order[];
@@ -73,6 +75,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -421,10 +424,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
     setCartItems(updatedCart);
     saveDataToLocalStorage('cartItems', updatedCart);
-    // toast({
-    //     title: "Produto adicionado!",
-    //     description: `${product.name} foi adicionado ao seu carrinho.`,
-    // });
+    setIsCartOpen(true);
   };
 
   const removeFromCart = (productId: string) => {
@@ -653,7 +653,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   return (
     <CartContext.Provider
       value={{
-        cartItems, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal, cartCount,
+        cartItems, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal, cartCount, isCartOpen, setIsCartOpen,
         lastOrder, setLastOrder,
         orders, addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, updateInstallmentStatus, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
         products, addProduct, updateProduct, deleteProduct,
