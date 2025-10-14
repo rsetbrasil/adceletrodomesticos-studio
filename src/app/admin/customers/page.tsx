@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, ChangeEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
@@ -70,7 +70,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 };
 
 export default function CustomersAdminPage() {
-  const { orders, updateCustomer, updateInstallmentStatus, updateInstallmentDueDate } = useCart();
+  const { orders, updateCustomer, updateInstallmentStatus, updateInstallmentDueDate, updateOrderDetails } = useCart();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -158,10 +158,9 @@ export default function CustomersAdminPage() {
     setOpenDueDatePopover(null);
   };
     
-  const addAttachments = useCallback(async (files: File[]) => {
-      if (!selectedCustomer) return;
-
-      const newAttachments: Attachment[] = [...(selectedCustomer.attachments || [])];
+  const addAttachments = useCallback(async (order: Order, files: File[]) => {
+      const currentAttachments = order.attachments || [];
+      const newAttachments: Attachment[] = [...currentAttachments];
 
       for (const file of files) {
           try {
@@ -187,19 +186,17 @@ export default function CustomersAdminPage() {
           }
       }
 
-      const updatedCustomer = { ...selectedCustomer, attachments: newAttachments };
-      setSelectedCustomer(updatedCustomer);
-      updateCustomer(updatedCustomer);
+      await updateOrderDetails(order.id, { attachments: newAttachments });
       toast({ title: 'Anexos Adicionados!', description: 'Os novos documentos foram salvos com sucesso.' });
-  }, [selectedCustomer, updateCustomer, toast]);
+  }, [updateOrderDetails, toast]);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (order: Order, event: ChangeEvent<HTMLInputElement>) => {
       if (!event.target.files) return;
-      await addAttachments(Array.from(event.target.files));
+      await addAttachments(order, Array.from(event.target.files));
       event.target.value = ''; // Clear the input
   };
   
-  const handlePaste = async () => {
+  const handlePaste = async (order: Order) => {
     if (!navigator.clipboard?.read) {
         toast({ title: "Navegador não suporta esta ação", description: "Seu navegador não permite colar imagens dessa forma.", variant: "destructive" });
         return;
@@ -219,7 +216,7 @@ export default function CustomersAdminPage() {
         }
 
         if (imageFiles.length > 0) {
-            await addAttachments(imageFiles);
+            await addAttachments(order, imageFiles);
         } else {
             toast({ title: "Nenhuma imagem encontrada", description: "Não há imagens na sua área de transferência para colar." });
         }
@@ -229,12 +226,9 @@ export default function CustomersAdminPage() {
     }
   };
 
-  const handleDeleteAttachment = (indexToDelete: number) => {
-    if (!selectedCustomer) return;
-    const newAttachments = (selectedCustomer.attachments || []).filter((_, index) => index !== indexToDelete);
-    const updatedCustomer = { ...selectedCustomer, attachments: newAttachments };
-    setSelectedCustomer(updatedCustomer);
-    updateCustomer(updatedCustomer);
+  const handleDeleteAttachment = async (order: Order, indexToDelete: number) => {
+    const newAttachments = (order.attachments || []).filter((_, index) => index !== indexToDelete);
+    await updateOrderDetails(order.id, { attachments: newAttachments });
   };
 
   const handleOpenEditDialog = () => {
@@ -252,8 +246,8 @@ export default function CustomersAdminPage() {
   const handleSaveChanges = () => {
     if (selectedCustomer && editedInfo) {
       const updatedCustomerData = { ...selectedCustomer, ...editedInfo };
-      updateCustomer(updatedCustomerData);
-      setSelectedCustomer(updatedCustomerData);
+      updateCustomer(updatedCustomerData as CustomerInfo);
+      setSelectedCustomer(updatedCustomerData as CustomerInfo);
       setIsEditDialogOpen(false);
     }
   };
@@ -313,7 +307,7 @@ export default function CustomersAdminPage() {
         <Card className="lg:col-span-2">
             <CardHeader>
             <CardTitle>Detalhes do Cliente</CardTitle>
-            <CardDescription>Informações cadastrais, situação do crediário e anexos.</CardDescription>
+            <CardDescription>Informações cadastrais, situação do crediário e pedidos.</CardDescription>
             </CardHeader>
             <CardContent>
             {selectedCustomer ? (
@@ -417,7 +411,7 @@ export default function CustomersAdminPage() {
                                         </div>
                                     </AccordionTrigger>
                                     <AccordionContent>
-                                        <div className="p-4 pt-0">
+                                        <div className="p-4 pt-0 space-y-6">
                                             {(order.installmentDetails && order.installmentDetails.length > 0) ? (
                                                 <div className="border rounded-md">
                                                     <Table>
@@ -512,6 +506,59 @@ export default function CustomersAdminPage() {
                                                     </Button>
                                                 </div>
                                              )}
+                                                
+                                            <div className="space-y-4 pt-4 border-t">
+                                                <h4 className="font-semibold flex items-center gap-2 text-sm">
+                                                    <Upload className="h-4 w-4 text-primary" />
+                                                    Documentos e Anexos do Pedido
+                                                </h4>
+                                                <div className="grid gap-4">
+                                                    <div className="relative border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center space-y-3">
+                                                        <p className="text-sm text-muted-foreground">Arraste arquivos ou clique para selecionar</p>
+                                                        <div className="flex gap-2 justify-center">
+                                                            <Button asChild variant="outline" size="sm">
+                                                                <label htmlFor={`file-upload-${order.id}`} className="cursor-pointer">
+                                                                    <Upload className="mr-2 h-4 w-4" />
+                                                                    Adicionar Arquivos
+                                                                </label>
+                                                            </Button>
+                                                             <Button variant="outline" size="sm" onClick={() => handlePaste(order)}>
+                                                                <ClipboardPaste className="mr-2 h-4 w-4" />
+                                                                Colar
+                                                            </Button>
+                                                        </div>
+                                                        <Input id={`file-upload-${order.id}`} type="file" className="sr-only" multiple accept="image/*,application/pdf" onChange={(e) => handleFileChange(order, e)} />
+                                                    </div>
+                                                    {(order.attachments && order.attachments.length > 0) ? (
+                                                        <div className="space-y-2">
+                                                            {order.attachments.map((file, index) => (
+                                                                <div key={index} className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
+                                                                    {file.type === 'image' ? (
+                                                                        <button onClick={() => setImageToView(file.url)} className="flex items-center gap-3 overflow-hidden group text-left w-full">
+                                                                            <Image src={file.url} alt={file.name} width={40} height={40} className="h-10 w-10 rounded-md object-cover flex-shrink-0" />
+                                                                            <span className="text-sm font-medium group-hover:underline truncate" title={file.name}>
+                                                                                {file.name}
+                                                                            </span>
+                                                                        </button>
+                                                                    ) : (
+                                                                        <a href={file.url} download={file.name} className="flex items-center gap-3 overflow-hidden group">
+                                                                            <FileText className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                                                                            <span className="text-sm font-medium group-hover:underline truncate" title={file.name}>
+                                                                                {file.name}
+                                                                            </span>
+                                                                        </a>
+                                                                    )}
+                                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive flex-shrink-0" onClick={() => handleDeleteAttachment(order, index)}>
+                                                                        <X className="h-4 w-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-center text-sm text-muted-foreground">Nenhum documento anexado a este pedido.</p>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
                                     </AccordionContent>
                                 </AccordionItem>
@@ -522,64 +569,6 @@ export default function CustomersAdminPage() {
                     <p className="text-muted-foreground text-sm text-center py-8">Nenhum pedido encontrado para este cliente.</p>
                     )}
                 </div>
-
-                <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                        <Upload className="h-5 w-5 text-primary" />
-                        Documentos e Anexos
-                    </h3>
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="grid gap-4">
-                                <div className="relative border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center space-y-3">
-                                    <p className="text-sm text-muted-foreground">Arraste arquivos ou clique para selecionar</p>
-                                    <div className="flex gap-2 justify-center">
-                                        <Button asChild variant="outline">
-                                            <label htmlFor="file-upload" className="cursor-pointer">
-                                                <Upload className="mr-2 h-4 w-4" />
-                                                Adicionar Arquivos
-                                            </label>
-                                        </Button>
-                                         <Button variant="outline" onClick={handlePaste}>
-                                            <ClipboardPaste className="mr-2 h-4 w-4" />
-                                            Colar da Área de Transferência
-                                        </Button>
-                                    </div>
-                                    <Input id="file-upload" type="file" className="sr-only" multiple accept="image/*,application/pdf" onChange={handleFileChange} />
-                                </div>
-                                {(selectedCustomer.attachments && selectedCustomer.attachments.length > 0) ? (
-                                    <div className="space-y-2">
-                                        {selectedCustomer.attachments.map((file, index) => (
-                                            <div key={index} className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
-                                                {file.type === 'image' ? (
-                                                    <button onClick={() => setImageToView(file.url)} className="flex items-center gap-3 overflow-hidden group text-left w-full">
-                                                        <Image src={file.url} alt={file.name} width={40} height={40} className="h-10 w-10 rounded-md object-cover flex-shrink-0" />
-                                                        <span className="text-sm font-medium group-hover:underline truncate" title={file.name}>
-                                                            {file.name}
-                                                        </span>
-                                                    </button>
-                                                ) : (
-                                                    <a href={file.url} download={file.name} className="flex items-center gap-3 overflow-hidden group">
-                                                        <FileText className="h-8 w-8 text-muted-foreground flex-shrink-0" />
-                                                        <span className="text-sm font-medium group-hover:underline truncate" title={file.name}>
-                                                            {file.name}
-                                                        </span>
-                                                    </a>
-                                                )}
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive flex-shrink-0" onClick={() => handleDeleteAttachment(index)}>
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-center text-sm text-muted-foreground">Nenhum documento anexado.</p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
                 </div>
             ) : (
                 <div className="text-center py-24 text-muted-foreground border-2 border-dashed rounded-lg">

@@ -41,7 +41,6 @@ export type CustomerInfo = {
   neighborhood: string;
   city: string;
   state: string;
-  attachments?: Attachment[];
 };
 
 export type Installment = {
@@ -65,6 +64,7 @@ export type Order = {
   status: 'Processando' | 'Enviado' | 'Entregue' | 'Cancelado';
   paymentMethod: PaymentMethod;
   installmentDetails: Installment[];
+  attachments?: Attachment[];
 };
 
 export type UserRole = 'admin' | 'gerente' | 'vendedor';
