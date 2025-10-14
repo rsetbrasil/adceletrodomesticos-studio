@@ -1,25 +1,25 @@
 
-import type { UserRole } from './types';
 
-// Define as seções do aplicativo que podem ter permissões
-export type AppSection = 
-    | 'orders' 
-    | 'customers' 
-    | 'products' 
-    | 'categories' 
-    | 'financeiro' 
-    | 'auditoria'
-    | 'configuracao' 
-    | 'users';
+import type { UserRole, AppSection, RolePermissions } from './types';
 
-// Mapeia cada perfil para um conjunto de seções permitidas
-const rolePermissions: Record<UserRole, Set<AppSection>> = {
-    vendedor: new Set([
+export const ALL_SECTIONS: { id: AppSection, label: string }[] = [
+    { id: 'orders', label: 'Pedidos' },
+    { id: 'customers', label: 'Clientes' },
+    { id: 'products', label: 'Produtos' },
+    { id: 'categories', label: 'Categorias' },
+    { id: 'financeiro', label: 'Financeiro' },
+    { id: 'auditoria', label: 'Auditoria' },
+    { id: 'configuracao', label: 'Configurações' },
+    { id: 'users', label: 'Usuários' },
+];
+
+export const initialPermissions: RolePermissions = {
+    vendedor: [
         'orders',
         'customers',
         'products',
-    ]),
-    gerente: new Set([
+    ],
+    gerente: [
         'orders',
         'customers',
         'products',
@@ -27,8 +27,8 @@ const rolePermissions: Record<UserRole, Set<AppSection>> = {
         'financeiro',
         'auditoria',
         'configuracao',
-    ]),
-    admin: new Set([
+    ],
+    admin: [
         'orders',
         'customers',
         'products',
@@ -37,19 +37,15 @@ const rolePermissions: Record<UserRole, Set<AppSection>> = {
         'auditoria',
         'configuracao',
         'users',
-    ]),
+    ],
 };
 
-/**
- * Verifica se um determinado perfil de usuário tem acesso a uma seção do aplicativo.
- * @param role - O perfil do usuário ('admin', 'gerente', 'vendedor').
- * @param section - A seção do aplicativo a ser verificada.
- * @returns `true` se o usuário tiver acesso, `false` caso contrário.
- */
-export function hasAccess(role: UserRole, section: AppSection): boolean {
-    const permissions = rolePermissions[role];
-    if (!permissions) {
+
+export function hasAccess(role: UserRole, section: AppSection, permissions: RolePermissions): boolean {
+    const rolePermissions = permissions[role];
+    if (!rolePermissions) {
         return false;
     }
-    return permissions.has(section);
+    return rolePermissions.includes(section);
 }
+

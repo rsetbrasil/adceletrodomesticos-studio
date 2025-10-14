@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useAudit } from "@/context/AuditContext";
 import { hasAccess, type AppSection } from "@/lib/permissions";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/context/PermissionsContext";
 
 const pathToSectionMap: { [key: string]: AppSection } = {
     '/admin/orders': 'orders',
@@ -24,21 +25,23 @@ const pathToSectionMap: { [key: string]: AppSection } = {
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const { user, isAuthenticated, isLoading, logout } = useAuth();
+    const { permissions, isLoading: permissionsLoading } = usePermissions();
     const router = useRouter();
     const pathname = usePathname();
     const { logAction } = useAudit();
     const { toast } = useToast();
 
     useEffect(() => {
-        if (!isLoading && !isAuthenticated) {
+        const totalLoading = isLoading || permissionsLoading;
+        if (!totalLoading && !isAuthenticated) {
             router.push('/login');
             return;
         }
 
-        if (!isLoading && isAuthenticated && user) {
+        if (!totalLoading && isAuthenticated && user && permissions) {
             const currentSection = Object.entries(pathToSectionMap).find(([path]) => pathname.startsWith(path))?.[1];
             
-            if (currentSection && !hasAccess(user.role, currentSection)) {
+            if (currentSection && !hasAccess(user.role, currentSection, permissions)) {
                 toast({
                     title: "Acesso Negado",
                     description: "Você não tem permissão para acessar esta página.",
@@ -47,12 +50,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 router.push('/admin/orders');
             }
         }
-    }, [isLoading, isAuthenticated, user, router, pathname, toast]);
+    }, [isLoading, permissionsLoading, isAuthenticated, user, permissions, router, pathname, toast]);
 
-    if (isLoading || !isAuthenticated || !user) {
+    if (isLoading || permissionsLoading || !isAuthenticated || !user) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-background">
-                <p>Verificando autenticação...</p>
+                <p>Verificando autenticação e permissões...</p>
             </div>
         );
     }

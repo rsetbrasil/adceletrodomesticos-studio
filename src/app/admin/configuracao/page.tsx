@@ -12,11 +12,16 @@ import { useSettings } from '@/context/SettingsContext';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
-import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2 } from 'lucide-react';
+import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock } from 'lucide-react';
 import type { StoreSettings } from '@/context/SettingsContext';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAudit } from '@/context/AuditContext';
+import { usePermissions } from '@/context/PermissionsContext';
+import type { RolePermissions, UserRole, AppSection } from '@/lib/types';
+import { ALL_SECTIONS } from '@/lib/permissions';
+import { Checkbox } from '@/components/ui/checkbox';
+
 
 const settingsSchema = z.object({
   storeName: z.string().min(3, 'O nome da loja é obrigatório.'),
@@ -28,11 +33,13 @@ export default function ConfiguracaoPage() {
   const { settings, updateSettings, isLoading: settingsLoading, restoreSettings, resetSettings } = useSettings();
   const { products, orders, categories, restoreCartData, resetOrders, resetAllCartData } = useCart();
   const { users, restoreUsers, initialUsers } = useAuth();
+  const { permissions, updatePermissions, isLoading: permissionsLoading, resetPermissions } = usePermissions();
   const { toast } = useToast();
   const { logAction } = useAudit();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [dialogOpenFor, setDialogOpenFor] = useState<'resetOrders' | 'resetAll' | null>(null);
+  const [localPermissions, setLocalPermissions] = useState<RolePermissions | null>(null);
 
   const form = useForm<z.infer<typeof settingsSchema>>({
     resolver: zodResolver(settingsSchema),
@@ -45,6 +52,12 @@ export default function ConfiguracaoPage() {
     }
   }, [settingsLoading, settings, form]);
 
+  useEffect(() => {
+    if (!permissionsLoading && permissions) {
+        setLocalPermissions(JSON.parse(JSON.stringify(permissions)));
+    }
+  }, [permissionsLoading, permissions]);
+
   const handleBackup = () => {
     const backupData = {
       settings,
@@ -52,6 +65,7 @@ export default function ConfiguracaoPage() {
       orders,
       categories,
       users,
+      permissions
     };
 
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
@@ -77,11 +91,13 @@ export default function ConfiguracaoPage() {
         const text = e.target?.result as string;
         const data = JSON.parse(text);
 
-        // Basic validation to check if it's a valid backup file
         if (data.settings && data.products && data.orders && data.categories && data.users) {
           await restoreSettings(data.settings, logAction);
           await restoreCartData({ products: data.products, orders: data.orders, categories: data.categories });
           await restoreUsers(data.users, logAction);
+          if (data.permissions) {
+             await updatePermissions(data.permissions);
+          }
           toast({ title: 'Backup Restaurado!', description: 'Os dados da loja foram restaurados com sucesso.' });
         } else {
           throw new Error('Formato de arquivo de backup inválido.');
@@ -90,7 +106,6 @@ export default function ConfiguracaoPage() {
         console.error("Failed to restore backup:", error);
         toast({ title: 'Erro ao Restaurar', description: 'O arquivo de backup é inválido ou está corrompido.', variant: 'destructive' });
       } finally {
-        // Reset file input
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -109,6 +124,7 @@ export default function ConfiguracaoPage() {
     await resetAllCartData();
     await restoreUsers(initialUsers, logAction);
     await resetSettings(logAction);
+    await resetPermissions();
     setDialogOpenFor(null);
     toast({ title: "Loja Resetada!", description: "Todos os dados foram restaurados para o padrão." });
   }
@@ -117,13 +133,29 @@ export default function ConfiguracaoPage() {
     updateSettings(values, logAction);
   }
 
-  if (settingsLoading) {
+  const handlePermissionChange = (role: UserRole, section: AppSection, checked: boolean) => {
+    setLocalPermissions(prev => {
+        if (!prev) return null;
+        const updatedRolePermissions = checked 
+            ? [...prev[role], section]
+            : prev[role].filter(s => s !== section);
+        return { ...prev, [role]: updatedRolePermissions };
+    });
+  };
+
+  const handleSavePermissions = () => {
+      if (localPermissions) {
+          updatePermissions(localPermissions);
+      }
+  };
+
+  if (settingsLoading || permissionsLoading) {
     return <p>Carregando configurações...</p>;
   }
 
   return (
     <div className="space-y-8">
-      <Card className="max-w-2xl">
+      <Card className="max-w-4xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
               <Settings className="h-6 w-6" />
@@ -185,8 +217,57 @@ export default function ConfiguracaoPage() {
           </Form>
         </CardContent>
       </Card>
+      
+      <Card className="max-w-4xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="h-6 w-6" />
+            Permissões de Acesso
+          </CardTitle>
+          <CardDescription>
+            Defina quais seções cada perfil de usuário pode acessar no painel administrativo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+            {localPermissions ? (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {(['vendedor', 'gerente', 'admin'] as UserRole[]).map(role => (
+                            <div key={role}>
+                                <h3 className="font-semibold mb-4 capitalize">{role}</h3>
+                                <div className="space-y-3">
+                                    {ALL_SECTIONS.map(section => (
+                                        <div key={section.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`${role}-${section.id}`}
+                                                checked={localPermissions[role]?.includes(section.id)}
+                                                onCheckedChange={(checked) => handlePermissionChange(role, section.id, !!checked)}
+                                                disabled={role === 'admin' && section.id === 'users'}
+                                            />
+                                            <label
+                                                htmlFor={`${role}-${section.id}`}
+                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                            >
+                                                {section.label}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <Button onClick={handleSavePermissions}>
+                        <Save className="mr-2 h-4 w-4" />
+                        Salvar Permissões
+                    </Button>
+                </div>
+            ) : (
+                <p>Carregando permissões...</p>
+            )}
+        </CardContent>
+      </Card>
 
-      <Card className="max-w-2xl">
+      <Card className="max-w-4xl">
           <CardHeader>
               <CardTitle>Backup e Restauração</CardTitle>
               <CardDescription>Salve ou recupere todos os dados da sua loja (produtos, pedidos, configurações, etc).</CardDescription>
@@ -204,7 +285,7 @@ export default function ConfiguracaoPage() {
           </CardContent>
       </Card>
 
-       <Card className="max-w-2xl border-destructive/50">
+       <Card className="max-w-4xl border-destructive/50">
           <CardHeader>
               <CardTitle className="flex items-center gap-2 text-destructive">
                   <AlertTriangle className="h-6 w-6" />

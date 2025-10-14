@@ -1,10 +1,12 @@
 
+
 'use client';
 
 import './globals.css';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { SettingsProvider } from '@/context/SettingsContext';
+import { PermissionsProvider } from '@/context/PermissionsContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
@@ -95,11 +97,13 @@ NEXT_PUBLIC_FIREBASE_APP_ID="SEU_APP_ID"`}
       <body className="font-body antialiased">
         <AuthProvider>
           <AuditProvider>
-            <SettingsProvider>
-              <CartProvider>
-                <AppContent>{children}</AppContent>
-              </CartProvider>
-            </SettingsProvider>
+            <PermissionsProvider>
+              <SettingsProvider>
+                <CartProvider>
+                  <AppContent>{children}</AppContent>
+                </CartProvider>
+              </SettingsProvider>
+            </PermissionsProvider>
           </AuditProvider>
         </AuthProvider>
       </body>

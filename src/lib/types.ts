@@ -12,8 +12,8 @@ export type Product = {
   stock: number;
   maxInstallments?: number;
   paymentCondition?: string; 
-  commissionType?: 'percentage' | 'fixed'; // Adicionado
-  commissionValue?: number; // Adicionado
+  commissionType?: 'percentage' | 'fixed';
+  commissionValue?: number;
   "data-ai-hint"?: string;
   createdAt: string; 
 };
@@ -98,5 +98,17 @@ export type AuditLog = {
   action: string;
   details: string;
 };
+
+export type AppSection = 
+    | 'orders' 
+    | 'customers' 
+    | 'products' 
+    | 'categories' 
+    | 'financeiro' 
+    | 'auditoria'
+    | 'configuracao'
+    | 'users';
+
+export type RolePermissions = Record<UserRole, AppSection[]>;
 
     
