@@ -269,12 +269,21 @@ export default function OrdersAdminPage() {
     });
   };
 
-  const handleRestoreOrder = (orderId: string) => {
-    updateOrderStatus(orderId, 'Processando');
-    toast({
-      title: 'Pedido Restaurado!',
-      description: 'O pedido foi restaurado e movido para a lista de pedidos ativos.',
-    });
+  const handleRestoreOrder = async (orderId: string) => {
+    try {
+        await updateOrderStatus(orderId, 'Processando');
+        toast({
+            title: 'Pedido Restaurado!',
+            description: 'O pedido foi restaurado e movido para a lista de pedidos ativos.',
+        });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+        toast({
+            title: 'Erro ao Restaurar Pedido',
+            description: errorMessage,
+            variant: 'destructive',
+        });
+    }
   };
 
   const handleAssignSeller = (order: Order, seller: User) => {
