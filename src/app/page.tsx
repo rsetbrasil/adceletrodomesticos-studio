@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -85,47 +86,73 @@ export default function Home() {
     <>
       {saleProducts.length > 0 && (
         <section className="w-full mb-12 py-8 bg-muted/50">
-            <div className="container mx-auto">
-                <Carousel
-                    opts={{
-                    align: "start",
-                    loop: true,
-                    }}
-                    className="w-full"
-                >
-                    <CarouselContent>
-                    {saleProducts.map((product) => (
-                        <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
-                        <div className="p-1 h-full">
-                            <Card className="h-full overflow-hidden">
-                                <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 h-full">
-                                    <div className="relative w-48 h-48 flex-shrink-0">
-                                        <Image
-                                            src={(product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/400x400.png'}
-                                            alt={product.name}
-                                            fill
-                                            className="object-contain"
-                                            sizes="50vw"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col text-center md:text-left">
-                                        <h3 className="text-xl font-bold">{product.name}</h3>
-                                        <p className="text-muted-foreground text-sm mt-1 mb-3 h-10 overflow-hidden">{product.description}</p>
-                                        <p className="text-3xl font-bold text-accent">{formatCurrency(product.price)}</p>
-                                        <Link href={`/products/${product.id}`} className="mt-4">
-                                            <Button>Ver Detalhes</Button>
-                                        </Link>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                        </CarouselItem>
-                    ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4" />
-                    <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4" />
-                </Carousel>
-            </div>
+          <div className="container mx-auto">
+            {saleProducts.length === 1 ? (
+              // Render single product view
+              <Card className="overflow-hidden">
+                <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 gap-6">
+                  <div className="relative w-64 h-64 flex-shrink-0">
+                    <Image
+                      src={(saleProducts[0].imageUrls && saleProducts[0].imageUrls.length > 0) ? saleProducts[0].imageUrls[0] : 'https://placehold.co/400x400.png'}
+                      alt={saleProducts[0].name}
+                      fill
+                      className="object-contain"
+                      sizes="50vw"
+                    />
+                  </div>
+                  <div className="flex flex-col text-center md:text-left max-w-md">
+                    <h3 className="text-3xl font-bold">{saleProducts[0].name}</h3>
+                    <p className="text-muted-foreground text-md mt-2 mb-4">{saleProducts[0].description}</p>
+                    <p className="text-4xl font-bold text-accent">{formatCurrency(saleProducts[0].price)}</p>
+                    <Link href={`/products/${saleProducts[0].id}`} className="mt-6">
+                      <Button size="lg">Ver Detalhes da Oferta</Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              // Render carousel for multiple products
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: true,
+                }}
+                className="w-full"
+              >
+                <CarouselContent>
+                  {saleProducts.map((product) => (
+                    <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
+                      <div className="p-1 h-full">
+                        <Card className="h-full overflow-hidden">
+                          <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 h-full">
+                            <div className="relative w-48 h-48 flex-shrink-0">
+                              <Image
+                                src={(product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/400x400.png'}
+                                alt={product.name}
+                                fill
+                                className="object-contain"
+                                sizes="50vw"
+                              />
+                            </div>
+                            <div className="flex flex-col text-center md:text-left">
+                              <h3 className="text-xl font-bold">{product.name}</h3>
+                              <p className="text-muted-foreground text-sm mt-1 mb-3 h-10 overflow-hidden">{product.description}</p>
+                              <p className="text-3xl font-bold text-accent">{formatCurrency(product.price)}</p>
+                              <Link href={`/products/${product.id}`} className="mt-4">
+                                <Button>Ver Detalhes</Button>
+                              </Link>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4" />
+                <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4" />
+              </Carousel>
+            )}
+          </div>
         </section>
       )}
 
