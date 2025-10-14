@@ -7,19 +7,21 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DollarSign, History, PiggyBank, BadgePercent, Eye } from 'lucide-react';
+import { DollarSign, History, PiggyBank, BadgePercent, Eye, Undo2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
 export default function MyCommissionsPage() {
-  const { orders, commissionPayments } = useCart();
+  const { orders, commissionPayments, reverseCommissionPayment } = useCart();
   const { user, users } = useAuth();
   
   const pendingCommissions = useMemo(() => {
@@ -154,12 +156,38 @@ export default function MyCommissionsPage() {
                                                     <TableCell className="capitalize">{payment.period}</TableCell>
                                                     <TableCell className="text-right font-semibold">{formatCurrency(payment.amount)}</TableCell>
                                                     <TableCell className="text-right">
-                                                        <Button variant="outline" size="sm" asChild>
-                                                            <Link href={`/admin/commission-receipt/${payment.id}`}>
-                                                                <Eye className="mr-2 h-4 w-4" />
-                                                                Ver Comprovante
-                                                            </Link>
-                                                        </Button>
+                                                        <div className="flex justify-end gap-2">
+                                                            <Button variant="outline" size="sm" asChild>
+                                                                <Link href={`/admin/commission-receipt/${payment.id}`}>
+                                                                    <Eye className="mr-2 h-4 w-4" />
+                                                                    Ver Comprovante
+                                                                </Link>
+                                                            </Button>
+                                                             {isManagerOrAdmin && (
+                                                                <AlertDialog>
+                                                                    <AlertDialogTrigger asChild>
+                                                                        <Button variant="destructive" outline size="sm">
+                                                                            <Undo2 className="mr-2 h-4 w-4" />
+                                                                            Estornar
+                                                                        </Button>
+                                                                    </AlertDialogTrigger>
+                                                                    <AlertDialogContent>
+                                                                        <AlertDialogHeader>
+                                                                            <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
+                                                                            <AlertDialogDescription>
+                                                                                Esta ação não pode ser desfeita. O pagamento será excluído e as comissões dos pedidos voltarão a ficar pendentes.
+                                                                            </AlertDialogDescription>
+                                                                        </AlertDialogHeader>
+                                                                        <AlertDialogFooter>
+                                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                            <AlertDialogAction onClick={() => reverseCommissionPayment(payment.id)}>
+                                                                                Sim, estornar
+                                                                            </AlertDialogAction>
+                                                                        </AlertDialogFooter>
+                                                                    </AlertDialogContent>
+                                                                </AlertDialog>
+                                                            )}
+                                                        </div>
                                                     </TableCell>
                                                 </TableRow>
                                             ))
@@ -202,12 +230,36 @@ export default function MyCommissionsPage() {
                                                         <TableCell className="capitalize">{payment.period}</TableCell>
                                                         <TableCell className="text-right font-semibold">{formatCurrency(payment.amount)}</TableCell>
                                                         <TableCell className="text-right">
-                                                            <Button variant="outline" size="sm" asChild>
-                                                                <Link href={`/admin/commission-receipt/${payment.id}`}>
-                                                                    <Eye className="mr-2 h-4 w-4" />
-                                                                    Ver Comprovante
-                                                                </Link>
-                                                            </Button>
+                                                            <div className="flex justify-end gap-2">
+                                                                <Button variant="outline" size="sm" asChild>
+                                                                    <Link href={`/admin/commission-receipt/${payment.id}`}>
+                                                                        <Eye className="mr-2 h-4 w-4" />
+                                                                        Ver Comprovante
+                                                                    </Link>
+                                                                </Button>
+                                                                <AlertDialog>
+                                                                    <AlertDialogTrigger asChild>
+                                                                        <Button variant="destructive" outline size="sm">
+                                                                            <Undo2 className="mr-2 h-4 w-4" />
+                                                                            Estornar
+                                                                        </Button>
+                                                                    </AlertDialogTrigger>
+                                                                    <AlertDialogContent>
+                                                                        <AlertDialogHeader>
+                                                                            <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
+                                                                            <AlertDialogDescription>
+                                                                                Esta ação não pode ser desfeita. O pagamento será excluído e as comissões dos pedidos voltarão a ficar pendentes.
+                                                                            </AlertDialogDescription>
+                                                                        </AlertDialogHeader>
+                                                                        <AlertDialogFooter>
+                                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                            <AlertDialogAction onClick={() => reverseCommissionPayment(payment.id)}>
+                                                                                Sim, estornar
+                                                                            </AlertDialogAction>
+                                                                        </AlertDialogFooter>
+                                                                    </AlertDialogContent>
+                                                                </AlertDialog>
+                                                            </div>
                                                         </TableCell>
                                                     </TableRow>
                                                 ))

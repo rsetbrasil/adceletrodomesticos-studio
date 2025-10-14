@@ -66,6 +66,7 @@ interface CartContextType {
   deleteSubcategory: (categoryId: string, subcategoryName: string) => Promise<void>;
   commissionPayments: CommissionPayment[];
   payCommissions: (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string) => Promise<string | null>;
+  reverseCommissionPayment: (paymentId: string) => Promise<void>;
   isLoading: boolean;
   restoreCartData: (data: { products: Product[], orders: Order[], categories: Category[] }) => Promise<void>;
   resetOrders: () => Promise<void>;
@@ -474,6 +475,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   
     const calculateCommission = (order: Order) => {
         if (!order.sellerId) return 0;
+
+        if (order.isCommissionManual) {
+          return order.commission || 0;
+        }
+
         return order.items.reduce((totalCommission, item) => {
             const product = products.find(p => p.id === item.id);
             if (!product || !product.commissionType || typeof product.commissionValue === 'undefined' || product.commissionValue === null) {
@@ -576,12 +582,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const wasCanceledOrDeleted = oldStatus === 'Cancelado' || oldStatus === 'Excluído';
     const isNowCanceledOrDeleted = newStatus === 'Cancelado' || newStatus === 'Excluído';
 
-    // Recalculate commission if status is 'Entregue', otherwise zero it out.
-    if (newStatus === 'Entregue') {
-        detailsToUpdate.commission = calculateCommission(orderToUpdate);
+    // Recalculate commission if status is 'Entregue' and commission is not manual, otherwise zero it out.
+    if (newStatus === 'Entregue' && orderToUpdate.sellerId) {
+      detailsToUpdate.commission = calculateCommission(orderToUpdate);
     } else {
         // If status is not 'Entregue', commission should be 0 and not paid
-        detailsToUpdate.commission = 0;
+        if (!orderToUpdate.isCommissionManual) {
+          detailsToUpdate.commission = 0;
+        }
         detailsToUpdate.commissionPaid = false;
     }
     
@@ -670,10 +678,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       let detailsToUpdate = { ...details };
 
-      // If the seller is being changed, recalculate the commission for the order
+      // If the seller is being changed or the commission is not being set manually
       if ('sellerId' in details && details.sellerId) {
           const tempOrderForCommissionCalc = {...order, ...detailsToUpdate};
-          detailsToUpdate.commission = calculateCommission(tempOrderForCommissionCalc);
+          if (!tempOrderForCommissionCalc.isCommissionManual) {
+            detailsToUpdate.commission = calculateCommission(tempOrderForCommissionCalc);
+          }
+      }
+      
+      // If manual commission is being updated, set the flag
+      if ('commission' in details && details.commission !== order.commission) {
+        if ('isCommissionManual' in details) {
+          // do nothing, the flag is being passed
+        } else {
+          detailsToUpdate.isCommissionManual = true;
+        }
       }
 
     try {
@@ -723,6 +742,35 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const reverseCommissionPayment = async (paymentId: string) => {
+    const paymentToReverse = commissionPayments.find(p => p.id === paymentId);
+    if (!paymentToReverse) {
+      toast({ title: "Erro", description: "Pagamento não encontrado.", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      const batch = writeBatch(db);
+      
+      // Delete the payment record
+      batch.delete(doc(db, 'commissionPayments', paymentId));
+
+      // Mark commissions as not paid again on the orders
+      paymentToReverse.orderIds.forEach(orderId => {
+        batch.update(doc(db, 'orders', orderId), { commissionPaid: false });
+      });
+
+      await batch.commit();
+
+      logAction('Estorno de Comissão', `O pagamento de comissão ID ${paymentId} foi estornado.`, user);
+      toast({ title: "Pagamento Estornado!", description: "As comissões dos pedidos voltaram a ficar pendentes." });
+
+    } catch (e) {
+      console.error("Error reversing commission payment:", e);
+      toast({ title: "Erro", description: "Não foi possível estornar o pagamento.", variant: "destructive" });
+    }
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -731,7 +779,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         orders, addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, updateInstallmentStatus, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
         products, addProduct, updateProduct, deleteProduct,
         categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory,
-        commissionPayments, payCommissions,
+        commissionPayments, payCommissions, reverseCommissionPayment,
         isLoading,
         restoreCartData, resetOrders, resetAllCartData,
       }}

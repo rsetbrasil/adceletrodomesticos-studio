@@ -72,6 +72,7 @@ export type Order = {
   sellerName?: string;
   commission?: number;
   commissionPaid?: boolean;
+  isCommissionManual?: boolean;
 };
 
 export type CommissionPayment = {

@@ -23,12 +23,6 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -41,7 +35,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -82,6 +76,7 @@ export default function OrdersAdminPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [installmentsInput, setInstallmentsInput] = useState(1);
+  const [commissionInput, setCommissionInput] = useState('0');
   const [openDueDatePopover, setOpenDueDatePopover] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     search: '',
@@ -153,12 +148,14 @@ export default function OrdersAdminPage() {
         setSelectedOrder(updatedOrderInList);
       }
       setInstallmentsInput(updatedOrderInList?.installments || 1);
+      setCommissionInput((updatedOrderInList?.commission || 0).toString().replace('.', ','));
     }
   }, [orders, selectedOrder]);
 
   const handleOpenDetails = (order: Order) => {
     setSelectedOrder(order);
     setInstallmentsInput(order.installments);
+    setCommissionInput((order.commission || 0).toString().replace('.', ','));
     setIsDetailModalOpen(true);
   }
 
@@ -291,6 +288,18 @@ export default function OrdersAdminPage() {
         description: `O pedido #${order.id} foi atribuído a ${seller.name}.`
     });
   };
+
+  const handleUpdateCommission = () => {
+    if (!selectedOrder) return;
+    const value = parseFloat(commissionInput.replace(',', '.'));
+    if (isNaN(value) || value < 0) {
+      toast({ title: 'Valor inválido', description: 'Por favor, insira um valor de comissão válido.', variant: 'destructive' });
+      return;
+    }
+    updateOrderDetails(selectedOrder.id, { commission: value, isCommissionManual: true });
+  }
+
+  const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'gerente';
 
 
   if (!isClient) {
@@ -549,10 +558,29 @@ export default function OrdersAdminPage() {
                                       <span>Vendedor:</span>
                                       <span>{selectedOrder.sellerName}</span>
                                   </div>
-                                  <div className="flex justify-between text-sm text-green-600">
-                                      <span>Comissão:</span>
-                                      <span>{formatCurrency(selectedOrder.commission || 0)}</span>
+                                  <Separator className="my-3" />
+
+                                   <div className="flex justify-between text-base items-center">
+                                      <span className="font-semibold text-green-600 flex items-center gap-2"><Percent />Comissão:</span>
+                                      {isManagerOrAdmin ? (
+                                        <div className="flex gap-2 items-center">
+                                          <span className="text-sm">R$</span>
+                                           <Input
+                                                type="text"
+                                                value={commissionInput}
+                                                onChange={(e) => setCommissionInput(e.target.value)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter') handleUpdateCommission() }}
+                                                className="w-24 h-8 text-right"
+                                            />
+                                            <Button size="sm" variant="outline" onClick={handleUpdateCommission}>
+                                                <Save className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                      ) : (
+                                         <span className="font-bold text-green-600">{formatCurrency(selectedOrder.commission || 0)}</span>
+                                      )}
                                   </div>
+                                  {selectedOrder.isCommissionManual && <p className="text-xs text-muted-foreground text-right">Valor de comissão manual</p>}
                               </CardContent>
                           </Card>
                       </div>
