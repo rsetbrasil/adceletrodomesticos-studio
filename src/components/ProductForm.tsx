@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -16,12 +17,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/context/CartContext';
-import { PackagePlus, X } from 'lucide-react';
+import { PackagePlus, X, Percent, DollarSign } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import type { Product, Category } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto é obrigatório.'),
@@ -42,6 +44,16 @@ const productSchema = z.object({
   imageUrls: z.array(z.string()).min(1, 'Pelo menos uma imagem é obrigatória.'),
   maxInstallments: z.coerce.number().int().min(1, 'O número mínimo de parcelas é 1.'),
   paymentCondition: z.string().optional(),
+  commissionType: z.enum(['percentage', 'fixed']).default('percentage'),
+  commissionValue: z.preprocess(
+    (val) => {
+      if (typeof val === 'string') {
+        return parseFloat(val.replace(/\./g, '').replace(',', '.'));
+      }
+      return val;
+    },
+    z.coerce.number({ invalid_type_error: 'Valor de comissão inválido.' }).min(0, 'A comissão não pode ser negativa.')
+  ),
 });
 
 
@@ -85,6 +97,8 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         subcategory: productToEdit.subcategory || '',
         imageUrls: productToEdit.imageUrls || [],
         paymentCondition: productToEdit.paymentCondition || '',
+        commissionType: productToEdit.commissionType || 'percentage',
+        commissionValue: productToEdit.commissionValue || 0,
     } : {
       name: '',
       description: '',
@@ -96,6 +110,8 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       imageUrls: [],
       maxInstallments: 10,
       paymentCondition: '',
+      commissionType: 'percentage',
+      commissionValue: 0,
     }
   });
 
@@ -108,6 +124,8 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         subcategory: productToEdit.subcategory || '',
         imageUrls: productToEdit.imageUrls || [],
         paymentCondition: productToEdit.paymentCondition || '',
+        commissionType: productToEdit.commissionType || 'percentage',
+        commissionValue: productToEdit.commissionValue || 0,
     } : {
       name: '',
       description: '',
@@ -119,6 +137,8 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       imageUrls: [],
       maxInstallments: 10,
       paymentCondition: '',
+      commissionType: 'percentage',
+      commissionValue: 0,
     };
     form.reset(defaultValues);
     setImagePreviews(defaultValues.imageUrls);
@@ -128,6 +148,8 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   const price = form.watch('price');
   const maxInstallments = form.watch('maxInstallments');
   const selectedCategoryName = form.watch('category');
+  const commissionType = form.watch('commissionType');
+
   const installmentValue = (price || 0) > 0 && (maxInstallments || 0) > 0 ? (price || 0) / (maxInstallments || 1) : 0;
   
   const subcategories = useMemo(() => {
@@ -338,6 +360,63 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                         </FormItem>
                       )}
                     />
+                </div>
+                 <div className="space-y-4 pt-4 border-t">
+                    <FormLabel>Comissão do Vendedor</FormLabel>
+                    <FormField
+                    control={form.control}
+                    name="commissionType"
+                    render={({ field }) => (
+                        <FormItem className="space-y-3">
+                        <FormControl>
+                            <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex items-center space-x-4"
+                            >
+                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                <RadioGroupItem value="percentage" />
+                                </FormControl>
+                                <FormLabel className="font-normal">Porcentagem (%)</FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                <RadioGroupItem value="fixed" />
+                                </FormControl>
+                                <FormLabel className="font-normal">Valor Fixo (R$)</FormLabel>
+                            </FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="commissionValue"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Valor da Comissão</FormLabel>
+                            <FormControl>
+                                <div className="relative">
+                                    <Input 
+                                        type="number" 
+                                        step="0.01" 
+                                        placeholder="Ex: 5 para 5% ou 50 para R$50"
+                                        {...field}
+                                    />
+                                    {commissionType === 'percentage' ? (
+                                        <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                                    ) : (
+                                        <DollarSign className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                                    )}
+                                </div>
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
                 </div>
             </div>
 

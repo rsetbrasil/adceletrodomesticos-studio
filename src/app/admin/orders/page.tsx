@@ -221,11 +221,9 @@ export default function OrdersAdminPage() {
 
   const handleAssignSeller = (order: Order, seller: User) => {
     if (!seller) return;
-    const commission = order.total * (seller.commissionRate || 0);
     const detailsToUpdate: Partial<Order> = {
         sellerId: seller.id,
         sellerName: seller.name,
-        commission: commission
     };
     updateOrderDetails(order.id, detailsToUpdate);
     toast({

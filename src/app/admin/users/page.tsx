@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -23,7 +24,6 @@ import { useAudit } from '@/context/AuditContext';
 
 const userEditFormSchema = z.object({
     name: z.string().min(3, 'O nome é obrigatório.'),
-    commissionRate: z.coerce.number().min(0, "A comissão não pode ser negativa.").max(1, "A comissão não pode ser maior que 100%."),
     password: z.string().optional(),
     confirmPassword: z.string().optional(),
   }).refine(data => {
@@ -43,7 +43,6 @@ const userCreateFormSchema = z.object({
     name: z.string().min(3, 'O nome é obrigatório.'),
     username: z.string().min(3, 'O nome de usuário é obrigatório.'),
     role: z.enum(['admin', 'gerente', 'vendedor'], { required_error: 'O perfil é obrigatório.' }),
-    commissionRate: z.coerce.number().min(0, "A comissão não pode ser negativa.").max(1, "A comissão não pode ser maior que 100%."),
     password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres.'),
     confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
@@ -74,7 +73,6 @@ export default function ManageUsersPage() {
             password: '',
             confirmPassword: '',
             role: 'vendedor',
-            commissionRate: 0.05,
         }
     });
 
@@ -89,7 +87,6 @@ export default function ManageUsersPage() {
         setUserToEdit(user);
         editForm.reset({ 
             name: user.name, 
-            commissionRate: user.commissionRate || 0, 
             password: '', 
             confirmPassword: '' 
         });
@@ -101,7 +98,6 @@ export default function ManageUsersPage() {
         
         const dataToUpdate: Partial<User> = { 
             name: values.name,
-            commissionRate: values.commissionRate,
          };
         if (values.password) {
             dataToUpdate.password = values.password;
@@ -129,12 +125,6 @@ export default function ManageUsersPage() {
         );
     }
 
-    const formatPercentage = (value: number | undefined) => {
-        if (typeof value !== 'number') return '0%';
-        return `${(value * 100).toFixed(0)}%`;
-    }
-
-
     return (
         <>
             <Card>
@@ -158,7 +148,6 @@ export default function ManageUsersPage() {
                                     <TableHead>Nome</TableHead>
                                     <TableHead>Usuário</TableHead>
                                     <TableHead>Perfil</TableHead>
-                                    <TableHead>Comissão</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -169,9 +158,6 @@ export default function ManageUsersPage() {
                                         <TableCell>{user.username}</TableCell>
                                         <TableCell>
                                             <Badge variant="secondary" className="capitalize">{user.role}</Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline">{formatPercentage(user.commissionRate)}</Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(user)}>
@@ -219,7 +205,7 @@ export default function ManageUsersPage() {
                                     </FormItem>
                                 )}
                             />
-                             <div className="grid grid-cols-2 gap-4">
+                             <div className="grid grid-cols-1 gap-4">
                                 <FormField
                                 control={createForm.control}
                                 name="role"
@@ -241,28 +227,6 @@ export default function ManageUsersPage() {
                                     <FormMessage />
                                     </FormItem>
                                 )}
-                                />
-                                <FormField
-                                    control={createForm.control}
-                                    name="commissionRate"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Comissão (%)</FormLabel>
-                                            <FormControl>
-                                                <div className="relative">
-                                                    <Input 
-                                                        type="number" 
-                                                        step="1" 
-                                                        placeholder="Ex: 5"
-                                                        value={field.value * 100}
-                                                        onChange={e => field.onChange(Number(e.target.value) / 100)}
-                                                    />
-                                                    <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                                                </div>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
                                 />
                             </div>
                             <FormField
@@ -306,7 +270,7 @@ export default function ManageUsersPage() {
                     </DialogHeader>
                     <Form {...editForm}>
                         <form onSubmit={editForm.handleSubmit(handleEditUser)} className="space-y-6 py-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4">
                                 <FormField
                                     control={editForm.control}
                                     name="name"
@@ -314,28 +278,6 @@ export default function ManageUsersPage() {
                                         <FormItem>
                                             <FormLabel>Nome</FormLabel>
                                             <FormControl><Input {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={editForm.control}
-                                    name="commissionRate"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Comissão (%)</FormLabel>
-                                            <FormControl>
-                                                <div className="relative">
-                                                    <Input 
-                                                        type="number"
-                                                        step="1"
-                                                        placeholder="Ex: 5"
-                                                        value={field.value * 100}
-                                                        onChange={e => field.onChange(Number(e.target.value) / 100)}
-                                                    />
-                                                     <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                                                </div>
-                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}

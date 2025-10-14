@@ -1,4 +1,5 @@
 
+
 export type Product = {
   id: string;
   name: string;
@@ -10,9 +11,11 @@ export type Product = {
   subcategory?: string;
   stock: number;
   maxInstallments?: number;
-  paymentCondition?: string; // Adicionado
+  paymentCondition?: string; 
+  commissionType?: 'percentage' | 'fixed'; // Adicionado
+  commissionValue?: number; // Adicionado
   "data-ai-hint"?: string;
-  createdAt: string; // Adicionado para ordenação
+  createdAt: string; 
 };
 
 export type CartItem = {
@@ -67,7 +70,7 @@ export type Order = {
   attachments?: Attachment[];
   sellerId: string;
   sellerName: string;
-  commission?: number; // Adicionado para comissão
+  commission?: number; 
 };
 
 export type UserRole = 'admin' | 'gerente' | 'vendedor';
@@ -75,10 +78,9 @@ export type UserRole = 'admin' | 'gerente' | 'vendedor';
 export type User = {
   id: string;
   username: string;
-  password?: string; // Made optional for storing in session without password
+  password?: string; 
   name: string;
   role: UserRole;
-  commissionRate?: number; // Adicionado para taxa de comissão
 };
 
 export type Category = {

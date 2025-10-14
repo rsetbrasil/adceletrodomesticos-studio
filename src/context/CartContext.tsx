@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -450,6 +451,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const setLastOrder = (order: Order) => setLastOrderState(order);
   
+    const calculateCommission = (order: Order) => {
+        return order.items.reduce((totalCommission, item) => {
+            const product = products.find(p => p.id === item.id);
+            if (!product || !product.commissionType || !product.commissionValue) {
+                return totalCommission;
+            }
+            if (product.commissionType === 'fixed') {
+                return totalCommission + (product.commissionValue * item.quantity);
+            }
+            if (product.commissionType === 'percentage') {
+                const itemTotal = item.price * item.quantity;
+                return totalCommission + (itemTotal * product.commissionValue / 100);
+            }
+            return totalCommission;
+        }, 0);
+    }
+
   const manageStockForOrder = async (order: Order | undefined, operation: 'add' | 'subtract') => {
     if (!order) return;
     const batch = writeBatch(db);
@@ -482,7 +500,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addOrder = async (order: Order, user: User) => {
     try {
-        const commission = order.total * (user.commissionRate || 0);
+        const commission = calculateCommission(order);
         const orderWithCommission = { ...order, commission };
         await manageStockForOrder(orderWithCommission, 'subtract');
         await setDoc(doc(db, 'orders', orderWithCommission.id), orderWithCommission);
@@ -596,9 +614,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateOrderDetails = async (orderId: string, details: Partial<Order>) => {
+      const order = orders.find(o => o.id === orderId);
+      if (!order) return;
+
+      let detailsToUpdate = { ...details };
+
+      // Se o vendedor for alterado, recalcular a comissão
+      if ('sellerId' in details && details.sellerId) {
+          detailsToUpdate.commission = calculateCommission(order);
+      }
+
     try {
-        await updateDoc(doc(db, 'orders', orderId), details);
-        setOrders(prev => prev.map((order) => order.id === orderId ? { ...order, ...details } : order));
+        await updateDoc(doc(db, 'orders', orderId), detailsToUpdate);
+        setOrders(prev => prev.map((o) => o.id === orderId ? { ...o, ...detailsToUpdate } : o));
         logAction('Atualização de Detalhes do Pedido', `Detalhes do pedido #${orderId} foram atualizados.`);
         toast({ title: "Pedido Atualizado!", description: `Os detalhes do pedido #${orderId} foram atualizados.` });
     } catch(e) {
