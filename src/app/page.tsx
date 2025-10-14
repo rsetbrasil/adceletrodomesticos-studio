@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,7 +9,16 @@ import ProductFilters from '@/components/ProductFilters';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CartSheet } from '@/components/CartSheet';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Card, CardContent } from '@/components/ui/card';
+
+const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+};
+
 
 export default function Home() {
   const { products: allProducts, categories, setIsCartOpen } = useCart();
@@ -31,6 +41,10 @@ export default function Home() {
         return updated;
     });
   };
+
+  const saleProducts = useMemo(() => {
+    return allProducts.filter(p => p.onSale);
+  }, [allProducts]);
 
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = [...allProducts];
@@ -69,28 +83,52 @@ export default function Home() {
 
   return (
     <>
-      <section className="relative w-full h-[400px] mb-12 text-white">
-        <Image
-          src="https://picsum.photos/seed/banner/1600/400"
-          alt="Banner de promoção"
-          fill
-          className="object-cover"
-          priority
-          data-ai-hint="living room"
-        />
-        <div className="absolute inset-0 bg-black/50" />
-        <div className="relative container mx-auto flex flex-col items-center justify-center h-full text-center space-y-4 px-4">
-          <h1 className="text-4xl md:text-6xl font-bold font-headline">Renove seu Lar</h1>
-          <p className="text-lg md:text-xl max-w-2xl text-white/90">
-            As melhores ofertas em móveis e eletrodomésticos para deixar sua casa do jeito que você sempre sonhou.
-          </p>
-          <Link href="#catalog">
-            <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-              Ver Ofertas
-            </Button>
-          </Link>
-        </div>
-      </section>
+      {saleProducts.length > 0 && (
+        <section className="w-full mb-12 py-8 bg-muted/50">
+            <div className="container mx-auto">
+                <h2 className="text-3xl font-bold font-headline text-primary mb-6 text-center">🔥 Produtos em Promoção</h2>
+                <Carousel
+                    opts={{
+                    align: "start",
+                    loop: true,
+                    }}
+                    className="w-full"
+                >
+                    <CarouselContent>
+                    {saleProducts.map((product) => (
+                        <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
+                        <div className="p-1 h-full">
+                            <Card className="h-full overflow-hidden">
+                                <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 h-full">
+                                    <div className="relative w-48 h-48 flex-shrink-0">
+                                        <Image
+                                            src={(product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/400x400.png'}
+                                            alt={product.name}
+                                            fill
+                                            className="object-contain"
+                                            sizes="50vw"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col text-center md:text-left">
+                                        <h3 className="text-xl font-bold">{product.name}</h3>
+                                        <p className="text-muted-foreground text-sm mt-1 mb-3 h-10 overflow-hidden">{product.description}</p>
+                                        <p className="text-3xl font-bold text-accent">{formatCurrency(product.price)}</p>
+                                        <Link href={`/products/${product.id}`} className="mt-4">
+                                            <Button>Ver Detalhes</Button>
+                                        </Link>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                        </CarouselItem>
+                    ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4" />
+                    <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4" />
+                </Carousel>
+            </div>
+        </section>
+      )}
 
       <div id="catalog" className="container mx-auto px-4 py-8">
         <header className="mb-8 text-center">
