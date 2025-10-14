@@ -11,14 +11,13 @@ import Link from 'next/link';
 import { CartSheet } from '@/components/CartSheet';
 
 export default function Home() {
-  const { products: allProducts, categories } = useCart();
+  const { products: allProducts, categories, setIsCartOpen } = useCart();
   const [filters, setFilters] = useState({
     category: 'all',
     subcategory: 'all',
     search: '',
     sort: 'newest',
   });
-  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const handleFilterChange = (
     newFilters: Partial<typeof filters>
@@ -68,8 +67,6 @@ export default function Home() {
     return filtered;
   }, [filters, allProducts]);
 
-  const openCart = () => setIsCartOpen(true);
-
   return (
     <>
       <section className="relative w-full h-[400px] mb-12 text-white">
@@ -112,7 +109,7 @@ export default function Home() {
         {filteredAndSortedProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {filteredAndSortedProducts.map((product) => (
-              <ProductCard key={product.id} product={product} onAddToCart={openCart} />
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         ) : (
@@ -121,9 +118,6 @@ export default function Home() {
           </div>
         )}
       </div>
-      <CartSheet open={isCartOpen} onOpenChange={setIsCartOpen}>
-        <></>
-      </CartSheet>
     </>
   );
 }

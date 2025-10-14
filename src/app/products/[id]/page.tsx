@@ -11,7 +11,6 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CartSheet } from '@/components/CartSheet';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -20,10 +19,9 @@ const formatCurrency = (value: number) => {
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { products, addToCart } = useCart();
+  const { products, addToCart, setIsCartOpen } = useCart();
   const id = params.id as string;
   const [isClient, setIsClient] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -168,9 +166,6 @@ export default function ProductDetailPage() {
         </CardContent>
       </Card>
     </div>
-    <CartSheet open={isCartOpen} onOpenChange={setIsCartOpen}>
-      <></>
-    </CartSheet>
     </>
   );
 }
