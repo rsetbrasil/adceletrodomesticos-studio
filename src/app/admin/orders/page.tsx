@@ -369,6 +369,7 @@ export default function OrdersAdminPage() {
                                         <TableHead>Produtos</TableHead>
                                         <TableHead>Vendedor</TableHead>
                                         <TableHead className="text-right">Total</TableHead>
+                                        <TableHead className="text-right">Comissão</TableHead>
                                         <TableHead className="text-center">Status</TableHead>
                                         <TableHead className="text-right">Ações</TableHead>
                                     </TableRow>
@@ -382,6 +383,7 @@ export default function OrdersAdminPage() {
                                         <TableCell className="text-xs max-w-[200px] truncate">{order.items.map(item => item.name).join(', ')}</TableCell>
                                         <TableCell>{order.sellerName}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
+                                        <TableCell className="text-right font-semibold text-green-600">{formatCurrency(order.commission || 0)}</TableCell>
                                         <TableCell className="text-center">
                                             <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                                         </TableCell>
