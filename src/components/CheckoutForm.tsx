@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -27,7 +28,7 @@ import { useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import type { Order, CustomerInfo } from '@/lib/types';
+import type { Order, CustomerInfo, User } from '@/lib/types';
 import { addMonths } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
 
@@ -217,7 +218,7 @@ export default function CheckoutForm() {
         paymentDate: null,
     }));
 
-    const order: Order = {
+    const order: Omit<Order, 'sellerId' | 'sellerName'> = {
       id: orderId,
       customer: {
         name: values.name,
@@ -240,13 +241,11 @@ export default function CheckoutForm() {
       status: 'Processando',
       paymentMethod: 'Crediário',
       installmentDetails,
-      sellerId: user.id,
-      sellerName: user.name,
     };
     
     try {
-        await addOrder(order, user);
-        setLastOrder(order);
+        await addOrder(order as Order, user);
+        setLastOrder(order as Order);
         clearCart();
     
         toast({
@@ -355,3 +354,4 @@ export default function CheckoutForm() {
     </div>
   );
 }
+

@@ -502,7 +502,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const addOrder = async (order: Order, user: User) => {
     try {
         const commission = calculateCommission(order);
-        const orderWithCommission = { ...order, commission };
+        const orderWithCommission = { ...order, sellerId: user.id, sellerName: user.name, commission };
         await manageStockForOrder(orderWithCommission, 'subtract');
         await setDoc(doc(db, 'orders', orderWithCommission.id), orderWithCommission);
         setOrders(prev => [orderWithCommission, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -541,17 +541,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!orderToUpdate) return;
   
     const oldStatus = orderToUpdate.status;
+    const wasCanceledOrDeleted = oldStatus === 'Cancelado' || oldStatus === 'Excluído';
+    const isNowCanceledOrDeleted = newStatus === 'Cancelado' || newStatus === 'Excluído';
     
     try {
-        if ((newStatus === 'Cancelado' || newStatus === 'Excluído') && oldStatus !== 'Cancelado' && oldStatus !== 'Excluído') {
+        if (!wasCanceledOrDeleted && isNowCanceledOrDeleted) {
           await manageStockForOrder(orderToUpdate, 'add');
         }
-        else if ((oldStatus === 'Cancelado' || oldStatus === 'Excluído') && newStatus !== 'Cancelado' && newStatus !== 'Excluído') {
+        else if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
           await manageStockForOrder(orderToUpdate, 'subtract');
         }
+
         await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
         setOrders(prev => prev.map((order) => order.id === orderId ? { ...order, status: newStatus } : order));
         logAction('Atualização de Status de Pedido', `Status do pedido #${orderId} alterado de "${oldStatus}" para "${newStatus}".`);
+        
         if (newStatus !== 'Excluído') {
           toast({ title: "Status do Pedido Atualizado!", description: `O pedido #${orderId} agora está como "${newStatus}".` });
         }
