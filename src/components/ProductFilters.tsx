@@ -24,6 +24,10 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
   const { setIsFilterSheetOpen, setSelectedCategoryForSheet } = useCart();
 
   const handleCategoryClick = (categoryName: string) => {
+    if (categoryName === 'all') {
+      onFilterChange({ category: 'all', subcategory: 'all' });
+      return;
+    }
     setSelectedCategoryForSheet(categoryName);
     setIsFilterSheetOpen(true);
   }
@@ -33,21 +37,13 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
        <div className="relative w-full">
             <div className="overflow-x-auto pb-2 -mb-2">
                 <div className="flex flex-nowrap gap-2">
-                    <Button
-                        variant={currentFilters.category === 'all' ? 'secondary' : 'outline'}
-                        size="sm"
-                        onClick={() => onFilterChange({ category: 'all', subcategory: 'all' })}
-                        className="text-sm px-3 flex-shrink-0"
-                    >
-                        Tudo
-                    </Button>
                     {categories.map((cat) => (
                         <Button
                             key={cat.id}
                             variant={currentFilters.category === cat.name ? 'secondary' : 'outline'}
                             size="sm"
                             onClick={() => handleCategoryClick(cat.name)}
-                             className="text-sm px-3 flex-shrink-0 capitalize"
+                             className="text-sm px-2 flex-shrink-0 capitalize"
                         >
                             {cat.name}
                         </Button>
