@@ -258,6 +258,7 @@ export default function OrdersAdminPage() {
                           <TableHead className="w-[150px]">Pedido ID</TableHead>
                           <TableHead>Data</TableHead>
                           <TableHead>Cliente</TableHead>
+                          <TableHead>Produtos</TableHead>
                           <TableHead>Vendedor</TableHead>
                           <TableHead className="text-right">Total</TableHead>
                           <TableHead className="text-center">Status</TableHead>
@@ -270,6 +271,7 @@ export default function OrdersAdminPage() {
                               <TableCell className="font-medium">{order.id}</TableCell>
                               <TableCell>{format(new Date(order.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</TableCell>
                               <TableCell>{order.customer.name}</TableCell>
+                              <TableCell className="text-xs max-w-[200px] truncate">{order.items.map(item => item.name).join(', ')}</TableCell>
                               <TableCell>{order.sellerName}</TableCell>
                               <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
                               <TableCell className="text-center">
@@ -479,6 +481,9 @@ export default function OrdersAdminPage() {
                                     <CardTitle className="text-lg">Carnê de Pagamento</CardTitle>
                                 </CardHeader>
                                 <CardContent>
+                                    <p className="text-sm text-muted-foreground mb-4">
+                                      Produtos: {selectedOrder.items.map(item => item.name).join(', ')}
+                                    </p>
                                     {(selectedOrder.installmentDetails || []).length > 0 ? (
                                         <Table>
                                             <TableHeader>
@@ -571,9 +576,3 @@ export default function OrdersAdminPage() {
     </>
   );
 }
-
-
-
-    
-
-    
