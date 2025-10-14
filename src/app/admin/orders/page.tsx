@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -275,62 +276,64 @@ export default function OrdersAdminPage() {
                                   <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                               </TableCell>
                               <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                            <span className="sr-only">Abrir menu</span>
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => handleOpenDetails(order)}>
-                                            <Pencil className="mr-2 h-4 w-4" />
-                                            Gerenciar
-                                        </DropdownMenuItem>
-                                        {(user?.role === 'admin' || user?.role === 'gerente') && (
-                                            <DropdownMenuSub>
-                                                <DropdownMenuSubTrigger>
-                                                    <Users className="mr-2 h-4 w-4" />
-                                                    Atribuir Vendedor
-                                                </DropdownMenuSubTrigger>
-                                                <DropdownMenuPortal>
-                                                    <DropdownMenuSubContent>
-                                                        {sellers.map(s => (
-                                                            <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
-                                                                {s.name}
-                                                            </DropdownMenuItem>
-                                                        ))}
-                                                    </DropdownMenuSubContent>
-                                                </DropdownMenuPortal>
-                                            </DropdownMenuSub>
-                                        )}
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                 <DropdownMenuItem
-                                                    onSelect={(e) => e.preventDefault()}
-                                                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Excluir Pedido
-                                                </DropdownMenuItem>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        Esta ação não pode ser desfeita. Isso irá excluir permanentemente o pedido <span className="font-bold">{order.id}</span>.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDeleteOrder(order.id)}>
-                                                        Sim, Excluir
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(order)}>
+                                    <Pencil className="h-4 w-4" />
+                                    <span className="sr-only">Gerenciar Pedido</span>
+                                  </Button>
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" className="h-8 w-8 p-0">
+                                              <span className="sr-only">Abrir menu</span>
+                                              <MoreHorizontal className="h-4 w-4" />
+                                          </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                          {(user?.role === 'admin' || user?.role === 'gerente') && (
+                                              <DropdownMenuSub>
+                                                  <DropdownMenuSubTrigger>
+                                                      <Users className="mr-2 h-4 w-4" />
+                                                      Atribuir Vendedor
+                                                  </DropdownMenuSubTrigger>
+                                                  <DropdownMenuPortal>
+                                                      <DropdownMenuSubContent>
+                                                          {sellers.map(s => (
+                                                              <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
+                                                                  {s.name}
+                                                              </DropdownMenuItem>
+                                                          ))}
+                                                      </DropdownMenuSubContent>
+                                                  </DropdownMenuPortal>
+                                              </DropdownMenuSub>
+                                          )}
+                                          <AlertDialog>
+                                              <AlertDialogTrigger asChild>
+                                                  <DropdownMenuItem
+                                                      onSelect={(e) => e.preventDefault()}
+                                                      className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                                  >
+                                                      <Trash2 className="mr-2 h-4 w-4" />
+                                                      Excluir Pedido
+                                                  </DropdownMenuItem>
+                                              </AlertDialogTrigger>
+                                              <AlertDialogContent>
+                                                  <AlertDialogHeader>
+                                                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                                      <AlertDialogDescription>
+                                                          Esta ação não pode ser desfeita. Isso irá excluir permanentemente o pedido <span className="font-bold">{order.id}</span>.
+                                                      </AlertDialogDescription>
+                                                  </AlertDialogHeader>
+                                                  <AlertDialogFooter>
+                                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                      <AlertDialogAction onClick={() => handleDeleteOrder(order.id)}>
+                                                          Sim, Excluir
+                                                      </AlertDialogAction>
+                                                  </AlertDialogFooter>
+                                              </AlertDialogContent>
+                                          </AlertDialog>
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
                               </TableCell>
                           </TableRow>
                           ))}
@@ -568,3 +571,4 @@ export default function OrdersAdminPage() {
     </>
   );
 }
+
