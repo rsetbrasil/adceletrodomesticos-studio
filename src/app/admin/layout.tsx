@@ -3,22 +3,51 @@
 
 import { ReactNode, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { LogOut, Shield } from 'lucide-react';
 import AdminNav from "@/components/AdminNav";
 import { Button } from "@/components/ui/button";
 import { useAudit } from "@/context/AuditContext";
+import { hasAccess, type AppSection } from "@/lib/permissions";
+import { useToast } from "@/hooks/use-toast";
+
+const pathToSectionMap: { [key: string]: AppSection } = {
+    '/admin/orders': 'orders',
+    '/admin/customers': 'customers',
+    '/admin/products': 'products',
+    '/admin/categories': 'categories',
+    '/admin/financeiro': 'financeiro',
+    '/admin/auditoria': 'auditoria',
+    '/admin/configuracao': 'configuracao',
+    '/admin/users': 'users',
+};
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const { user, isAuthenticated, isLoading, logout } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
     const { logAction } = useAudit();
+    const { toast } = useToast();
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
             router.push('/login');
+            return;
         }
-    }, [isLoading, isAuthenticated, router]);
+
+        if (!isLoading && isAuthenticated && user) {
+            const currentSection = Object.entries(pathToSectionMap).find(([path]) => pathname.startsWith(path))?.[1];
+            
+            if (currentSection && !hasAccess(user.role, currentSection)) {
+                toast({
+                    title: "Acesso Negado",
+                    description: "Você não tem permissão para acessar esta página.",
+                    variant: "destructive"
+                });
+                router.push('/admin/orders');
+            }
+        }
+    }, [isLoading, isAuthenticated, user, router, pathname, toast]);
 
     if (isLoading || !isAuthenticated || !user) {
         return (

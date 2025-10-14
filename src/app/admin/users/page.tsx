@@ -76,13 +76,6 @@ export default function ManageUsersPage() {
         }
     });
 
-    useEffect(() => {
-        if (!isAuthLoading && currentUser && currentUser.role !== 'admin') {
-            toast({ title: 'Acesso Negado', description: 'Você não tem permissão para acessar esta página.', variant: 'destructive' });
-            router.push('/admin/orders');
-        }
-    }, [currentUser, router, toast, isAuthLoading]);
-
     const handleOpenEditDialog = (user: User) => {
         setUserToEdit(user);
         editForm.reset({ 
@@ -117,7 +110,7 @@ export default function ManageUsersPage() {
         }
     }
     
-    if (isAuthLoading || currentUser?.role !== 'admin') {
+    if (isAuthLoading) {
         return (
             <div className="flex justify-center items-center py-24">
                 <p>Verificando permissões...</p>
