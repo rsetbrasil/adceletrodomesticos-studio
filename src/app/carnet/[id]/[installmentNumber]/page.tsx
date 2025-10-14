@@ -181,6 +181,10 @@ export default function SingleInstallmentPage() {
                         <p className="text-xs text-muted-foreground">VENDEDOR(A)</p>
                         <p className="font-semibold">{order.sellerName}</p>
                     </div>
+                    <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground">PRODUTOS</p>
+                        <p className="font-semibold text-sm">{order.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}</p>
+                    </div>
                </div>
                <div className="flex justify-between items-end bg-muted/50 rounded p-4 mt-2">
                     <div>
@@ -221,3 +225,5 @@ export default function SingleInstallmentPage() {
     </div>
   );
 }
+
+    
