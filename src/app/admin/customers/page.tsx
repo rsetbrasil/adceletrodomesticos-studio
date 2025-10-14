@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback, ChangeEvent } from 'react';
+import { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 
 const formatCurrency = (value: number) => {
@@ -78,6 +79,7 @@ export default function CustomersAdminPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedInfo, setEditedInfo] = useState<Partial<CustomerInfo>>({});
   const [openDueDatePopover, setOpenDueDatePopover] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -195,6 +197,25 @@ export default function CustomersAdminPage() {
       await addAttachments(order, Array.from(event.target.files));
       event.target.value = ''; // Clear the input
   };
+
+    const handleDrag = (e: DragEvent<HTMLElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setDragActive(true);
+        } else if (e.type === "dragleave") {
+            setDragActive(false);
+        }
+    };
+
+    const handleDrop = async (e: DragEvent<HTMLElement>, order: Order) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            await addAttachments(order, Array.from(e.dataTransfer.files));
+        }
+    };
   
   const handlePaste = async (order: Order) => {
     if (!navigator.clipboard?.read) {
@@ -513,22 +534,30 @@ export default function CustomersAdminPage() {
                                                     Documentos e Anexos do Pedido
                                                 </h4>
                                                 <div className="grid gap-4">
-                                                    <div className="relative border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center space-y-3">
-                                                        <p className="text-sm text-muted-foreground">Arraste arquivos ou clique para selecionar</p>
-                                                        <div className="flex gap-2 justify-center">
-                                                            <Button asChild variant="outline" size="sm">
-                                                                <label htmlFor={`file-upload-${order.id}`} className="cursor-pointer">
-                                                                    <Upload className="mr-2 h-4 w-4" />
-                                                                    Adicionar Arquivos
-                                                                </label>
-                                                            </Button>
-                                                             <Button variant="outline" size="sm" onClick={() => handlePaste(order)}>
-                                                                <ClipboardPaste className="mr-2 h-4 w-4" />
-                                                                Colar
+                                                    <label 
+                                                        htmlFor={`file-upload-${order.id}`}
+                                                        className={cn(
+                                                            "relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
+                                                            dragActive ? "border-primary bg-primary/10" : "border-muted-foreground/30"
+                                                        )}
+                                                        onDragEnter={handleDrag}
+                                                        onDragLeave={handleDrag}
+                                                        onDragOver={handleDrag}
+                                                        onDrop={(e) => handleDrop(e, order)}
+                                                    >
+                                                        <div className="text-center space-y-2 pointer-events-none">
+                                                          <p className="text-sm text-muted-foreground">Arraste arquivos ou clique para adicionar</p>
+                                                            <Button variant="outline" size="sm" type="button">
+                                                                <Upload className="mr-2 h-4 w-4" />
+                                                                Selecionar
                                                             </Button>
                                                         </div>
                                                         <Input id={`file-upload-${order.id}`} type="file" className="sr-only" multiple accept="image/*,application/pdf" onChange={(e) => handleFileChange(order, e)} />
-                                                    </div>
+                                                    </label>
+                                                     <Button variant="outline" size="sm" onClick={() => handlePaste(order)} className="w-fit self-center">
+                                                        <ClipboardPaste className="mr-2 h-4 w-4" />
+                                                        Colar da área de transferência
+                                                    </Button>
                                                     {(order.attachments && order.attachments.length > 0) ? (
                                                         <div className="space-y-2">
                                                             {order.attachments.map((file, index) => (
@@ -662,5 +691,7 @@ export default function CustomersAdminPage() {
     </>
   );
 }
+
+    
 
     
