@@ -73,7 +73,7 @@ export default function Home() {
           src="https://picsum.photos/seed/banner/1600/400"
           alt="Banner de promoção"
           fill
-          className="object-cover -z-10 brightness-50"
+          className="object-cover -z-10"
           priority
           data-ai-hint="living room"
         />
