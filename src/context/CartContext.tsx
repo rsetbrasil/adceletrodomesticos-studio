@@ -534,7 +534,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         } as Order;
         
         if (!await manageStockForOrder(orderToSave, 'subtract')) {
-          throw new Error('Falha na validação de estoque.');
+          throw new Error(`Estoque insuficiente para um ou mais produtos.`);
         }
 
         await setDoc(doc(db, 'orders', orderToSave.id), orderToSave);
@@ -596,10 +596,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     
     try {
         if (!wasCanceledOrDeleted && isNowCanceledOrDeleted) {
-          if (!await manageStockForOrder(orderToUpdate, 'add')) return; // Stop if stock management fails
+          if (!await manageStockForOrder(orderToUpdate, 'add')) return;
         }
         else if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
-          if (!await manageStockForOrder(orderToUpdate, 'subtract')) return; // Stop if stock management fails
+          if (!await manageStockForOrder(orderToUpdate, 'subtract')) return;
         }
 
         await updateDoc(doc(db, 'orders', orderId), detailsToUpdate);
@@ -612,8 +612,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           toast({ title: "Status do Pedido Atualizado!", description: `O pedido #${orderId} agora está como "${newStatus}".` });
         }
     } catch(e) {
-        console.error("Failed to update order status", e);
-        // Toast is already shown in manageStockForOrder, so no need for another one here.
+        // This catch block is intentionally left empty because manageStockForOrder already shows a toast.
     }
   };
 
@@ -797,3 +796,6 @@ export const useCart = () => {
   }
   return context;
 };
+
+
+    
