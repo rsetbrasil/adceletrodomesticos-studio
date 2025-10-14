@@ -482,11 +482,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addOrder = async (order: Order, user: User) => {
     try {
-        const orderWithSeller = { ...order, sellerId: user.id, sellerName: user.name };
-        await manageStockForOrder(orderWithSeller, 'subtract');
-        await setDoc(doc(db, 'orders', orderWithSeller.id), orderWithSeller);
-        setOrders(prev => [orderWithSeller, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-        logAction('Criação de Pedido', `Novo pedido #${orderWithSeller.id} para ${orderWithSeller.customer.name} no valor de R$${orderWithSeller.total.toFixed(2)} foi criado por ${user.name}.`);
+        const commission = order.total * (user.commissionRate || 0);
+        const orderWithCommission = { ...order, commission };
+        await manageStockForOrder(orderWithCommission, 'subtract');
+        await setDoc(doc(db, 'orders', orderWithCommission.id), orderWithCommission);
+        setOrders(prev => [orderWithCommission, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        logAction('Criação de Pedido', `Novo pedido #${orderWithCommission.id} para ${orderWithCommission.customer.name} no valor de R$${orderWithCommission.total.toFixed(2)} foi criado por ${user.name}. Comissão: R$${commission.toFixed(2)}`);
     } catch(e) {
         console.error("Failed to add order", e);
         throw e; // re-throw to be caught by the form

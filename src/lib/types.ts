@@ -67,6 +67,7 @@ export type Order = {
   attachments?: Attachment[];
   sellerId: string;
   sellerName: string;
+  commission?: number; // Adicionado para comissão
 };
 
 export type UserRole = 'admin' | 'gerente' | 'vendedor';
@@ -77,6 +78,7 @@ export type User = {
   password?: string; // Made optional for storing in session without password
   name: string;
   role: UserRole;
+  commissionRate?: number; // Adicionado para taxa de comissão
 };
 
 export type Category = {

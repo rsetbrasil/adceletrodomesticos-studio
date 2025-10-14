@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import type { Order, Installment, PaymentMethod } from '@/lib/types';
+import type { Order, Installment, PaymentMethod, User } from '@/lib/types';
+import { useAuth } from '@/context/AuthContext';
 import {
   Table,
   TableBody,
@@ -25,6 +26,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import {
     AlertDialog,
@@ -39,7 +44,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2 } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -72,6 +77,7 @@ const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'o
 
 export default function OrdersAdminPage() {
   const { orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails, updateInstallmentDueDate, deleteOrder } = useCart();
+  const { user, users } = useAuth();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -82,6 +88,19 @@ export default function OrdersAdminPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const visibleOrders = useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'vendedor') {
+      return orders.filter(o => o.sellerId === user.id);
+    }
+    return orders;
+  }, [orders, user]);
+
+  const sellers = useMemo(() => {
+    return users.filter(u => u.role === 'vendedor');
+  }, [users]);
+
 
   useEffect(() => {
     if (selectedOrder) {
@@ -200,6 +219,21 @@ export default function OrdersAdminPage() {
     });
   };
 
+  const handleAssignSeller = (order: Order, seller: User) => {
+    if (!seller) return;
+    const commission = order.total * (seller.commissionRate || 0);
+    const detailsToUpdate: Partial<Order> = {
+        sellerId: seller.id,
+        sellerName: seller.name,
+        commission: commission
+    };
+    updateOrderDetails(order.id, detailsToUpdate);
+    toast({
+        title: "Vendedor Atribuído!",
+        description: `O pedido #${order.id} foi atribuído a ${seller.name}.`
+    });
+  };
+
 
   if (!isClient) {
     return (
@@ -217,7 +251,7 @@ export default function OrdersAdminPage() {
               <CardDescription>Visualize e atualize o status dos pedidos recentes.</CardDescription>
           </CardHeader>
           <CardContent>
-              {orders.length > 0 ? (
+              {visibleOrders.length > 0 ? (
                   <div className="rounded-md border">
                       <Table>
                       <TableHeader>
@@ -225,17 +259,19 @@ export default function OrdersAdminPage() {
                           <TableHead className="w-[150px]">Pedido ID</TableHead>
                           <TableHead>Data</TableHead>
                           <TableHead>Cliente</TableHead>
+                          <TableHead>Vendedor</TableHead>
                           <TableHead className="text-right">Total</TableHead>
                           <TableHead className="text-center">Status</TableHead>
                           <TableHead className="text-right">Ações</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {orders.map((order) => (
+                          {visibleOrders.map((order) => (
                           <TableRow key={order.id}>
                               <TableCell className="font-medium">{order.id}</TableCell>
                               <TableCell>{format(new Date(order.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</TableCell>
                               <TableCell>{order.customer.name}</TableCell>
+                              <TableCell>{order.sellerName}</TableCell>
                               <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
                               <TableCell className="text-center">
                                   <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
@@ -253,6 +289,23 @@ export default function OrdersAdminPage() {
                                             <Pencil className="mr-2 h-4 w-4" />
                                             Gerenciar
                                         </DropdownMenuItem>
+                                        {(user?.role === 'admin' || user?.role === 'gerente') && (
+                                            <DropdownMenuSub>
+                                                <DropdownMenuSubTrigger>
+                                                    <Users className="mr-2 h-4 w-4" />
+                                                    Atribuir Vendedor
+                                                </DropdownMenuSubTrigger>
+                                                <DropdownMenuPortal>
+                                                    <DropdownMenuSubContent>
+                                                        {sellers.map(s => (
+                                                            <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
+                                                                {s.name}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuSubContent>
+                                                </DropdownMenuPortal>
+                                            </DropdownMenuSub>
+                                        )}
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                  <DropdownMenuItem
@@ -312,7 +365,7 @@ export default function OrdersAdminPage() {
                           {/* Customer Info */}
                             <Card>
                               <CardHeader className="flex-row items-center gap-4 space-y-0">
-                                  <User className="w-8 h-8 text-primary" />
+                                  <UserIcon className="w-8 h-8 text-primary" />
                                   <CardTitle className="text-lg">Informações do Cliente</CardTitle>
                               </CardHeader>
                               <CardContent className="text-sm space-y-1">
@@ -343,6 +396,14 @@ export default function OrdersAdminPage() {
                                   <div className="flex justify-between font-bold text-base">
                                       <span>TOTAL</span>
                                       <span>{formatCurrency(selectedOrder.total)}</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm mt-2">
+                                      <span>Vendedor:</span>
+                                      <span>{selectedOrder.sellerName}</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm text-green-600">
+                                      <span>Comissão:</span>
+                                      <span>{formatCurrency(selectedOrder.commission || 0)}</span>
                                   </div>
                               </CardContent>
                           </Card>
