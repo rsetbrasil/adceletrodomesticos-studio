@@ -24,6 +24,7 @@ import { useAudit } from '@/context/AuditContext';
 
 const userEditFormSchema = z.object({
     name: z.string().min(3, 'O nome é obrigatório.'),
+    username: z.string().min(3, 'O nome de usuário é obrigatório.'),
     password: z.string().optional(),
     confirmPassword: z.string().optional(),
   }).refine(data => {
@@ -80,6 +81,7 @@ export default function ManageUsersPage() {
         setUserToEdit(user);
         editForm.reset({ 
             name: user.name, 
+            username: user.username,
             password: '', 
             confirmPassword: '' 
         });
@@ -91,6 +93,7 @@ export default function ManageUsersPage() {
         
         const dataToUpdate: Partial<User> = { 
             name: values.name,
+            username: values.username,
          };
         if (values.password) {
             dataToUpdate.password = values.password;
@@ -270,6 +273,17 @@ export default function ManageUsersPage() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Nome</FormLabel>
+                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={editForm.control}
+                                    name="username"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Nome de Usuário (Login)</FormLabel>
                                             <FormControl><Input {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>

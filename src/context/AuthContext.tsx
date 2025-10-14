@@ -155,6 +155,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateUser = async (userId: string, data: Partial<Omit<User, 'id'>>, logAction: (action: string, details: string) => void) => {
+    
+    // Check for username uniqueness if it's being changed
+    if (data.username) {
+        const q = query(collection(db, 'users'), where("username", "==", data.username.toLowerCase()));
+        const querySnapshot = await getDocs(q);
+        const isUsernameTaken = querySnapshot.docs.some(doc => doc.id !== userId);
+
+        if (isUsernameTaken) {
+            toast({
+                title: 'Erro ao Atualizar',
+                description: 'Este nome de usuário já está em uso por outra conta.',
+                variant: 'destructive',
+            });
+            return;
+        }
+    }
+    
     try {
         const userRef = doc(db, 'users', userId);
         await updateDoc(userRef, data);
@@ -162,9 +179,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
         
         if (updatedUser) {
-            let details = `Nome alterado para "${data.name}".`;
+            let details = `Dados do usuário "${updatedUser.name}" foram alterados.`;
+            if (data.name && data.name !== updatedUser.name) {
+                details += ` Nome: de "${updatedUser.name}" para "${data.name}".`
+            }
+            if (data.username && data.username !== updatedUser.username) {
+                details += ` Username: de "${updatedUser.username}" para "${data.username}".`
+            }
             if (data.password) {
-                details = `Senha do usuário "${updatedUser.name}" foi alterada.`;
+                details += ' Senha foi alterada.';
             }
             logAction('Atualização de Usuário', details);
         }
