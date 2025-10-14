@@ -3,7 +3,6 @@
 
 import { Button } from '@/components/ui/button';
 import type { Category } from '@/lib/types';
-import { Filter } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 
 
@@ -22,14 +21,40 @@ interface ProductFiltersProps {
 }
 
 export default function ProductFilters({ onFilterChange, categories, currentFilters }: ProductFiltersProps) {
-  const { setIsFilterSheetOpen } = useCart();
+  const { setIsFilterSheetOpen, setSelectedCategoryForSheet } = useCart();
+
+  const handleCategoryClick = (categoryName: string) => {
+    setSelectedCategoryForSheet(categoryName);
+    setIsFilterSheetOpen(true);
+  }
 
   return (
     <div className="bg-card p-4 rounded-lg shadow-sm mb-8">
-       <Button onClick={() => setIsFilterSheetOpen(true)}>
-          <Filter className="mr-2 h-4 w-4" />
-          Filtros
-       </Button>
+       <div className="relative w-full">
+            <div className="overflow-x-auto pb-2 -mb-2">
+                <div className="flex flex-nowrap gap-2">
+                    <Button
+                        variant={currentFilters.category === 'all' ? 'secondary' : 'outline'}
+                        size="sm"
+                        onClick={() => onFilterChange({ category: 'all', subcategory: 'all' })}
+                        className="text-sm px-3 flex-shrink-0"
+                    >
+                        Tudo
+                    </Button>
+                    {categories.map((cat) => (
+                        <Button
+                            key={cat.id}
+                            variant={currentFilters.category === cat.name ? 'secondary' : 'outline'}
+                            size="sm"
+                            onClick={() => handleCategoryClick(cat.name)}
+                             className="text-sm px-3 flex-shrink-0 capitalize"
+                        >
+                            {cat.name}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+       </div>
     </div>
   );
 }

@@ -43,6 +43,8 @@ interface CartContextType {
   setIsCartOpen: (isOpen: boolean) => void;
   isFilterSheetOpen: boolean;
   setIsFilterSheetOpen: (isOpen: boolean) => void;
+  selectedCategoryForSheet: string | null;
+  setSelectedCategoryForSheet: (category: string | null) => void;
   lastOrder: Order | null;
   setLastOrder: (order: Order) => void;
   orders: Order[];
@@ -84,6 +86,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [selectedCategoryForSheet, setSelectedCategoryForSheet] = useState<string | null>(null);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -891,6 +894,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         cartItems, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal, cartCount, 
         isCartOpen, setIsCartOpen, 
         isFilterSheetOpen, setIsFilterSheetOpen,
+        selectedCategoryForSheet, setSelectedCategoryForSheet,
         lastOrder, setLastOrder,
         orders, addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, updateInstallmentStatus, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
         products, addProduct, updateProduct, deleteProduct,
