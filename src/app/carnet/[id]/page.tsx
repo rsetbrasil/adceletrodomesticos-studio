@@ -18,7 +18,7 @@ const formatCurrency = (value: number) => {
 };
 
 const CarnetContent = ({ order, settings }: { order: Order; settings: any }) => (
-    <div className="bg-background rounded-lg border shadow-sm p-8 break-inside-avoid print:shadow-none print:border-none print:rounded-none print:p-0">
+    <div className="bg-background rounded-lg border shadow-sm p-6 break-inside-avoid print:shadow-none print:border-none print:rounded-none print:p-0">
         <div className="flex justify-between items-start pb-4 border-b">
              <div className="flex items-center gap-6">
                 <Logo />
@@ -133,7 +133,7 @@ export default function CarnetPage() {
 
   return (
     <div className="bg-muted/30 print:bg-white">
-      <div className="container mx-auto py-8 px-4 max-w-4xl">
+      <div className="container mx-auto py-8 px-4">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -149,9 +149,9 @@ export default function CarnetPage() {
           </Button>
         </header>
         
-        <main className="space-y-8">
+        <main className="grid grid-cols-1 print:grid-cols-2 print:gap-8">
             <CarnetContent order={order} settings={settings} />
-            <div className="hidden print:block pt-8 border-t-2 border-dashed">
+            <div className="mt-8 print:mt-0">
                 <CarnetContent order={order} settings={settings} />
             </div>
         </main>
