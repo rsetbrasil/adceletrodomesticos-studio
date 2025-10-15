@@ -149,7 +149,7 @@ export default function CarnetPage() {
           </Button>
         </header>
         
-        <main className="max-w-4xl mx-auto bg-background rounded-lg border shadow-sm print:grid print:grid-cols-2 print:gap-x-8 print:border-none print:shadow-none print:bg-transparent print-scale-down">
+        <main className="max-w-4xl mx-auto bg-background rounded-lg border shadow-sm print:grid print:grid-cols-2 print:gap-x-8 print:border-none print:shadow-none print:bg-transparent">
             <div className="print:border-r print:border-dashed print:border-black print:pr-4">
                 <CarnetContent order={order} settings={settings} />
             </div>

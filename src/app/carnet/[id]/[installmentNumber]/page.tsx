@@ -7,12 +7,14 @@ import { useSettings } from '@/context/SettingsContext';
 import { useMemo, useRef }from 'react';
 import type { Order, Installment, StoreSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Printer, Send } from 'lucide-react';
+import { Printer, Send, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+
 
 const formatCurrency = (value: number) => {
   if (typeof value !== 'number') return 'R$ 0,00';
@@ -124,6 +126,7 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
 
 export default function SingleInstallmentPage() {
   const params = useParams();
+  const router = useRouter();
   const { orders, isLoading } = useCart();
   const { settings } = useSettings();
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -154,24 +157,23 @@ export default function SingleInstallmentPage() {
   const handleGeneratePdfAndSend = async () => {
     const input = receiptRef.current;
     if (!input || !order || !installment) return;
-
-    // Temporarily remove print-only styles for canvas rendering
-    input.classList.remove('print:grid', 'print:grid-cols-2', 'print:gap-8', 'print-scale-down');
+    
+    // Temporarily apply a class to the body for print-specific styles
+    document.body.classList.add('print-receipt');
     
     const canvas = await html2canvas(input, {
-        scale: 2, 
+        scale: 2.5, 
         useCORS: true,
         backgroundColor: '#ffffff'
     });
 
-    // Re-add print styles
-    input.classList.add('print:grid', 'print:grid-cols-2', 'print:gap-8', 'print-scale-down');
-
+    // Remove the class after rendering
+    document.body.classList.remove('print-receipt');
 
     const imgData = canvas.toDataURL('image/png');
     
     const pdf = new jsPDF({
-      orientation: 'portrait',
+      orientation: 'landscape',
       unit: 'mm',
       format: 'a4'
     });
@@ -226,6 +228,10 @@ export default function SingleInstallmentPage() {
     <div className="bg-muted/30 print:bg-white">
       <div className="container mx-auto py-8 px-4 print:max-w-none print:px-0">
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8 print-hidden gap-4">
+           <Button variant="ghost" onClick={() => router.back()}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
+            </Button>
           <div className="text-center">
              <h1 className="text-2xl font-bold">Comprovante de Pagamento</h1>
              <p className="text-muted-foreground">Pedido: {order.id}</p>
@@ -242,9 +248,11 @@ export default function SingleInstallmentPage() {
           </div>
         </header>
 
-        <main ref={receiptRef} className="bg-white print:grid print:grid-cols-1 print:gap-8 print-scale-down">
-             <div className="space-y-8">
+        <main ref={receiptRef} className="bg-white print:grid print:grid-cols-2 print:gap-8">
+            <div className="print:border-r print:border-dashed print:border-black print:pr-4">
                 <ReceiptContent order={order} installment={installment} settings={settings} via="Empresa" />
+            </div>
+            <div className="hidden print:block print:pl-4">
                 <ReceiptContent order={order} installment={installment} settings={settings} via="Cliente" />
             </div>
         </main>
@@ -252,4 +260,3 @@ export default function SingleInstallmentPage() {
     </div>
   );
 }
-

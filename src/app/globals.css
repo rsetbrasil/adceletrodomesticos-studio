@@ -75,9 +75,8 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  .print-scale-down {
-    transform: scale(0.7);
-    transform-origin: top left;
-    width: 142.85%; /* 100 / 0.7 */
+  body.print-landscape {
+    /* Forcing landscape is not ideal as it hides browser options.
+       A well-structured grid layout for printing is better. */
   }
 }
