@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -48,7 +49,7 @@ interface CartContextType {
   lastOrder: Order | null;
   setLastOrder: (order: Order) => void;
   orders: Order[];
-  addOrder: (order: Partial<Order>) => Promise<void>;
+  addOrder: (order: Partial<Order>) => Promise<Order | null>;
   deleteOrder: (orderId: string) => Promise<void>;
   permanentlyDeleteOrder: (orderId: string) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
@@ -625,7 +626,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return true; // Indicate success
   };
 
-  const addOrder = async (order: Partial<Order>) => {
+  const addOrder = async (order: Partial<Order>): Promise<Order | null> => {
     try {
         const orderToSave = {
             ...order,
@@ -644,6 +645,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         
         const creator = user ? `por ${user.name}`: 'pelo cliente';
         logAction('Criação de Pedido', `Novo pedido #${orderToSave.id} para ${orderToSave.customer.name} no valor de R$${orderToSave.total?.toFixed(2)} foi criado ${creator}.`, user);
+        return orderToSave;
     } catch(e) {
         console.error("Failed to add order", e);
         // Re-throw to be caught by the form and prevent stock issues
