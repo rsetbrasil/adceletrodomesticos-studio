@@ -12,6 +12,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { usePathname } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
 import { AuditProvider } from '@/context/AuditContext';
+import { cn } from '@/lib/utils';
 
 // This is a new component that wraps the main content
 // It has access to all the contexts defined in the main RootLayout
@@ -19,6 +20,7 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const isSpecialRoute = pathname.startsWith('/carnet') || pathname.startsWith('/login');
   const isAdminRoute = pathname.startsWith('/admin');
+  const isHomePage = pathname === '/';
 
   return (
     <>
@@ -26,9 +28,13 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
         <>{children}</>
       ) : (
         <div className="relative flex min-h-screen flex-col bg-background">
-          <Header />
-          <main className="flex-1 pb-20">{children}</main>
-          <Footer />
+          <header className={cn(isHomePage ? 'hidden md:block' : '')}>
+             <Header />
+          </header>
+          <main className={cn("flex-1", isHomePage ? '' : 'pb-20')}>{children}</main>
+          <footer className={cn(isHomePage ? 'hidden md:block' : '')}>
+            <Footer />
+          </footer>
         </div>
       )}
       <Toaster />
