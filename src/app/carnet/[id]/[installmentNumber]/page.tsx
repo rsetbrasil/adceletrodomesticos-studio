@@ -4,15 +4,12 @@
 import { useParams } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useSettings } from '@/context/SettingsContext';
-import { useMemo, useRef } from 'react';
-import type { Order, Installment } from '@/lib/types';
+import { useMemo, useRef }from 'react';
+import type { Order, Installment, StoreSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Printer, Send, CheckCircle } from 'lucide-react';
-import Logo from '@/components/Logo';
+import { Printer, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { generatePixPayload } from '@/lib/pix';
-import PixQRCode from '@/components/PixQRCode';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
@@ -22,79 +19,108 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-const ReceiptContent = ({ order, installment, settings, pixPayload, className }: { order: Order; installment: Installment; settings: any; pixPayload: string | null; className?: string }) => {
-    const isPaid = installment.status === 'Pago';
-    return (
-         <div className={`bg-background rounded-lg border shadow-sm p-6 break-inside-avoid print:shadow-none print:border-none print:rounded-none print:p-0 ${className}`}>
-               <div className="flex justify-between items-start pb-2 border-b">
-                 <Logo />
-                 <div className="text-right">
-                    <p className="font-bold">Vencimento</p>
-                    <p className="text-lg">{format(new Date(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                 </div>
-               </div>
-               <div className="grid grid-cols-2 gap-4 py-4">
-                   <div>
-                       <p className="text-xs text-muted-foreground">CLIENTE</p>
-                       <p className="font-semibold">{order.customer.name}</p>
-                   </div>
-                   <div>
-                       <p className="text-xs text-muted-foreground">CPF</p>
-                       <p className="font-semibold">{order.customer.cpf}</p>
-                   </div>
-                    <div>
-                       <p className="text-xs text-muted-foreground">Nº DO PEDIDO</p>
-                       <p className="font-mono text-sm">{order.id}</p>
-                   </div>
-                   <div>
-                       <p className="text-xs text-muted-foreground">PARCELA</p>
-                       <p className="font-semibold">{installment.installmentNumber} de {order.installments}</p>
-                   </div>
-                   <div className="col-span-2">
-                        <p className="text-xs text-muted-foreground">VENDEDOR(A)</p>
-                        <p className="font-semibold">{order.sellerName}</p>
-                    </div>
-                    <div className="col-span-2">
-                        <p className="text-xs text-muted-foreground">PRODUTOS</p>
-                        <p className="font-semibold text-sm">{order.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}</p>
-                    </div>
-               </div>
-               <div className="flex justify-between items-end bg-muted/50 rounded p-4 mt-2">
-                    <div>
-                         <p className="text-xs text-muted-foreground">VALOR DO DOCUMENTO</p>
-                         <p className="text-2xl font-bold text-primary">{formatCurrency(installment.amount)}</p>
-                    </div>
-                     {isPaid ? (
-                        <div className="text-right">
-                            <p className="font-bold text-lg text-green-600">PAGO</p>
-                            {installment.paymentDate && (
-                            <p className="text-sm text-foreground">
-                                {format(new Date(installment.paymentDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                            </p>
-                           )}
-                        </div>
-                    ) : (
-                        <p className="text-xs text-muted-foreground">Pagamento em loja ou via PIX</p>
-                    )}
-               </div>
-               <div className="mt-4 border-t pt-2 text-xs text-muted-foreground">
-                    <p>(=) Valor Cobrado: {formatCurrency(installment.amount)}</p>
-               </div>
+// Simple number to currency words converter (Portuguese)
+function numeroParaExtenso(n: number) {
+    const extenso = {
+        '0': 'zero', '1': 'um', '2': 'dois', '3': 'três', '4': 'quatro', '5': 'cinco', '6': 'seis', '7': 'sete', '8': 'oito', '9': 'nove', '10': 'dez',
+        '11': 'onze', '12': 'doze', '13': 'treze', '14': 'catorze', '15': 'quinze', '16': 'dezesseis', '17': 'dezessete', '18': 'dezoito', '19': 'dezenove',
+        '20': 'vinte', '30': 'trinta', '40': 'quarenta', '50': 'cinquenta', '60': 'sessenta', '70': 'setenta', '80': 'oitenta', '90': 'noventa',
+        '100': 'cem', '200': 'duzentos', '300': 'trezentos', '400': 'quatrocentos', '500': 'quinhentos', '600': 'seiscentos', '700': 'setecentos', '800': 'oitocentos', '900': 'novecentos',
+        '1000': 'mil'
+    };
 
-                <div className="break-inside-avoid pt-6">
-                {isPaid ? (
-                    <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-green-600 rounded-lg bg-green-500/10 text-green-700 h-[340px]">
-                    <CheckCircle className="h-12 w-12 mb-4" />
-                    <h2 className="text-xl font-bold">PAGAMENTO CONFIRMADO</h2>
-                    <p className="text-sm">Esta parcela foi liquidada.</p>
-                    </div>
-                ) : (
-                    pixPayload && <PixQRCode payload={pixPayload} />
-                )}
+    const numStr = n.toFixed(2);
+    const [reaisStr, centavosStr] = numStr.split('.');
+    const reais = parseInt(reaisStr);
+    const centavos = parseInt(centavosStr);
+
+    function getExtenso(num: number): string {
+        if (extenso[num]) return extenso[num];
+        if (num > 1000) { // Basic support for thousands
+             const thousands = Math.floor(num / 1000);
+             const remainder = num % 1000;
+             return `${getExtenso(thousands)} mil${remainder > 0 ? ' e ' + getExtenso(remainder) : ''}`;
+        }
+        if (num > 100) {
+            const hundreds = Math.floor(num / 100) * 100;
+            const remainder = num % 100;
+            return `${extenso[hundreds]}${remainder > 0 ? ' e ' + getExtenso(remainder) : ''}`;
+        }
+        if (num > 19) {
+            const tens = Math.floor(num / 10) * 10;
+            const remainder = num % 10;
+            return `${extenso[tens]}${remainder > 0 ? ' e ' + getExtenso(remainder) : ''}`;
+        }
+        return '';
+    }
+
+    let result = '';
+    if (reais > 0) {
+        result += `${getExtenso(reais)} ${reais > 1 ? 'reais' : 'real'}`;
+    }
+    if (centavos > 0) {
+        if (reais > 0) result += ' e ';
+        result += `${getExtenso(centavos)} ${centavos > 1 ? 'centavos' : 'centavo'}`;
+    }
+
+    return result || 'zero reais';
+}
+
+
+const ReceiptContent = ({ order, installment, settings, via }: { order: Order; installment: Installment; settings: StoreSettings; via: 'Empresa' | 'Cliente' }) => {
+    
+    return (
+        <div className="bg-white p-6 break-inside-avoid-page text-black font-mono text-xs">
+            <div className="flex justify-between items-start mb-4">
+                <div>
+                    <p className="font-bold">Empresa: {settings.storeName}</p>
+                    <p>CNPJ: {'00.000.000/0001-00'}</p>
+                </div>
+                <h1 className="font-bold text-lg tracking-wider">RECIBO</h1>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-4 border-y border-black py-2">
+                <div className="space-y-1">
+                    <p>Imóvel: {order.items.map(i => i.name).join(', ')}</p>
+                    <p>Documento: {order.id}</p>
+                    <p>Centro Custo: {'N/A'}</p>
+                    <p>Unidades: {order.items.reduce((acc, i) => acc + i.quantity, 0)}</p>
+                    <p>Vencimento: {format(new Date(installment.dueDate), 'dd/MM/yyyy')}</p>
+                    <p>Valor: {formatCurrency(installment.amount)}</p>
+                    <p>Seguro: R$ 0,00</p>
+                </div>
+                <div className="space-y-1 text-right">
+                    <p>Título/Parcela: {installment.installmentNumber}/{order.installments}</p>
+                    <p>Tipo Parc: {'PM'}</p>
+                    <p>Desconto: R$ 0,00</p>
+                    <p>Líquido: {formatCurrency(installment.amount)}</p>
                 </div>
             </div>
-    )
-}
+
+            <div className="py-4 text-justify">
+                <p>
+                    Recebemos de {order.customer.name.toUpperCase()}, CPF {order.customer.cpf},
+                    a importância supra de {formatCurrency(installment.amount)} ({numeroParaExtenso(installment.amount)}),
+                    referente a sua liquidação (da parcela acima citada).
+                </p>
+            </div>
+            
+            <div className="flex justify-center items-end flex-col">
+                <p>{settings.storeCity}, {format(new Date(installment.paymentDate || new Date()), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+                <div className="border-t border-black w-72 mt-8 pt-1 text-center">
+                    <p>{settings.storeName}</p>
+                </div>
+            </div>
+
+            <div className="flex justify-between items-center mt-12 border-t border-black pt-1">
+                <p>{settings.storeCity}/{order.customer.state}</p>
+                <p className="font-bold">Via {via}</p>
+                <p>Cadastrado em {format(new Date(order.date), "dd/MM/yyyy 'às' HH:mm")}</p>
+            </div>
+        </div>
+    );
+};
+
 
 export default function SingleInstallmentPage() {
   const params = useParams();
@@ -124,21 +150,13 @@ export default function SingleInstallmentPage() {
     return { order: foundOrder, installment: foundInstallment || null };
   }, [isLoading, orders, params.id, params.installmentNumber]);
 
-  const pixPayload = useMemo(() => {
-    if (!order || !installment || installment.status === 'Pago' || !settings.pixKey) return null;
-    
-    const { pixKey, storeName, storeCity } = settings;
-    const txid = `${order.id}-${installment.installmentNumber}`;
-    
-    return generatePixPayload(pixKey, storeName, storeCity, txid, installment.amount);
-  }, [order, installment, settings]);
 
   const handleGeneratePdfAndSend = async () => {
     const input = receiptRef.current;
     if (!input || !order || !installment) return;
 
-    const pdfHiddenElements = input.querySelectorAll('.pdf-hidden');
-    pdfHiddenElements.forEach(el => ((el as HTMLElement).style.display = 'none'));
+    // Temporarily remove print-only styles for canvas rendering
+    input.classList.remove('print:grid', 'print:grid-cols-2', 'print:gap-8', 'print-scale-down');
     
     const canvas = await html2canvas(input, {
         scale: 2, 
@@ -146,12 +164,14 @@ export default function SingleInstallmentPage() {
         backgroundColor: '#ffffff'
     });
 
-    pdfHiddenElements.forEach(el => ((el as HTMLElement).style.display = ''));
+    // Re-add print styles
+    input.classList.add('print:grid', 'print:grid-cols-2', 'print:gap-8', 'print-scale-down');
+
 
     const imgData = canvas.toDataURL('image/png');
     
     const pdf = new jsPDF({
-      orientation: 'landscape',
+      orientation: 'portrait',
       unit: 'mm',
       format: 'a4'
     });
@@ -161,19 +181,19 @@ export default function SingleInstallmentPage() {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
     
-    const contentWidth = pdfWidth - 20; // A4 width minus margins
-    const contentHeight = (canvasHeight * contentWidth) / canvasWidth;
-
-    if (contentHeight > pdfHeight - 20) {
-        toast({ title: "Erro de Layout", description: "O conteúdo é muito grande para caber na página.", variant: "destructive" });
-        return;
+    const ratio = canvasWidth / canvasHeight;
+    let imgWidth = pdfWidth - 20; // with margins
+    let imgHeight = imgWidth / ratio;
+    
+    if(imgHeight > pdfHeight - 20) {
+        imgHeight = pdfHeight - 20;
+        imgWidth = imgHeight * ratio;
     }
 
-    const x = 10;
-    const y = (pdfHeight - contentHeight) / 2;
+    const x = (pdfWidth - imgWidth) / 2;
+    const y = (pdfHeight - imgHeight) / 2;
 
-    pdf.addImage(imgData, 'PNG', x, y, contentWidth, contentHeight);
-
+    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
     pdf.save(`comprovante-${order.id}-${installment.installmentNumber}.pdf`);
 
     const customerName = order.customer.name.split(' ')[0];
@@ -202,14 +222,12 @@ export default function SingleInstallmentPage() {
     );
   }
 
-  const isPaid = installment.status === 'Pago';
-
   return (
     <div className="bg-muted/30 print:bg-white">
       <div className="container mx-auto py-8 px-4 print:max-w-none print:px-0">
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8 print-hidden gap-4">
           <div className="text-center">
-             <h1 className="text-2xl font-bold">{isPaid ? 'Comprovante de Pagamento' : 'Boleto de Parcela'}</h1>
+             <h1 className="text-2xl font-bold">Comprovante de Pagamento</h1>
              <p className="text-muted-foreground">Pedido: {order.id}</p>
           </div>
            <div className="flex gap-2">
@@ -224,11 +242,14 @@ export default function SingleInstallmentPage() {
           </div>
         </header>
 
-        <main ref={receiptRef} className="print:grid print:grid-cols-2 print:gap-8 print-scale-down">
-            <ReceiptContent order={order} installment={installment} settings={settings} pixPayload={pixPayload} />
-            <ReceiptContent order={order} installment={installment} settings={settings} pixPayload={pixPayload} className="hidden print:block"/>
+        <main ref={receiptRef} className="bg-white print:grid print:grid-cols-1 print:gap-8 print-scale-down">
+             <div className="space-y-8">
+                <ReceiptContent order={order} installment={installment} settings={settings} via="Empresa" />
+                <ReceiptContent order={order} installment={installment} settings={settings} via="Cliente" />
+            </div>
         </main>
       </div>
     </div>
   );
 }
+
