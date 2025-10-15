@@ -4,7 +4,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useSettings } from '@/context/SettingsContext';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import type { Order } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer } from 'lucide-react';
@@ -106,6 +106,13 @@ export default function CarnetPage() {
   const { orders, isLoading } = useCart();
   const { settings } = useSettings();
 
+  useEffect(() => {
+    document.body.classList.add('print-landscape');
+    return () => {
+      document.body.classList.remove('print-landscape');
+    };
+  }, []);
+
   const order = useMemo(() => {
     if (isLoading || !orders || !params.id) {
         return null;
@@ -151,7 +158,7 @@ export default function CarnetPage() {
         
         <main className="grid grid-cols-1 print:grid-cols-2 print:gap-8">
             <CarnetContent order={order} settings={settings} />
-            <div className="mt-8 print:mt-0">
+            <div className="mt-8 print:mt-0 print:block hidden">
                 <CarnetContent order={order} settings={settings} />
             </div>
         </main>
@@ -159,3 +166,4 @@ export default function CarnetPage() {
     </div>
   );
 }
+
