@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -74,6 +74,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 export default function CustomersAdminPage() {
   const { orders, updateCustomer, updateInstallmentStatus, updateInstallmentDueDate, updateOrderDetails } = useCart();
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [imageToView, setImageToView] = useState<string | null>(null);
@@ -115,8 +116,17 @@ export default function CustomersAdminPage() {
         }
       }
     });
-    return Array.from(customerMap.values());
-  }, [orders, isClient]);
+
+    const allCustomers = Array.from(customerMap.values());
+    if (!searchQuery) {
+        return allCustomers;
+    }
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return allCustomers.filter(customer => 
+        customer.name.toLowerCase().includes(lowercasedQuery) || 
+        customer.cpf.replace(/\D/g, '').includes(lowercasedQuery)
+    );
+  }, [orders, isClient, searchQuery]);
   
   const customerOrders = useMemo(() => {
       if (!selectedCustomer) return [];
@@ -306,8 +316,22 @@ export default function CustomersAdminPage() {
             <CardDescription>Selecione um cliente para ver os detalhes.</CardDescription>
             </CardHeader>
             <CardContent>
+            <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                    placeholder="Buscar por nome ou CPF..."
+                    className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                    <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearchQuery('')}>
+                        <X className="h-4 w-4" />
+                    </Button>
+                )}
+            </div>
             {customers.length > 0 ? (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-2">
                 {customers.map((customer) => (
                     <Button
                     key={customer.cpf}
@@ -321,7 +345,7 @@ export default function CustomersAdminPage() {
                         </div>
                         <div>
                             <p className="font-semibold">{customer.name}</p>
-                            <p className="text-xs text-muted-foreground">{customer.email}</p>
+                            <p className="text-xs text-muted-foreground">{customer.cpf}</p>
                         </div>
                     </div>
                     </Button>
@@ -331,7 +355,7 @@ export default function CustomersAdminPage() {
                 <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
                     <Users className="mx-auto h-10 w-10" />
                     <h3 className="mt-4 text-md font-semibold">Nenhum cliente encontrado</h3>
-                    <p className="mt-1 text-xs">Os clientes aparecerão aqui após a primeira compra.</p>
+                    <p className="mt-1 text-xs">{searchQuery ? 'Tente uma busca diferente.' : 'Os clientes aparecerão aqui após a primeira compra.'}</p>
                 </div>
             )}
             </CardContent>
@@ -711,3 +735,4 @@ export default function CustomersAdminPage() {
     
 
     
+
