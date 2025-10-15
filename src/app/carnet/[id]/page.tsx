@@ -60,19 +60,19 @@ const CarnetContent = ({ order, settings }: { order: Order; settings: any }) => 
             <table className="w-full text-xs">
                 <thead className="bg-muted/50 print:bg-gray-100">
                     <tr className="border-b">
-                        <th className="p-2 text-left font-medium w-[15%]">Parcela</th>
-                        <th className="p-2 text-left font-medium w-[25%]">Vencimento</th>
-                        <th className="p-2 text-right font-medium w-[25%]">Valor (R$)</th>
-                        <th className="p-2 text-left font-medium w-[35%]">Data do Pagamento</th>
+                        <th className="p-1 text-left font-medium w-[15%]">Parcela</th>
+                        <th className="p-1 text-left font-medium w-[25%]">Vencimento</th>
+                        <th className="p-1 text-right font-medium w-[25%]">Valor (R$)</th>
+                        <th className="p-1 text-left font-medium w-[35%]">Data do Pagamento</th>
                     </tr>
                 </thead>
                 <tbody>
                     {(order.installmentDetails || []).map((installment) => (
                         <tr key={installment.installmentNumber} className="border-b last:border-none">
-                            <td className="p-2 text-center font-medium">{installment.installmentNumber} / {order.installments}</td>
-                            <td className="p-2">{format(new Date(installment.dueDate), 'dd/MM/yyyy')}</td>
-                            <td className="p-2 text-right font-mono">{formatCurrency(installment.amount)}</td>
-                            <td className="p-2 border-l">
+                            <td className="p-1 text-center font-medium">{installment.installmentNumber} / {order.installments}</td>
+                            <td className="p-1">{format(new Date(installment.dueDate), 'dd/MM/yyyy')}</td>
+                            <td className="p-1 text-right font-mono">{formatCurrency(installment.amount)}</td>
+                            <td className="p-1 border-l">
                                 {installment.status === 'Pago' 
                                     ? (installment.paymentDate ? format(new Date(installment.paymentDate), 'dd/MM/yyyy') : 'Pago')
                                     : '___ / ___ / ______'
@@ -83,9 +83,9 @@ const CarnetContent = ({ order, settings }: { order: Order; settings: any }) => 
                 </tbody>
                  <tfoot className="bg-muted/50 print:bg-gray-100 font-bold">
                     <tr className="border-t">
-                        <td colSpan={2} className="p-2 text-right">VALOR TOTAL:</td>
-                        <td className="p-2 text-right font-mono">{formatCurrency(order.total)}</td>
-                        <td className="p-2"></td>
+                        <td colSpan={2} className="p-1 text-right">VALOR TOTAL:</td>
+                        <td className="p-1 text-right font-mono">{formatCurrency(order.total)}</td>
+                        <td className="p-1"></td>
                     </tr>
                 </tfoot>
             </table>
