@@ -13,12 +13,14 @@ export type StoreSettings = {
     storeName: string;
     storeCity: string;
     pixKey: string;
+    storePhone: string;
 };
 
 const initialSettings: StoreSettings = {
     storeName: 'ADC MOVEIS E ELETRO',
     storeCity: 'SAO PAULO',
     pixKey: 'fb43228c-4740-4c16-a217-21706a782496', // Example key
+    storePhone: '5511999999999', // Example phone
 };
 
 interface SettingsContextType {

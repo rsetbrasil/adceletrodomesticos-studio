@@ -13,7 +13,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
-import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock } from 'lucide-react';
+import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock, Phone } from 'lucide-react';
 import type { StoreSettings } from '@/context/SettingsContext';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +28,7 @@ const settingsSchema = z.object({
   storeName: z.string().min(3, 'O nome da loja é obrigatório.'),
   storeCity: z.string().min(3, 'A cidade da loja é obrigatória.'),
   pixKey: z.string().min(1, 'A chave PIX é obrigatória.'),
+  storePhone: z.string().min(10, 'O telefone da loja é obrigatório.'),
 });
 
 export default function ConfiguracaoPage() {
@@ -163,7 +164,7 @@ export default function ConfiguracaoPage() {
               Configurações da Loja
           </CardTitle>
           <CardDescription>
-            Altere as informações da sua loja, como nome e chave PIX para pagamentos.
+            Altere as informações da sua loja, como nome, chave PIX e telefone para notificações.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -204,6 +205,19 @@ export default function ConfiguracaoPage() {
                         <FormLabel>Chave PIX</FormLabel>
                         <FormControl>
                           <Input placeholder="CPF, CNPJ, Email, Telefone ou Chave Aleatória" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="storePhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Telefone da Loja (WhatsApp)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="5511999999999" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

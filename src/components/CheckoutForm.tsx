@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
 import { AlertTriangle, CreditCard, KeyRound } from 'lucide-react';
+import { useSettings } from '@/context/SettingsContext';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -52,6 +53,7 @@ const formatCurrency = (value: number) => {
 
 export default function CheckoutForm() {
   const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, orders, products } = useCart();
+  const { settings } = useSettings();
   const router = useRouter();
   const { toast } = useToast();
   const [isNewCustomer, setIsNewCustomer] = useState(true);
@@ -250,6 +252,14 @@ export default function CheckoutForm() {
             title: "Pedido Realizado com Sucesso!",
             description: `Seu pedido #${orderId} foi confirmado.`,
         });
+
+        // Notify company via WhatsApp
+        if (settings.storePhone) {
+            const storePhone = settings.storePhone.replace(/\D/g, '');
+            const message = `*Novo Pedido Recebido!*\n\n*Pedido:* ${orderId}\n*Cliente:* ${values.name}\n*Total:* ${formatCurrency(total)}`;
+            const whatsappUrl = `https://wa.me/55${storePhone}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        }
     
         router.push(`/order-confirmation/${orderId}`);
     } catch (error) {
@@ -339,4 +349,3 @@ export default function CheckoutForm() {
     </div>
   );
 }
-
