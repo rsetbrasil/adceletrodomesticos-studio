@@ -70,7 +70,7 @@
   .print-hidden {
     display: none !important;
   }
-  body:not(.print-landscape) {
+  body {
     background: white !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -84,25 +84,5 @@
   /* Ensure main layout elements are hidden */
   header, footer {
       display: none !important;
-  }
-  /* Set page margins */
-  @page {
-      size: A4;
-      margin: 15mm;
-  }
-}
-
-@media print {
-  body.print-landscape {
-    background: white !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  
-  .print-landscape {
-    @page {
-      size: A4 landscape;
-      margin: 10mm;
-    }
   }
 }
