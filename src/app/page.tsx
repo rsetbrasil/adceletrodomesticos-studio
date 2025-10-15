@@ -71,7 +71,7 @@ export default function Home() {
         filtered.sort((a, b) => a.price - b.price);
         break;
       case 'price-desc':
-        filtered.sort((a, b) => b.price - a.price);
+        filtered.sort((a, b) => b.price - b.price);
         break;
       case 'newest':
         filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -92,11 +92,11 @@ export default function Home() {
         currentFilters={filters}
       />
       {saleProducts.length > 0 && (
-        <section className="w-full py-8 bg-muted/50">
+        <section className="w-full bg-muted/50 py-8">
            {saleProducts.length === 1 ? (
               // Render single product view, no container to allow full width
               <div className="w-full overflow-hidden">
-                <Card className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 md:gap-10 rounded-none md:rounded-lg max-w-4xl mx-auto">
+                <Card className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 md:gap-10 rounded-none md:rounded-lg mx-auto">
                   <div className="relative w-full md:w-80 h-64 md:h-80 flex-shrink-0">
                     <Badge className="absolute top-2 left-2 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
                         Promoção
