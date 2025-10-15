@@ -106,13 +106,6 @@ export default function CarnetPage() {
   const { orders, isLoading } = useCart();
   const { settings } = useSettings();
 
-  useEffect(() => {
-    document.body.classList.add('print-landscape');
-    return () => {
-      document.body.classList.remove('print-landscape');
-    };
-  }, []);
-
   const order = useMemo(() => {
     if (isLoading || !orders || !params.id) {
         return null;
@@ -140,7 +133,7 @@ export default function CarnetPage() {
 
   return (
     <div className="bg-muted/30 print:bg-white">
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto py-8 px-4 print:max-w-none print:p-8">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -158,7 +151,8 @@ export default function CarnetPage() {
         
         <main className="grid grid-cols-1 print:grid-cols-2 print:gap-8">
             <CarnetContent order={order} settings={settings} />
-            <div className="mt-8 print:mt-0 print:block hidden">
+            {/* This second instance is hidden on screen and only appears for printing */}
+            <div className="hidden print:block">
                 <CarnetContent order={order} settings={settings} />
             </div>
         </main>
@@ -166,4 +160,3 @@ export default function CarnetPage() {
     </div>
   );
 }
-
