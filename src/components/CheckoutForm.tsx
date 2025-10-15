@@ -85,7 +85,7 @@ export default function CheckoutForm() {
     if (!orders) return [];
     const customerMap = new Map<string, CustomerInfo>();
     orders.forEach(order => {
-      if (!customerMap.has(order.customer.cpf)) {
+      if (order.customer.cpf && !customerMap.has(order.customer.cpf)) {
         customerMap.set(order.customer.cpf, order.customer);
       }
     });
@@ -103,6 +103,12 @@ export default function CheckoutForm() {
       };
     });
   }, [cartItems, products]);
+  
+  const maxAllowedInstallments = useMemo(() => {
+    if (cartItemsWithDetails.length === 0) return 1;
+    const maxInstallmentsArray = cartItemsWithDetails.map(item => item.maxInstallments);
+    return Math.min(...maxInstallmentsArray);
+  }, [cartItemsWithDetails]);
 
   const isCartValid = cartItemsWithDetails.every(item => item.hasEnoughStock);
 
@@ -188,7 +194,7 @@ export default function CheckoutForm() {
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     
-    const customerData: CustomerInfo = {
+    const customerData: Omit<CustomerInfo, 'password'> = {
       name: values.name,
       cpf: values.cpf,
       phone: values.phone,
@@ -202,8 +208,9 @@ export default function CheckoutForm() {
       state: values.state,
     };
     
+    let fullCustomerData: CustomerInfo = { ...customerData };
     if (isNewCustomer) {
-        customerData.password = values.cpf.replace(/\D/g, '').substring(0, 6);
+        fullCustomerData.password = values.cpf.replace(/\D/g, '').substring(0, 6);
     }
 
     const lastOrderNumber = orders
@@ -232,7 +239,7 @@ export default function CheckoutForm() {
 
     const order: Partial<Order> = {
       id: orderId,
-      customer: customerData,
+      customer: fullCustomerData,
       items: cartItems.map(({ ...item }) => item), // Create a plain object without methods
       total,
       installments: finalInstallments,
@@ -256,7 +263,18 @@ export default function CheckoutForm() {
         // Notify company via WhatsApp
         if (settings.storePhone) {
             const storePhone = settings.storePhone.replace(/\D/g, '');
-            const message = `*Novo Pedido Recebido!*\n\n*Pedido:* ${orderId}\n*Cliente:* ${values.name}\n*Total:* ${formatCurrency(total)}`;
+            const productNames = cartItemsWithDetails.map(item => item.name).join(', ');
+            
+            const messageParts = [
+                `*Novo Pedido Recebido!*`,
+                `*Pedido:* ${orderId}`,
+                `*Cliente:* ${values.name}`,
+                `*Produtos:* ${productNames}`,
+                `*Total:* ${formatCurrency(total)}`,
+                `*Parcelamento Máximo:* Até ${maxAllowedInstallments}x`
+            ];
+
+            const message = messageParts.join('\n');
             const whatsappUrl = `https://wa.me/55${storePhone}?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
         }
