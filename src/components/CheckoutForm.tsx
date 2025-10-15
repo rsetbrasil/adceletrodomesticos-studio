@@ -188,9 +188,22 @@ export default function CheckoutForm() {
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     
-    let customerPassword = undefined;
+    const customerData: CustomerInfo = {
+      name: values.name,
+      cpf: values.cpf,
+      phone: values.phone,
+      email: values.email,
+      zip: values.zip,
+      address: values.address,
+      number: values.number,
+      complement: values.complement,
+      neighborhood: values.neighborhood,
+      city: values.city,
+      state: values.state,
+    };
+    
     if (isNewCustomer) {
-        customerPassword = values.cpf.replace(/\D/g, '').substring(0, 6);
+        customerData.password = values.cpf.replace(/\D/g, '').substring(0, 6);
     }
 
     const lastOrderNumber = orders
@@ -219,20 +232,7 @@ export default function CheckoutForm() {
 
     const order: Partial<Order> = {
       id: orderId,
-      customer: {
-        name: values.name,
-        cpf: values.cpf,
-        phone: values.phone,
-        email: values.email,
-        zip: values.zip,
-        address: values.address,
-        number: values.number,
-        complement: values.complement,
-        neighborhood: values.neighborhood,
-        city: values.city,
-        state: values.state,
-        password: customerPassword
-      },
+      customer: customerData,
       items: cartItems.map(({ ...item }) => item), // Create a plain object without methods
       total,
       installments: finalInstallments,
