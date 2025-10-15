@@ -277,20 +277,8 @@ export default function CheckoutForm() {
             const message = messageParts.join('\n');
             const encodedMessage = encodeURIComponent(message);
             
-            // This is a common trick to try opening the app first, and falling back to the web version.
-            const appUrl = `whatsapp://send?phone=55${storePhone}&text=${encodedMessage}`;
             const webUrl = `https://wa.me/55${storePhone}?text=${encodedMessage}`;
-
-            // Try to open the app link. After a short delay, redirect to the web link if the app didn't open.
-            const timeout = setTimeout(() => {
-                window.location.href = webUrl;
-            }, 500);
-
-            window.addEventListener('blur', () => {
-                clearTimeout(timeout);
-            });
-            
-            window.location.href = appUrl;
+            window.open(webUrl, '_blank');
         }
     
         router.push(`/order-confirmation/${orderId}`);
