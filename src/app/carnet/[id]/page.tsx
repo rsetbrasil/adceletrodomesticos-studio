@@ -133,7 +133,7 @@ export default function CarnetPage() {
 
   return (
     <div className="bg-muted/30 print:bg-white">
-      <div className="container mx-auto py-8 px-4 print:max-w-none print:p-8">
+      <div className="container mx-auto py-8 px-4 print:max-w-none print:px-8">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -149,7 +149,7 @@ export default function CarnetPage() {
           </Button>
         </header>
         
-        <main className="grid grid-cols-1 print:grid-cols-2 print:gap-8">
+        <main className="grid grid-cols-1 print:grid-cols-2 print:gap-8 print-scale-down">
             <CarnetContent order={order} settings={settings} />
             {/* This second instance is hidden on screen and only appears for printing */}
             <div className="hidden print:block">
