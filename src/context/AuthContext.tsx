@@ -9,7 +9,7 @@ import type { User } from '@/lib/types';
 import { initialUsers } from '@/lib/users';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where, getDoc, onSnapshot } from 'firebase/firestore';
-import { AuditProvider, useAudit } from './AuditContext';
+import { useAudit } from './AuditContext';
 
 interface AuthContextType {
   user: User | null;
@@ -273,12 +273,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
-
-export const AuthProviderWithAudit = ({ children }: { children: ReactNode }) => {
-    return (
-        <AuditProvider>
-            <AuthProvider>{children}</AuthProvider>
-        </AuditProvider>
-    );
 };
