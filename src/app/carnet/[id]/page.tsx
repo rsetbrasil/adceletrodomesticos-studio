@@ -17,6 +17,89 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
+const CarnetContent = ({ order, settings }: { order: Order; settings: any }) => (
+    <div className="bg-background rounded-lg border shadow-sm p-8 break-inside-avoid print:shadow-none print:border-none print:rounded-none print:p-0">
+        <div className="flex justify-between items-start pb-4 border-b">
+             <div className="flex items-center gap-6">
+                <Logo />
+                <div>
+                    <p className="font-bold text-lg">{settings.storeName}</p>
+                    <p className="text-sm text-muted-foreground">CNPJ/Endereço da loja aqui se necessário</p>
+                </div>
+             </div>
+             <div className="text-right">
+                <p className="font-semibold">Pedido Nº</p>
+                <p className="font-mono text-lg">{order.id}</p>
+             </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-6 text-sm">
+            <div>
+                <p className="text-xs text-muted-foreground">CLIENTE</p>
+                <p className="font-semibold">{order.customer.name}</p>
+            </div>
+             <div>
+                <p className="text-xs text-muted-foreground">CPF</p>
+                <p className="font-semibold">{order.customer.cpf}</p>
+            </div>
+             <div>
+                <p className="text-xs text-muted-foreground">DATA DA COMPRA</p>
+                <p className="font-semibold">{format(new Date(order.date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+            </div>
+            <div>
+                <p className="text-xs text-muted-foreground">VENDEDOR(A)</p>
+                <p className="font-semibold">{order.sellerName}</p>
+            </div>
+             <div className="col-span-2">
+                <p className="text-xs text-muted-foreground">PRODUTOS</p>
+                <p className="font-semibold">{order.items.map(item => item.name).join(', ')}</p>
+            </div>
+        </div>
+
+        <div className="border rounded-md">
+            <table className="w-full text-sm">
+                <thead className="bg-muted/50 print:bg-gray-100">
+                    <tr className="border-b">
+                        <th className="p-2 text-center font-medium w-1/6">Parcela</th>
+                        <th className="p-2 text-center font-medium w-1/4">Vencimento</th>
+                        <th className="p-2 text-right font-medium w-1/4">Valor (R$)</th>
+                        <th className="p-2 text-center font-medium w-1/3">Data do Pagamento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {(order.installmentDetails || []).map((installment) => (
+                        <tr key={installment.installmentNumber} className="border-b last:border-none">
+                            <td className="p-3 text-center font-medium">{installment.installmentNumber} / {order.installments}</td>
+                            <td className="p-3 text-center">{format(new Date(installment.dueDate), 'dd/MM/yyyy')}</td>
+                            <td className="p-3 text-right font-mono">{formatCurrency(installment.amount)}</td>
+                            <td className="p-3 text-center border-l">
+                                {installment.status === 'Pago' 
+                                    ? (installment.paymentDate ? format(new Date(installment.paymentDate), 'dd/MM/yyyy') : 'Pago')
+                                    : '___ / ___ / ______'
+                                }
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+                 <tfoot className="bg-muted/50 print:bg-gray-100">
+                    <tr className="border-t">
+                        <td colSpan={2} className="p-3 text-right font-bold">VALOR TOTAL:</td>
+                        <td className="p-3 text-right font-bold font-mono">{formatCurrency(order.total)}</td>
+                        <td className="p-3"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div className="mt-8 text-xs text-muted-foreground">
+            <p>Observações:</p>
+            <p>1. O pagamento pode ser realizado na loja ou via PIX (solicite o código ao vendedor).</p>
+            <p>2. Em caso de atraso, juros e multas podem ser aplicados.</p>
+        </div>
+    </div>
+);
+
+
 export default function CarnetPage() {
   const params = useParams();
   const router = useRouter();
@@ -65,84 +148,11 @@ export default function CarnetPage() {
             Imprimir Carnê
           </Button>
         </header>
-
-        <main className="bg-background rounded-lg border shadow-sm p-8 break-inside-avoid">
-            <div className="flex justify-between items-start pb-4 border-b">
-                 <div className="flex items-center gap-6">
-                    <Logo />
-                    <div>
-                        <p className="font-bold text-lg">{settings.storeName}</p>
-                        <p className="text-sm text-muted-foreground">CNPJ/Endereço da loja aqui se necessário</p>
-                    </div>
-                 </div>
-                 <div className="text-right">
-                    <p className="font-semibold">Pedido Nº</p>
-                    <p className="font-mono text-lg">{order.id}</p>
-                 </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-6 text-sm">
-                <div>
-                    <p className="text-xs text-muted-foreground">CLIENTE</p>
-                    <p className="font-semibold">{order.customer.name}</p>
-                </div>
-                 <div>
-                    <p className="text-xs text-muted-foreground">CPF</p>
-                    <p className="font-semibold">{order.customer.cpf}</p>
-                </div>
-                 <div>
-                    <p className="text-xs text-muted-foreground">DATA DA COMPRA</p>
-                    <p className="font-semibold">{format(new Date(order.date), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                </div>
-                <div>
-                    <p className="text-xs text-muted-foreground">VENDEDOR(A)</p>
-                    <p className="font-semibold">{order.sellerName}</p>
-                </div>
-                 <div className="col-span-2">
-                    <p className="text-xs text-muted-foreground">PRODUTOS</p>
-                    <p className="font-semibold">{order.items.map(item => item.name).join(', ')}</p>
-                </div>
-            </div>
-
-            <div className="border rounded-md">
-                <table className="w-full text-sm">
-                    <thead className="bg-muted/50">
-                        <tr className="border-b">
-                            <th className="p-2 text-center font-medium w-1/6">Parcela</th>
-                            <th className="p-2 text-center font-medium w-1/4">Vencimento</th>
-                            <th className="p-2 text-right font-medium w-1/4">Valor (R$)</th>
-                            <th className="p-2 text-center font-medium w-1/3">Data do Pagamento</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {(order.installmentDetails || []).map((installment) => (
-                            <tr key={installment.installmentNumber} className="border-b last:border-none">
-                                <td className="p-3 text-center font-medium">{installment.installmentNumber} / {order.installments}</td>
-                                <td className="p-3 text-center">{format(new Date(installment.dueDate), 'dd/MM/yyyy')}</td>
-                                <td className="p-3 text-right font-mono">{formatCurrency(installment.amount)}</td>
-                                <td className="p-3 text-center border-l">
-                                    {installment.status === 'Pago' 
-                                        ? (installment.paymentDate ? format(new Date(installment.paymentDate), 'dd/MM/yyyy') : 'Pago')
-                                        : '___ / ___ / ______'
-                                    }
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                     <tfoot className="bg-muted/50">
-                        <tr className="border-t">
-                            <td colSpan={2} className="p-3 text-right font-bold">VALOR TOTAL:</td>
-                            <td className="p-3 text-right font-bold font-mono">{formatCurrency(order.total)}</td>
-                            <td className="p-3"></td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-
-            <div className="mt-8 text-xs text-muted-foreground">
-                <p>Observações:</p>
-                <p>1. O pagamento pode ser realizado na loja ou via PIX (solicite o código ao vendedor).</p>
-                <p>2. Em caso de atraso, juros e multas podem ser aplicados.</p>
+        
+        <main className="space-y-8">
+            <CarnetContent order={order} settings={settings} />
+            <div className="hidden print:block pt-8 border-t-2 border-dashed">
+                <CarnetContent order={order} settings={settings} />
             </div>
         </main>
       </div>
