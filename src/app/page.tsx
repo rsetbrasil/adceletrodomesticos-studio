@@ -97,8 +97,8 @@ export default function Home() {
             {saleProducts.length === 1 ? (
               // Render single product view
               <Card className="overflow-hidden">
-                <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 gap-6">
-                  <div className="relative w-64 h-64 flex-shrink-0">
+                <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 md:gap-10">
+                  <div className="relative w-full md:w-80 h-64 md:h-80 flex-shrink-0">
                     <Badge className="absolute top-2 left-2 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
                         Promoção
                     </Badge>
@@ -107,7 +107,7 @@ export default function Home() {
                       alt={saleProducts[0].name}
                       fill
                       className="object-contain"
-                      sizes="50vw"
+                      sizes="(max-width: 768px) 90vw, 50vw"
                     />
                   </div>
                   <div className="flex flex-col text-center md:text-left max-w-md">
