@@ -37,7 +37,7 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
                     variant={currentFilters.category === cat.name ? 'secondary' : 'outline'}
                     size="sm"
                     onClick={() => handleCategoryClick(cat.name)}
-                    className="text-xs px-2 flex-1 flex-shrink-0 capitalize whitespace-nowrap h-9"
+                    className="text-xs px-2 flex-shrink-0 capitalize whitespace-nowrap h-9"
                 >
                     {cat.name}
                 </Button>
