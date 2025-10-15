@@ -92,11 +92,11 @@ export default function Home() {
         currentFilters={filters}
       />
       {saleProducts.length > 0 && (
-        <section className="w-full bg-muted/50 py-8">
+        <section className="w-full bg-muted/50">
           {saleProducts.length === 1 ? (
-             <div className="container mx-auto">
-               <Card className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 md:gap-10 h-[60vh]">
-                 <div className="relative w-full md:w-80 h-64 md:h-80 flex-shrink-0">
+             <div className="container mx-auto py-8">
+               <Card className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 md:gap-10">
+                 <div className="relative w-full h-60 md:w-80 md:h-80 flex-shrink-0">
                    <Badge className="absolute top-2 left-2 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
                        Promoção
                    </Badge>
@@ -119,8 +119,7 @@ export default function Home() {
                </Card>
              </div>
             ) : (
-              // Render carousel for multiple products, with container
-            <div className="container mx-auto">
+            <div className="container mx-auto py-8">
               <Carousel
                 opts={{
                   align: "start",
