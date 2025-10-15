@@ -11,8 +11,6 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { generatePixPayload } from '@/lib/pix';
-import PixQRCode from '@/components/PixQRCode';
 
 const formatCurrency = (value: number) => {
   if (typeof value !== 'number') return 'R$ 0,00';
@@ -52,11 +50,11 @@ export default function CarnetPage() {
 
   return (
     <div className="bg-muted/30 print:bg-white">
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar ao Painel
+            Voltar
           </Button>
           <div className="text-center">
              <h1 className="text-2xl font-bold">Carnê de Pagamento</h1>
@@ -64,75 +62,90 @@ export default function CarnetPage() {
           </div>
           <Button onClick={() => window.print()}>
             <Printer className="mr-2 h-4 w-4" />
-            Imprimir
+            Imprimir Carnê
           </Button>
         </header>
 
-        <main className="grid grid-cols-1 md:grid-cols-2 gap-8 print:grid-cols-1 print:gap-8">
-          {(order.installmentDetails || []).map((installment) => {
-             const pixPayload = generatePixPayload(
-              settings.pixKey,
-              settings.storeName,
-              settings.storeCity,
-              `${order.id}-${installment.installmentNumber}`,
-              installment.amount
-            );
-
-            return (
-              <div key={installment.installmentNumber} className="bg-background rounded-lg border shadow-sm p-4 break-inside-avoid">
-                <div className="flex justify-between items-start pb-2 border-b">
-                  <Logo />
-                  <div className="text-right">
-                      <p className="font-bold">Vencimento</p>
-                      <p className="text-lg">{format(new Date(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 py-4">
+        <main className="bg-background rounded-lg border shadow-sm p-8 break-inside-avoid">
+            <div className="flex justify-between items-start pb-4 border-b">
+                 <div className="flex items-center gap-6">
+                    <Logo />
                     <div>
-                        <p className="text-xs text-muted-foreground">CLIENTE</p>
-                        <p className="font-semibold">{order.customer.name}</p>
+                        <p className="font-bold text-lg">{settings.storeName}</p>
+                        <p className="text-sm text-muted-foreground">CNPJ/Endereço da loja aqui se necessário</p>
                     </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground">CPF</p>
-                        <p className="font-semibold">{order.customer.cpf}</p>
-                    </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Nº DO PEDIDO</p>
-                        <p className="font-mono text-sm">{order.id}</p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground">PARCELA</p>
-                        <p className="font-semibold">{installment.installmentNumber} de {order.installments}</p>
-                    </div>
-                    <div className="col-span-2">
-                        <p className="text-xs text-muted-foreground">VENDEDOR(A)</p>
-                        <p className="font-semibold">{order.sellerName}</p>
-                    </div>
-                    <div className="col-span-2">
-                        <p className="text-xs text-muted-foreground">PRODUTOS</p>
-                        <p className="font-semibold text-sm">{order.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}</p>
-                    </div>
-                </div>
-                <div className="flex justify-between items-end bg-muted/50 rounded p-4 mt-2">
-                      <div>
-                          <p className="text-xs text-muted-foreground">VALOR DO DOCUMENTO</p>
-                          <p className="text-2xl font-bold text-primary">{formatCurrency(installment.amount)}</p>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Pagamento em loja ou via PIX</p>
-                </div>
-                <div className="mt-4 border-t pt-2 text-xs text-muted-foreground">
-                      <p>(=) Valor Cobrado: {formatCurrency(installment.amount)}</p>
-                </div>
-                 <div className="mt-6">
-                    <PixQRCode payload={pixPayload} />
                  </div>
-              </div>
-            );
-          })}
+                 <div className="text-right">
+                    <p className="font-semibold">Pedido Nº</p>
+                    <p className="font-mono text-lg">{order.id}</p>
+                 </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-6 text-sm">
+                <div>
+                    <p className="text-xs text-muted-foreground">CLIENTE</p>
+                    <p className="font-semibold">{order.customer.name}</p>
+                </div>
+                 <div>
+                    <p className="text-xs text-muted-foreground">CPF</p>
+                    <p className="font-semibold">{order.customer.cpf}</p>
+                </div>
+                 <div>
+                    <p className="text-xs text-muted-foreground">DATA DA COMPRA</p>
+                    <p className="font-semibold">{format(new Date(order.date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                </div>
+                <div>
+                    <p className="text-xs text-muted-foreground">VENDEDOR(A)</p>
+                    <p className="font-semibold">{order.sellerName}</p>
+                </div>
+                 <div className="col-span-2">
+                    <p className="text-xs text-muted-foreground">PRODUTOS</p>
+                    <p className="font-semibold">{order.items.map(item => item.name).join(', ')}</p>
+                </div>
+            </div>
+
+            <div className="border rounded-md">
+                <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                        <tr className="border-b">
+                            <th className="p-2 text-center font-medium w-1/6">Parcela</th>
+                            <th className="p-2 text-center font-medium w-1/4">Vencimento</th>
+                            <th className="p-2 text-right font-medium w-1/4">Valor (R$)</th>
+                            <th className="p-2 text-center font-medium w-1/3">Data do Pagamento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {(order.installmentDetails || []).map((installment) => (
+                            <tr key={installment.installmentNumber} className="border-b last:border-none">
+                                <td className="p-3 text-center font-medium">{installment.installmentNumber} / {order.installments}</td>
+                                <td className="p-3 text-center">{format(new Date(installment.dueDate), 'dd/MM/yyyy')}</td>
+                                <td className="p-3 text-right font-mono">{formatCurrency(installment.amount)}</td>
+                                <td className="p-3 text-center border-l">
+                                    {installment.status === 'Pago' 
+                                        ? (installment.paymentDate ? format(new Date(installment.paymentDate), 'dd/MM/yyyy') : 'Pago')
+                                        : '___ / ___ / ______'
+                                    }
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                     <tfoot className="bg-muted/50">
+                        <tr className="border-t">
+                            <td colSpan={2} className="p-3 text-right font-bold">VALOR TOTAL:</td>
+                            <td className="p-3 text-right font-bold font-mono">{formatCurrency(order.total)}</td>
+                            <td className="p-3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div className="mt-8 text-xs text-muted-foreground">
+                <p>Observações:</p>
+                <p>1. O pagamento pode ser realizado na loja ou via PIX (solicite o código ao vendedor).</p>
+                <p>2. Em caso de atraso, juros e multas podem ser aplicados.</p>
+            </div>
         </main>
       </div>
     </div>
   );
 }
-
-    
