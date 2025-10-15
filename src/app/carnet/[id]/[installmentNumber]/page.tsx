@@ -22,10 +22,10 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-const ReceiptContent = ({ order, installment, settings, pixPayload }: { order: Order; installment: Installment; settings: any; pixPayload: string | null }) => {
+const ReceiptContent = ({ order, installment, settings, pixPayload, className }: { order: Order; installment: Installment; settings: any; pixPayload: string | null; className?: string }) => {
     const isPaid = installment.status === 'Pago';
     return (
-         <div className="bg-background rounded-lg border shadow-sm p-6 break-inside-avoid print:shadow-none print:border-none print:rounded-none print:p-0">
+         <div className={`bg-background rounded-lg border shadow-sm p-6 break-inside-avoid print:shadow-none print:border-none print:rounded-none print:p-0 ${className}`}>
                <div className="flex justify-between items-start pb-2 border-b">
                  <Logo />
                  <div className="text-right">
@@ -226,10 +226,7 @@ export default function SingleInstallmentPage() {
 
         <main ref={receiptRef} className="print:grid print:grid-cols-2 print:gap-8 print-scale-down">
             <ReceiptContent order={order} installment={installment} settings={settings} pixPayload={pixPayload} />
-            {/* This second instance is hidden on screen and only appears for printing */}
-            <div className="hidden print:block">
-                <ReceiptContent order={order} installment={installment} settings={settings} pixPayload={pixPayload} />
-            </div>
+            <ReceiptContent order={order} installment={installment} settings={settings} pixPayload={pixPayload} className="hidden print:block"/>
         </main>
       </div>
     </div>

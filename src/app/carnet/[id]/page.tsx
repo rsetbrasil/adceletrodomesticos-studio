@@ -149,12 +149,9 @@ export default function CarnetPage() {
           </Button>
         </header>
         
-        <main className="grid grid-cols-1 print:grid-cols-2 print:gap-8 print-scale-down">
+        <main className="print:grid print:grid-cols-2 print:gap-8 print-scale-down">
             <CarnetContent order={order} settings={settings} />
-            {/* This second instance is hidden on screen and only appears for printing */}
-            <div className="hidden print:block">
-                <CarnetContent order={order} settings={settings} />
-            </div>
+            <CarnetContent order={order} settings={settings} className="hidden print:block" />
         </main>
       </div>
     </div>
