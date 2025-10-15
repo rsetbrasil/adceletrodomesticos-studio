@@ -96,7 +96,7 @@ export default function Home() {
            {saleProducts.length === 1 ? (
               // Render single product view, no container to allow full width
               <div className="w-full overflow-hidden">
-                <Card className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 md:gap-10 rounded-none min-h-screen border-none">
+                <Card className="flex flex-col md:flex-row items-center justify-center p-6 gap-6 md:gap-10 rounded-none h-[75vh] md:min-h-screen border-none">
                   <div className="relative w-full md:w-80 h-64 md:h-80 flex-shrink-0">
                     <Badge className="absolute top-2 left-2 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
                         Promoção
