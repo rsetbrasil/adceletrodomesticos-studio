@@ -23,7 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CreditCard } from 'lucide-react';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -88,31 +88,19 @@ export default function CheckoutForm() {
     return Array.from(customerMap.values());
   }, [orders]);
   
-  const cartItemsWithStock = useMemo(() => {
+  const cartItemsWithDetails = useMemo(() => {
     return cartItems.map(item => {
       const productInfo = products.find(p => p.id === item.id);
       return {
         ...item,
         stock: productInfo?.stock ?? 0,
         hasEnoughStock: (productInfo?.stock ?? 0) >= item.quantity,
+        maxInstallments: productInfo?.maxInstallments ?? 1,
       };
     });
   }, [cartItems, products]);
 
-  const isCartValid = cartItemsWithStock.every(item => item.hasEnoughStock);
-
-  const maxAllowedInstallments = useMemo(() => {
-    if (cartItems.length === 0) return 10;
-    
-    const productIdsInCart = cartItems.map(item => item.id);
-    const cartProducts = products.filter(p => productIdsInCart.includes(p.id));
-
-    if (cartProducts.length === 0) return 10;
-
-    const maxInstallmentsArray = cartProducts.map(p => p.maxInstallments ?? 10);
-    return Math.min(...maxInstallmentsArray);
-  }, [cartItems, products]);
-
+  const isCartValid = cartItemsWithDetails.every(item => item.hasEnoughStock);
 
   const handleCpfBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const cpf = e.target.value.replace(/\D/g, '');
@@ -267,8 +255,8 @@ export default function CheckoutForm() {
       <div>
         <h3 className="text-xl font-semibold mb-4 font-headline">Resumo do Pedido</h3>
         <div className="space-y-4">
-          {cartItemsWithStock.map((item) => (
-            <div key={item.id} className="flex items-center justify-between">
+          {cartItemsWithDetails.map((item) => (
+            <div key={item.id} className="flex items-start justify-between">
               <div className="flex items-center gap-4">
                 <div className="relative h-16 w-16 rounded-md overflow-hidden">
                   <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
@@ -276,6 +264,7 @@ export default function CheckoutForm() {
                 <div>
                   <p className="font-semibold">{item.name}</p>
                   <p className="text-sm text-muted-foreground">Qtd: {item.quantity}</p>
+                  <p className="text-xs text-accent font-semibold">(em até {item.maxInstallments}x)</p>
                    {!item.hasEnoughStock && (
                       <div className="flex items-center gap-1 text-xs text-destructive mt-1">
                           <AlertTriangle className="h-3 w-3" />
@@ -293,9 +282,9 @@ export default function CheckoutForm() {
             <span>{formatCurrency(total)}</span>
           </div>
            <div className="mt-4 p-4 bg-muted rounded-lg text-center">
-              <p className="font-bold text-md text-accent">Pagamento via Crediário</p>
-              <p className="text-sm text-muted-foreground">
-                Em até <span className="font-bold">{maxAllowedInstallments}x</span> sem juros no crediário. O vendedor definirá as condições com você.
+              <p className="font-bold text-md text-accent flex items-center justify-center gap-2"><CreditCard /> Pagamento via Crediário</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                O vendedor definirá as condições de parcelamento com você após a finalização do pedido.
               </p>
             </div>
         </div>
