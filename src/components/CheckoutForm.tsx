@@ -101,6 +101,18 @@ export default function CheckoutForm() {
 
   const isCartValid = cartItemsWithStock.every(item => item.hasEnoughStock);
 
+  const maxAllowedInstallments = useMemo(() => {
+    if (cartItems.length === 0) return 10;
+    
+    const productIdsInCart = cartItems.map(item => item.id);
+    const cartProducts = products.filter(p => productIdsInCart.includes(p.id));
+
+    if (cartProducts.length === 0) return 10;
+
+    const maxInstallmentsArray = cartProducts.map(p => p.maxInstallments ?? 10);
+    return Math.min(...maxInstallmentsArray);
+  }, [cartItems, products]);
+
 
   const handleCpfBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const cpf = e.target.value.replace(/\D/g, '');
@@ -282,7 +294,9 @@ export default function CheckoutForm() {
           </div>
            <div className="mt-4 p-4 bg-muted rounded-lg text-center">
               <p className="font-bold text-md text-accent">Pagamento via Crediário</p>
-              <p className="text-sm text-muted-foreground">O vendedor definirá o número de parcelas com você.</p>
+              <p className="text-sm text-muted-foreground">
+                Em até <span className="font-bold">{maxAllowedInstallments}x</span> sem juros no crediário. O vendedor definirá as condições com você.
+              </p>
             </div>
         </div>
       </div>
