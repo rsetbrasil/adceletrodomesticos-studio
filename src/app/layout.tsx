@@ -4,6 +4,7 @@
 
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
+import { CustomerAuthProvider } from '@/context/CustomerAuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { SettingsProvider } from '@/context/SettingsContext';
 import { PermissionsProvider } from '@/context/PermissionsContext';
@@ -19,7 +20,7 @@ import { cn } from '@/lib/utils';
 // It has access to all the contexts defined in the main RootLayout
 const AppContent = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
-  const isSpecialRoute = pathname.startsWith('/carnet') || pathname.startsWith('/login');
+  const isSpecialRoute = pathname.startsWith('/carnet') || pathname.startsWith('/login') || pathname.startsWith('/area-cliente');
   const isAdminRoute = pathname.startsWith('/admin');
   const isHomePage = pathname === '/';
 
@@ -102,7 +103,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID="SEU_APP_ID"`}
             <PermissionsProvider>
               <SettingsProvider>
                 <CartProvider>
-                  <AppContent>{children}</AppContent>
+                    <CustomerAuthProvider>
+                        <AppContent>{children}</AppContent>
+                    </CustomerAuthProvider>
                 </CartProvider>
               </SettingsProvider>
             </PermissionsProvider>

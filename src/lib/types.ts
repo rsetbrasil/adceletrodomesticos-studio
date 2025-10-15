@@ -46,6 +46,7 @@ export type CustomerInfo = {
   neighborhood: string;
   city: string;
   state: string;
+  password?: string;
 };
 
 export type Installment = {

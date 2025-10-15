@@ -17,13 +17,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
-import { AlertTriangle, CreditCard } from 'lucide-react';
+import { AlertTriangle, CreditCard, KeyRound } from 'lucide-react';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -43,7 +43,20 @@ const checkoutSchema = z.object({
   neighborhood: z.string().min(2, 'Bairro é obrigatório.'),
   city: z.string().min(2, 'Cidade é obrigatória.'),
   state: z.string().min(2, 'Estado é obrigatório.'),
+  password: z.string().optional(),
+  confirmPassword: z.string().optional(),
+}).refine(data => {
+    // Only validate password if it's provided (for new customers)
+    if (data.password) {
+        if (data.password.length < 6) return false;
+        return data.password === data.confirmPassword;
+    }
+    return true;
+}, {
+    message: "As senhas não correspondem ou são muito curtas (mínimo 6 caracteres).",
+    path: ["confirmPassword"],
 });
+
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -53,6 +66,7 @@ export default function CheckoutForm() {
   const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, orders, products } = useCart();
   const router = useRouter();
   const { toast } = useToast();
+  const [isNewCustomer, setIsNewCustomer] = useState(true);
   
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -68,6 +82,8 @@ export default function CheckoutForm() {
       neighborhood: '',
       city: 'Fortaleza',
       state: 'CE',
+      password: '',
+      confirmPassword: '',
     },
   });
 
@@ -107,8 +123,9 @@ export default function CheckoutForm() {
     if (cpf.length === 11) {
       const foundCustomer = customers.find(c => c.cpf.replace(/\D/g, '') === cpf);
       if (foundCustomer) {
+        setIsNewCustomer(!foundCustomer.password);
         form.reset({
-          ...form.getValues(), // keep payment method and installments
+          ...form.getValues(),
           name: foundCustomer.name,
           cpf: foundCustomer.cpf,
           phone: foundCustomer.phone,
@@ -120,11 +137,15 @@ export default function CheckoutForm() {
           neighborhood: foundCustomer.neighborhood,
           city: foundCustomer.city,
           state: foundCustomer.state,
+          password: '',
+          confirmPassword: '',
         });
         toast({
           title: "Cliente Encontrado!",
           description: "Seus dados foram preenchidos automaticamente.",
         });
+      } else {
+        setIsNewCustomer(true);
       }
     }
   };
@@ -180,6 +201,11 @@ export default function CheckoutForm() {
   }
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
+    if (isNewCustomer && (!values.password || values.password.length < 6)) {
+        form.setError("password", { type: "manual", message: "Para novos clientes, a senha é obrigatória e deve ter no mínimo 6 caracteres." });
+        return;
+    }
+
     const lastOrderNumber = orders
       .map(o => {
           if (!o.id.startsWith('PED-')) return 0;
@@ -218,8 +244,9 @@ export default function CheckoutForm() {
         neighborhood: values.neighborhood,
         city: values.city,
         state: values.state,
+        password: values.password || undefined
       },
-      items: cartItems,
+      items: cartItems.map(({ ...item }) => item), // Create a plain object without methods
       total,
       installments: finalInstallments,
       installmentValue: finalInstallmentValue,
@@ -264,7 +291,7 @@ export default function CheckoutForm() {
                 <div>
                   <p className="font-semibold">{item.name}</p>
                   <p className="text-sm text-muted-foreground">Qtd: {item.quantity}</p>
-                  <p className="text-xs text-accent font-semibold">(em até {item.maxInstallments}x)</p>
+                   <p className="text-xs text-accent font-semibold">(em até {item.maxInstallments}x)</p>
                    {!item.hasEnoughStock && (
                       <div className="flex items-center gap-1 text-xs text-destructive mt-1">
                           <AlertTriangle className="h-3 w-3" />
@@ -301,6 +328,15 @@ export default function CheckoutForm() {
                     <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="seu@email.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
+                {isNewCustomer && (
+                    <div className="space-y-4 p-4 border rounded-lg bg-muted/50 mt-4">
+                         <h4 className="text-lg font-semibold flex items-center gap-2"><KeyRound/> Crie sua Senha de Acesso</h4>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <FormField control={form.control} name="password" render={({ field }) => ( <FormItem><FormLabel>Senha</FormLabel><FormControl><Input type="password" placeholder="Mínimo 6 caracteres" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="confirmPassword" render={({ field }) => ( <FormItem><FormLabel>Confirmar Senha</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                         </div>
+                    </div>
+                )}
                 <h4 className="text-lg font-semibold pt-4">Endereço de Entrega</h4>
                 <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                     <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} onBlur={handleZipBlur} /></FormControl><FormMessage /></FormItem> )} />

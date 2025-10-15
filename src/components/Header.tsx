@@ -1,15 +1,19 @@
 
+
 'use client';
 
 import Link from 'next/link';
 import Logo from './Logo';
 import { useCart } from '@/context/CartContext';
+import { useCustomerAuth } from '@/context/CustomerAuthContext';
 import { Button } from './ui/button';
 import { ShoppingBag, User } from 'lucide-react';
 import { CartSheet } from './CartSheet';
 
 export default function Header() {
   const { cartCount, setIsCartOpen } = useCart();
+  const { customer } = useCustomerAuth();
+
   return (
     <div className="bg-card/80 backdrop-blur-lg border-b sticky top-0 z-40">
       <div className="container mx-auto flex justify-between items-center p-4">
@@ -17,10 +21,10 @@ export default function Header() {
           <Logo />
         </Link>
         <div className="flex items-center gap-2">
-            <Link href="/admin/orders">
+            <Link href={customer ? "/area-cliente/minha-conta" : "/area-cliente/login"}>
                 <Button variant="ghost" size="icon" className="h-12 w-12">
                     <User className="h-7 w-7" />
-                    <span className="sr-only">Painel Administrativo</span>
+                    <span className="sr-only">Área do Cliente</span>
                 </Button>
             </Link>
             <CartSheet>
