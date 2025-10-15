@@ -28,13 +28,9 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
         <>{children}</>
       ) : (
         <div className="relative flex min-h-screen flex-col bg-background">
-          <header className={cn(isHomePage ? 'hidden md:block' : '')}>
-             <Header />
-          </header>
+          <Header />
           <main className={cn("flex-1", isHomePage ? '' : 'pb-20')}>{children}</main>
-          <footer className={cn(isHomePage ? 'hidden md:block' : '')}>
-            <Footer />
-          </footer>
+          <Footer />
         </div>
       )}
       <Toaster />
