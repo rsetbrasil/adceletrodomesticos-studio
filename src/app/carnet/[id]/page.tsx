@@ -57,7 +57,7 @@ const CarnetContent = ({ order, settings }: { order: Order; settings: any }) => 
         </div>
 
         <div className="border rounded-md overflow-hidden">
-            <table className="w-full">
+            <table className="w-full text-xs">
                 <thead className="bg-muted/50 print:bg-gray-100">
                     <tr className="border-b">
                         <th className="p-2 text-left font-medium w-[15%]">Parcela</th>
@@ -149,7 +149,7 @@ export default function CarnetPage() {
           </Button>
         </header>
         
-        <main className="max-w-4xl mx-auto bg-background rounded-lg border shadow-sm print:grid print:grid-cols-2 print:gap-x-8 print:border-none print:shadow-none print:max-w-none print:bg-transparent">
+        <main className="max-w-4xl mx-auto bg-background rounded-lg border shadow-sm print:grid print:grid-cols-2 print:gap-x-8 print:border-none print:shadow-none print:bg-transparent print-scale-down">
             <div className="print:border-r print:border-dashed print:border-black print:pr-4">
                 <CarnetContent order={order} settings={settings} />
             </div>
