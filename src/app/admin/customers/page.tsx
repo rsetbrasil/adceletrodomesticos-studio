@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent } from 'react';
@@ -10,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -106,6 +107,12 @@ export default function CustomersAdminPage() {
     orders.forEach(order => {
       if (!customerMap.has(order.customer.cpf)) {
         customerMap.set(order.customer.cpf, order.customer);
+      } else {
+        // Garante que estamos pegando a info mais recente (com senha, se houver)
+        const existing = customerMap.get(order.customer.cpf)!;
+        if (!existing.password && order.customer.password) {
+             customerMap.set(order.customer.cpf, order.customer);
+        }
       }
     });
     return Array.from(customerMap.values());
@@ -267,6 +274,11 @@ export default function CustomersAdminPage() {
   const handleSaveChanges = () => {
     if (selectedCustomer && editedInfo) {
       const updatedCustomerData = { ...selectedCustomer, ...editedInfo };
+      // Se a senha estiver vazia, não a envie na atualização, mantendo a antiga
+      if (editedInfo.password === '') {
+          delete updatedCustomerData.password;
+      }
+
       updateCustomer(updatedCustomerData as CustomerInfo);
       setSelectedCustomer(updatedCustomerData as CustomerInfo);
       setIsEditDialogOpen(false);
@@ -630,7 +642,7 @@ export default function CustomersAdminPage() {
                         Faça alterações nos dados cadastrais do cliente aqui. Clique em salvar quando terminar.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
+                <div className="grid gap-6 py-4">
                     <div className="grid md:grid-cols-2 gap-4">
                         <div>
                             <Label htmlFor="name">Nome Completo</Label>
@@ -680,6 +692,10 @@ export default function CustomersAdminPage() {
                             <Label htmlFor="state">Estado</Label>
                             <Input id="state" name="state" value={editedInfo.state || ''} onChange={handleInputChange} />
                         </div>
+                    </div>
+                    <div className="pt-4 border-t">
+                        <Label htmlFor="password" className="flex items-center gap-2 mb-2"><KeyRound className="h-4 w-4" /> Senha de Acesso</Label>
+                        <Input id="password" name="password" type="text" onChange={handleInputChange} placeholder="Deixe em branco para não alterar" />
                     </div>
                 </div>
                 <DialogFooter>

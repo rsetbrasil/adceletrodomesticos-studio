@@ -43,18 +43,6 @@ const checkoutSchema = z.object({
   neighborhood: z.string().min(2, 'Bairro é obrigatório.'),
   city: z.string().min(2, 'Cidade é obrigatória.'),
   state: z.string().min(2, 'Estado é obrigatório.'),
-  password: z.string().optional(),
-  confirmPassword: z.string().optional(),
-}).refine(data => {
-    // Only validate password if it's provided (for new customers)
-    if (data.password) {
-        if (data.password.length < 6) return false;
-        return data.password === data.confirmPassword;
-    }
-    return true;
-}, {
-    message: "As senhas não correspondem ou são muito curtas (mínimo 6 caracteres).",
-    path: ["confirmPassword"],
 });
 
 
@@ -82,8 +70,6 @@ export default function CheckoutForm() {
       neighborhood: '',
       city: 'Fortaleza',
       state: 'CE',
-      password: '',
-      confirmPassword: '',
     },
   });
 
@@ -123,7 +109,7 @@ export default function CheckoutForm() {
     if (cpf.length === 11) {
       const foundCustomer = customers.find(c => c.cpf.replace(/\D/g, '') === cpf);
       if (foundCustomer) {
-        setIsNewCustomer(!foundCustomer.password);
+        setIsNewCustomer(false);
         form.reset({
           ...form.getValues(),
           name: foundCustomer.name,
@@ -137,8 +123,6 @@ export default function CheckoutForm() {
           neighborhood: foundCustomer.neighborhood,
           city: foundCustomer.city,
           state: foundCustomer.state,
-          password: '',
-          confirmPassword: '',
         });
         toast({
           title: "Cliente Encontrado!",
@@ -201,9 +185,10 @@ export default function CheckoutForm() {
   }
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
-    if (isNewCustomer && (!values.password || values.password.length < 6)) {
-        form.setError("password", { type: "manual", message: "Para novos clientes, a senha é obrigatória e deve ter no mínimo 6 caracteres." });
-        return;
+    
+    let customerPassword = undefined;
+    if (isNewCustomer) {
+        customerPassword = values.cpf.replace(/\D/g, '').substring(0, 6);
     }
 
     const lastOrderNumber = orders
@@ -244,7 +229,7 @@ export default function CheckoutForm() {
         neighborhood: values.neighborhood,
         city: values.city,
         state: values.state,
-        password: values.password || undefined
+        password: customerPassword
       },
       items: cartItems.map(({ ...item }) => item), // Create a plain object without methods
       total,
@@ -328,13 +313,9 @@ export default function CheckoutForm() {
                     <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="seu@email.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
-                {isNewCustomer && (
-                    <div className="space-y-4 p-4 border rounded-lg bg-muted/50 mt-4">
-                         <h4 className="text-lg font-semibold flex items-center gap-2"><KeyRound/> Crie sua Senha de Acesso</h4>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <FormField control={form.control} name="password" render={({ field }) => ( <FormItem><FormLabel>Senha</FormLabel><FormControl><Input type="password" placeholder="Mínimo 6 caracteres" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                             <FormField control={form.control} name="confirmPassword" render={({ field }) => ( <FormItem><FormLabel>Confirmar Senha</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                         </div>
+                 {isNewCustomer && (
+                     <div className="p-3 bg-blue-500/10 text-blue-800 rounded-lg text-sm">
+                        <p><strong>Novo cliente!</strong> A senha de acesso para a Área do Cliente será os <strong>6 primeiros dígitos do seu CPF</strong>.</p>
                     </div>
                 )}
                 <h4 className="text-lg font-semibold pt-4">Endereço de Entrega</h4>
@@ -358,3 +339,4 @@ export default function CheckoutForm() {
     </div>
   );
 }
+
