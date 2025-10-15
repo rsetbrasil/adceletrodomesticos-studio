@@ -30,14 +30,13 @@ export default function ProductFilters({ onFilterChange, categories, currentFilt
 
   return (
     <div className="bg-card p-2 rounded-lg shadow-sm mb-8">
-       <div className="flex gap-2">
+       <div className="flex items-center gap-2 overflow-x-auto flex-nowrap pb-2 -mb-2">
             {categories.map((cat) => (
                 <Button
                     key={cat.id}
                     variant={currentFilters.category === cat.name ? 'secondary' : 'outline'}
-                    size="sm"
                     onClick={() => handleCategoryClick(cat.name)}
-                    className="text-xs px-2 flex-shrink-0 capitalize whitespace-nowrap h-9"
+                    className="text-xs px-2 h-8 md:h-9 md:px-3 md:text-sm capitalize whitespace-nowrap flex-shrink-0"
                 >
                     {cat.name}
                 </Button>
