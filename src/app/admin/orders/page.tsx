@@ -71,7 +71,7 @@ const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'o
 };
 
 export default function OrdersAdminPage() {
-  const { orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder } = useCart();
+  const { products, orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder } = useCart();
   const { user, users } = useAuth();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -134,6 +134,16 @@ export default function OrdersAdminPage() {
         deletedOrders: deleted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     };
   }, [orders, user, filters]);
+
+  const maxAllowedInstallmentsForSelectedOrder = useMemo(() => {
+    if (!selectedOrder || !products) return 10;
+    const orderProductIds = selectedOrder.items.map(item => item.id);
+    const orderProducts = products.filter(p => orderProductIds.includes(p.id));
+    if (orderProducts.length === 0) return 10;
+
+    const maxInstallmentsArray = orderProducts.map(p => p.maxInstallments ?? 10);
+    return Math.min(...maxInstallmentsArray);
+  }, [selectedOrder, products]);
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
     setFilters(prev => ({...prev, [filterName]: value}));
@@ -200,8 +210,13 @@ export default function OrdersAdminPage() {
     if (!selectedOrder || selectedOrder.paymentMethod !== 'Crediário' || !installmentsInput) return;
     
     const newInstallmentsCount = Number(installmentsInput);
-    if (isNaN(newInstallmentsCount) || newInstallmentsCount < 1 || newInstallmentsCount > 24) {
-        toast({ title: "Erro", description: "Por favor, insira um número de parcelas válido (1-24).", variant: "destructive" });
+    if (isNaN(newInstallmentsCount) || newInstallmentsCount < 1) {
+        toast({ title: "Erro", description: "Por favor, insira um número de parcelas válido.", variant: "destructive" });
+        return;
+    }
+
+    if (newInstallmentsCount > maxAllowedInstallmentsForSelectedOrder) {
+        toast({ title: "Limite de Parcelas Excedido", description: `O número máximo de parcelas para este pedido é ${maxAllowedInstallmentsForSelectedOrder}.`, variant: "destructive" });
         return;
     }
 
@@ -608,13 +623,13 @@ export default function OrdersAdminPage() {
                                         </div>
                                       {selectedOrder.paymentMethod === 'Crediário' && (
                                           <div>
-                                              <label className="text-sm font-medium">Parcelas</label>
+                                              <label className="text-sm font-medium">Parcelas (Max: {maxAllowedInstallmentsForSelectedOrder})</label>
                                               <div className="flex gap-2">
                                                   <Input 
                                                       type="number" 
                                                       value={installmentsInput} 
                                                       onChange={(e) => setInstallmentsInput(Number(e.target.value))}
-                                                      min="1" max="24"
+                                                      min="1" max={maxAllowedInstallmentsForSelectedOrder}
                                                       className="w-24"
                                                       onKeyDown={(e) => e.key === 'Enter' && handleUpdateInstallments()}
                                                   />
