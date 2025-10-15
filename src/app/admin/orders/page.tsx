@@ -718,14 +718,26 @@ export default function OrdersAdminPage() {
                                                             <Badge variant={statusVariant}>{statusText}</Badge>
                                                         </TableCell>
                                                         <TableCell className="text-right">
-                                                            <Button size="sm" variant="outline" onClick={() => handleToggleInstallmentStatus(inst.installmentNumber)}>
-                                                                {inst.status === 'Pendente' ? (
-                                                                    <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
-                                                                ) : (
-                                                                    <Undo2 className="mr-2 h-4 w-4 text-amber-600"/>
-                                                                )}
-                                                                {inst.status === 'Pendente' ? 'Pagar' : 'Estornar'}
-                                                            </Button>
+                                                           <div className="flex gap-2 justify-end">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => handleToggleInstallmentStatus(inst.installmentNumber)}
+                                                                >
+                                                                    {inst.status === 'Pendente' ? (
+                                                                        <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
+                                                                    ) : (
+                                                                        <Undo2 className="mr-2 h-4 w-4 text-amber-600"/>
+                                                                    )}
+                                                                    {inst.status === 'Pendente' ? 'Pagar' : 'Estornar'}
+                                                                </Button>
+                                                                <Button variant="outline" size="sm" asChild>
+                                                                    <Link href={`/carnet/${selectedOrder.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
+                                                                        <Printer className="mr-2 h-4 w-4" />
+                                                                        Ver Parcela
+                                                                    </Link>
+                                                                </Button>
+                                                            </div>
                                                         </TableCell>
                                                     </TableRow>
                                                 )})}
@@ -746,7 +758,7 @@ export default function OrdersAdminPage() {
                         <Button variant="secondary" asChild>
                             <Link href={`/carnet/${selectedOrder.id}`} target="_blank" rel="noopener noreferrer">
                                 <Printer className="mr-2 h-4 w-4" />
-                                Ver Carnê
+                                Ver Carnê Completo
                             </Link>
                         </Button>
                       )}
