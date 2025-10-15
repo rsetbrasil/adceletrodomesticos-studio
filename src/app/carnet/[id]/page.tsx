@@ -18,7 +18,7 @@ const formatCurrency = (value: number) => {
 };
 
 const CarnetContent = ({ order, settings }: { order: Order; settings: any }) => (
-    <div className="bg-background p-6 break-inside-avoid print:p-0">
+    <div className="bg-background p-6 break-inside-avoid print:p-0 text-sm">
         <div className="flex justify-between items-start pb-4 border-b">
              <div className="flex items-center gap-4">
                 <Logo />
@@ -33,7 +33,7 @@ const CarnetContent = ({ order, settings }: { order: Order; settings: any }) => 
              </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 py-4 text-sm">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 py-4">
             <div>
                 <p className="text-xs text-muted-foreground">CLIENTE</p>
                 <p className="font-semibold">{order.customer.name}</p>
@@ -57,7 +57,7 @@ const CarnetContent = ({ order, settings }: { order: Order; settings: any }) => 
         </div>
 
         <div className="border rounded-md overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="w-full">
                 <thead className="bg-muted/50 print:bg-gray-100">
                     <tr className="border-b">
                         <th className="p-2 text-left font-medium w-[15%]">Parcela</th>
@@ -149,9 +149,11 @@ export default function CarnetPage() {
           </Button>
         </header>
         
-        <main className="max-w-4xl mx-auto bg-background rounded-lg border shadow-sm print:grid print:grid-cols-2 print:gap-8 print:scale-down print:border-none print:shadow-none print:max-w-none">
-            <CarnetContent order={order} settings={settings} />
-            <div className="hidden print:block">
+        <main className="max-w-4xl mx-auto bg-background rounded-lg border shadow-sm print:grid print:grid-cols-2 print:gap-x-8 print:border-none print:shadow-none print:max-w-none print:bg-transparent">
+            <div className="print:border-r print:border-dashed print:border-black print:pr-4">
+                <CarnetContent order={order} settings={settings} />
+            </div>
+            <div className="hidden print:block print:pl-4">
                 <CarnetContent order={order} settings={settings} />
             </div>
         </main>
