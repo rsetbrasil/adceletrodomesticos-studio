@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -45,7 +44,12 @@ export default function ConfiguracaoPage() {
 
   const form = useForm<z.infer<typeof settingsSchema>>({
     resolver: zodResolver(settingsSchema),
-    defaultValues: settings,
+    defaultValues: {
+        storeName: '',
+        storeCity: '',
+        pixKey: '',
+        storePhone: '',
+    },
   });
 
   useEffect(() => {
@@ -353,3 +357,5 @@ export default function ConfiguracaoPage() {
     </div>
   );
 }
+
+    
