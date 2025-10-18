@@ -1,9 +1,10 @@
 
+
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
-import type { Product } from '@/lib/types';
+import type { Product, Category } from '@/lib/types';
 import ProductCard from '@/components/ProductCard';
 import ProductFilters from '@/components/ProductFilters';
 import Image from 'next/image';
@@ -13,6 +14,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import FilterSheet from '@/components/FilterSheet';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 
 const formatCurrency = (value: number) => {
@@ -24,13 +27,35 @@ const formatCurrency = (value: number) => {
 
 
 export default function Home() {
-  const { products: allProducts, categories, setIsCartOpen } = useCart();
+  const { setIsCartOpen } = useCart();
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [filters, setFilters] = useState({
     category: 'all',
     subcategory: 'all',
     search: '',
     sort: 'newest',
   });
+
+  useEffect(() => {
+    const productsUnsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+        const loadedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Product[];
+        setAllProducts(loadedProducts);
+        setIsLoading(false);
+    });
+
+    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
+        const loadedCategories = snapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Category[];
+        setCategories(loadedCategories);
+    });
+
+    return () => {
+        productsUnsubscribe();
+        categoriesUnsubscribe();
+    }
+  }, []);
 
   const handleFilterChange = (
     newFilters: Partial<typeof filters>
@@ -83,6 +108,14 @@ export default function Home() {
 
     return filtered;
   }, [filters, allProducts]);
+
+  if (isLoading) {
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <p>Carregando produtos...</p>
+        </div>
+    )
+  }
 
   return (
     <>

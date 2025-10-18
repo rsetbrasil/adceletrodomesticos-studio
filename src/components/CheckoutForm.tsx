@@ -21,10 +21,12 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import type { Order, CustomerInfo } from '@/lib/types';
+import type { Order, CustomerInfo, Product } from '@/lib/types';
 import { addMonths } from 'date-fns';
 import { AlertTriangle, CreditCard, KeyRound } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
+import { collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -52,11 +54,26 @@ const formatCurrency = (value: number) => {
 };
 
 export default function CheckoutForm() {
-  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, orders, products } = useCart();
+  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder } = useCart();
   const { settings } = useSettings();
   const router = useRouter();
   const { toast } = useToast();
   const [isNewCustomer, setIsNewCustomer] = useState(true);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
+      setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
+    });
+    const productsUnsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+      setProducts(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
+    });
+    return () => {
+      ordersUnsubscribe();
+      productsUnsubscribe();
+    }
+  }, []);
   
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -194,7 +211,7 @@ export default function CheckoutForm() {
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     
-    const customerData: Omit<CustomerInfo, 'password'> = {
+    let customerData: CustomerInfo = {
       name: values.name,
       cpf: values.cpf,
       phone: values.phone,
@@ -208,15 +225,17 @@ export default function CheckoutForm() {
       state: values.state,
     };
     
-    let fullCustomerData: CustomerInfo = { ...customerData };
     if (isNewCustomer) {
-        fullCustomerData.password = values.cpf.replace(/\D/g, '').substring(0, 6);
+        customerData.password = values.cpf.replace(/\D/g, '').substring(0, 6);
     }
+    
+    const allOrders = await getDocs(collection(db, "orders"));
 
-    const lastOrderNumber = orders
+    const lastOrderNumber = allOrders.docs
       .map(o => {
-          if (!o.id.startsWith('PED-')) return 0;
-          const numberPart = o.id.split('-')[1];
+          const orderId = o.id;
+          if (!orderId.startsWith('PED-')) return 0;
+          const numberPart = orderId.split('-')[1];
           const number = parseInt(numberPart, 10);
           return isNaN(number) ? 0 : number;
       })
@@ -239,7 +258,7 @@ export default function CheckoutForm() {
 
     const order: Partial<Order> = {
       id: orderId,
-      customer: fullCustomerData,
+      customer: customerData,
       items: cartItems.map(({ ...item }) => item), // Create a plain object without methods
       total,
       installments: finalInstallments,
@@ -251,7 +270,7 @@ export default function CheckoutForm() {
     };
     
     try {
-        const savedOrder = await addOrder(order);
+        const savedOrder = await addOrder(order, products);
         setLastOrder(savedOrder as Order);
         clearCart();
     

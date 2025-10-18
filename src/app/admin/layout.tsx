@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import { LogOut, Shield, Store, KeyRound, ChevronDown } from 'lucide-react';
@@ -205,4 +204,4 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </Dialog>
         </>
     );
-}
+};

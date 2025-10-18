@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -12,6 +13,10 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { Product } from '@/lib/types';
+
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -20,15 +25,26 @@ const formatCurrency = (value: number) => {
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { products, addToCart, setIsCartOpen } = useCart();
+  const { addToCart, setIsCartOpen } = useCart();
   const id = params.id as string;
   const [isClient, setIsClient] = useState(false);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
-
-  const product = products.find((p) => p.id === id);
+    const fetchProduct = async () => {
+        if (!id) return;
+        setIsLoading(true);
+        const productRef = doc(db, 'products', id);
+        const docSnap = await getDoc(productRef);
+        if (docSnap.exists()) {
+            setProduct({ ...docSnap.data(), id: docSnap.id } as Product);
+        }
+        setIsLoading(false);
+    }
+    fetchProduct();
+  }, [id]);
   
   const handleAddToCart = () => {
     if (!product) return;
@@ -37,7 +53,7 @@ export default function ProductDetailPage() {
   };
 
 
-  if (!isClient) {
+  if (!isClient || isLoading) {
     return (
       <div className="container mx-auto py-24 text-center">
         <p>Carregando produto...</p>

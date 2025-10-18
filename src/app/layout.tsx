@@ -13,8 +13,8 @@ import Footer from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
 import { usePathname } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
-import { AuditProvider } from '@/context/AuditContext';
 import { cn } from '@/lib/utils';
+import { AuditProvider } from '@/context/AuditContext';
 
 // This is a new component that wraps the main content
 // It has access to all the contexts defined in the main RootLayout

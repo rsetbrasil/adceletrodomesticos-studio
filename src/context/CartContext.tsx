@@ -9,6 +9,7 @@ import { products as initialProducts } from '@/lib/products';
 import { addMonths } from 'date-fns';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { useAuth } from './AuthContext';
 import { useAudit } from './AuditContext';
 import { useRouter } from 'next/navigation';
 
@@ -48,8 +49,13 @@ interface CartContextType {
   setSelectedCategoryForSheet: (category: string | null) => void;
   lastOrder: Order | null;
   setLastOrder: (order: Order) => void;
+  addOrder: (order: Partial<Order>, products: Product[]) => Promise<Order | null>;
+  // Admin-related functions are now passed down to AdminLayout only
   orders: Order[];
-  addOrder: (order: Partial<Order>) => Promise<Order | null>;
+  products: Product[];
+  categories: Category[];
+  commissionPayments: CommissionPayment[];
+  isLoading: boolean;
   deleteOrder: (orderId: string) => Promise<void>;
   permanentlyDeleteOrder: (orderId: string) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
@@ -57,11 +63,9 @@ interface CartContextType {
   updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date) => Promise<void>;
   updateCustomer: (customer: CustomerInfo) => Promise<void>;
   updateOrderDetails: (orderId: string, details: Partial<Order>) => Promise<void>;
-  products: Product[];
   addProduct: (product: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
   deleteProduct: (productId: string) => Promise<void>;
-  categories: Category[];
   addCategory: (categoryName: string) => Promise<void>;
   deleteCategory: (categoryId: string) => Promise<void>;
   updateCategoryName: (categoryId: string, newName: string) => Promise<void>;
@@ -71,10 +75,8 @@ interface CartContextType {
   moveCategory: (categoryId: string, direction: 'up' | 'down') => Promise<void>;
   reorderSubcategories: (categoryId: string, draggedSub: string, targetSub: string) => Promise<void>;
   moveSubcategory: (sourceCategoryId: string, subName: string, targetCategoryId: string) => Promise<void>;
-  commissionPayments: CommissionPayment[];
   payCommissions: (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string) => Promise<string | null>;
   reverseCommissionPayment: (paymentId: string) => Promise<void>;
-  isLoading: boolean;
   restoreCartData: (data: { products: Product[], orders: Order[], categories: Category[] }) => Promise<void>;
   resetOrders: () => Promise<void>;
   resetAllCartData: () => Promise<void>;
@@ -94,90 +96,41 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
   const { toast } = useToast();
-  const { logAction, user } = useAudit();
+  const { user } = useAuth();
+  const { logAction } = useAudit();
   const router = useRouter();
 
 
   useEffect(() => {
-    setIsLoading(true);
-    let activeListeners = true;
-
-    const productsUnsubscribe = onSnapshot(collection(db, 'products'), async (productsSnapshot) => {
-        if (!activeListeners) return;
-        let loadedProducts: Product[];
-        if (productsSnapshot.empty) {
-            const batch = writeBatch(db);
-            initialProducts.forEach(p => {
-                const docRef = doc(db, 'products', p.id);
-                batch.set(docRef, p);
-            });
-            await batch.commit();
-            loadedProducts = initialProducts;
-        } else {
-            loadedProducts = productsSnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Product[];
-        }
-        setProducts(loadedProducts);
-    }, (error) => {
-        console.error("Failed to load products from Firestore:", error);
-        toast({ title: "Erro de Conexão", description: "Não foi possível carregar os produtos.", variant: "destructive" });
-    });
-    
-    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), async (categoriesSnapshot) => {
-        if (!activeListeners) return;
-        let loadedCategories: Category[];
-        if (categoriesSnapshot.empty) {
-            const currentProducts = (await getDocs(collection(db, 'products'))).docs.map(d => d.data() as Product);
-            const initialCats = Array.from(new Set(currentProducts.map(p => p.category))).map((catName, index) => ({
-                id: `cat-${Date.now()}-${index}`,
-                name: catName,
-                order: index,
-                subcategories: Array.from(new Set(currentProducts.filter(p => p.category === catName && p.subcategory).map(p => p.subcategory!))).sort()
-            })).sort((a, b) => a.order - b.order);
-            
-            const batch = writeBatch(db);
-            initialCats.forEach(c => {
-                const docRef = doc(db, 'categories', c.id);
-                batch.set(docRef, c);
-            });
-            await batch.commit();
-            loadedCategories = initialCats;
-        } else {
-            loadedCategories = categoriesSnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Category[];
-        }
-        setCategories(loadedCategories);
-    }, (error) => {
-        console.error("Failed to load categories from Firestore:", error);
-    });
-
-    const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (ordersSnapshot) => {
-        if (!activeListeners) return;
-        const loadedOrders = ordersSnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Order[];
-        setOrders(loadedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-        setIsLoading(false);
-    }, (error) => {
-        console.error("Failed to load orders from Firestore:", error);
-        setIsLoading(false);
-    });
-    
-    const commissionPaymentsUnsubscribe = onSnapshot(collection(db, 'commissionPayments'), (snapshot) => {
-        if (!activeListeners) return;
-        const loadedPayments = snapshot.docs.map(d => d.data() as CommissionPayment);
-        setCommissionPayments(loadedPayments);
-    }, (error) => {
-        console.error("Failed to load commission payments from Firestore:", error);
-    });
-
+    // Only load cart from local storage. All other data is loaded on-demand.
     const storedCart = loadDataFromLocalStorage('cartItems');
     if (storedCart) setCartItems(storedCart);
+    setIsLoading(false);
 
-    return () => {
-        activeListeners = false;
+     // Admin-specific data loading
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+    if (pathname.startsWith('/admin')) {
+      const productsUnsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+        setProducts(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
+      });
+      const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
+        setCategories(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
+      });
+      const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
+        setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      });
+      const commissionPaymentsUnsubscribe = onSnapshot(collection(db, 'commissionPayments'), (snapshot) => {
+        setCommissionPayments(snapshot.docs.map(d => d.data() as CommissionPayment));
+      });
+
+      return () => {
         productsUnsubscribe();
         categoriesUnsubscribe();
         ordersUnsubscribe();
         commissionPaymentsUnsubscribe();
-    };
-  }, [toast]);
+      }
+    }
+  }, []);
   
   const restoreCartData = async (data: { products: Product[], orders: Order[], categories: Category[] }) => {
     setIsLoading(true);
@@ -340,9 +293,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const categoryRef = doc(db, 'categories', categoryId);
         batch.update(categoryRef, { name: newName });
         
-        products.forEach(p => {
+        const productsSnapshot = await getDocs(collection(db, 'products'));
+        productsSnapshot.forEach(productDoc => {
+            const p = productDoc.data() as Product;
             if (p.category.toLowerCase() === oldName.toLowerCase()) {
-                const productRef = doc(db, 'products', p.id);
+                const productRef = doc(db, 'products', productDoc.id);
                 batch.update(productRef, { category: newName });
             }
         });
@@ -363,7 +318,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const categoryToDelete = categories.find(c => c.id === categoryId);
     if (!categoryToDelete) return;
 
-    if (products.some(p => p.category === categoryToDelete.name)) {
+    const productsSnapshot = await getDocs(collection(db, 'products'));
+    const productsInCategory = productsSnapshot.docs.some(d => (d.data() as Product).category === categoryToDelete.name);
+
+    if (productsInCategory) {
         toast({ title: "Erro", description: "Não é possível excluir categorias que contêm produtos.", variant: "destructive" });
         return;
     }
@@ -409,9 +367,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const newSubs = category.subcategories.map(s => s.toLowerCase() === oldSub.toLowerCase() ? newSub : s).sort();
         batch.update(doc(db, 'categories', categoryId), { subcategories: newSubs });
         
-        products.forEach(p => {
+        const productsSnapshot = await getDocs(collection(db, 'products'));
+        productsSnapshot.forEach(productDoc => {
+            const p = productDoc.data() as Product;
             if (p.category === category.name && p.subcategory?.toLowerCase() === oldSub.toLowerCase()) {
-                batch.update(doc(db, 'products', p.id), { subcategory: newSub });
+                batch.update(doc(db, 'products', productDoc.id), { subcategory: newSub });
             }
         });
         await batch.commit();
@@ -429,8 +389,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const deleteSubcategory = async (categoryId: string, subcategoryName: string) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
+    
+    const productsSnapshot = await getDocs(collection(db, 'products'));
+    const productsInSubcategory = productsSnapshot.docs.some(d => {
+        const p = d.data() as Product;
+        return p.category === category.name && p.subcategory?.toLowerCase() === subcategoryName.toLowerCase();
+    });
 
-    if (products.some(p => p.category === category.name && p.subcategory?.toLowerCase() === subcategoryName.toLowerCase())) {
+    if (productsInSubcategory) {
         toast({ title: "Erro", description: "Não é possível excluir subcategorias que contêm produtos.", variant: "destructive" });
         return;
     }
@@ -514,9 +480,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
         const batch = writeBatch(db);
         // Update products
-        products.forEach(p => {
+        const productsSnapshot = await getDocs(collection(db, 'products'));
+        productsSnapshot.forEach(productDoc => {
+            const p = productDoc.data() as Product;
             if (p.category === sourceCategory.name && p.subcategory?.toLowerCase() === subName.toLowerCase()) {
-                batch.update(doc(db, 'products', p.id), { category: targetCategory.name });
+                batch.update(doc(db, 'products', productDoc.id), { category: targetCategory.name });
             }
         });
         // Update categories
@@ -576,7 +544,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const setLastOrder = (order: Order) => setLastOrderState(order);
   
-    const calculateCommission = (order: Order) => {
+    const calculateCommission = (order: Order, allProducts: Product[]) => {
         if (!order.sellerId) return 0;
 
         if (order.isCommissionManual) {
@@ -584,7 +552,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
 
         return order.items.reduce((totalCommission, item) => {
-            const product = products.find(p => p.id === item.id);
+            const product = allProducts.find(p => p.id === item.id);
             if (!product || !product.commissionType || typeof product.commissionValue === 'undefined' || product.commissionValue === null) {
                 return totalCommission;
             }
@@ -599,12 +567,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }, 0);
     }
 
-  const manageStockForOrder = async (order: Order | undefined, operation: 'add' | 'subtract'): Promise<boolean> => {
+  const manageStockForOrder = async (order: Order | undefined, operation: 'add' | 'subtract', allProducts: Product[]): Promise<boolean> => {
     if (!order) return false;
     const batch = writeBatch(db);
     
     for (const orderItem of order.items) {
-        const product = products.find(p => p.id === orderItem.id);
+        const product = allProducts.find(p => p.id === orderItem.id);
         if (product) {
             const stockChange = orderItem.quantity;
             const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
@@ -626,7 +594,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return true; // Indicate success
   };
 
-  const addOrder = async (order: Partial<Order>): Promise<Order | null> => {
+  const addOrder = async (order: Partial<Order>, allProducts: Product[]): Promise<Order | null> => {
     try {
         const orderToSave = {
             ...order,
@@ -636,7 +604,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             commissionPaid: false,
         } as Order;
         
-        if (!await manageStockForOrder(orderToSave, 'subtract')) {
+        if (!await manageStockForOrder(orderToSave, 'subtract', allProducts)) {
           throw new Error(`Estoque insuficiente para um ou mais produtos.`);
         }
 
@@ -653,7 +621,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           throw e;
         }
         // If stock was modified, we need to revert it.
-        await manageStockForOrder(order as Order, 'add');
+        await manageStockForOrder(order as Order, 'add', allProducts);
         throw e;
     }
   };
@@ -690,7 +658,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     // if moving out of canceled/deleted, subtract stock
     if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
-        if (!await manageStockForOrder(orderToUpdate, 'subtract')) {
+        if (!await manageStockForOrder(orderToUpdate, 'subtract', products)) {
             // Stop update if not enough stock
             return;
         }
@@ -700,7 +668,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     // Recalculate commission if status is 'Entregue' and commission is not manual, otherwise zero it out.
     if (newStatus === 'Entregue' && orderToUpdate.sellerId) {
-      detailsToUpdate.commission = calculateCommission(orderToUpdate);
+      detailsToUpdate.commission = calculateCommission(orderToUpdate, products);
     } else {
         // If status is not 'Entregue', commission should be 0 and not paid
         if (!orderToUpdate.isCommissionManual) {
@@ -714,7 +682,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
         // If moving TO canceled/deleted, add stock back *after* DB update
         if (!wasCanceledOrDeleted && isNowCanceledOrDeleted) {
-            await manageStockForOrder(orderToUpdate, 'add');
+            await manageStockForOrder(orderToUpdate, 'add', products);
         }
         
         // Real-time listener will update the state
@@ -730,7 +698,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         console.error('Failed to update order status:', e);
         // If there was an error and we subtracted stock, we need to add it back.
         if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
-            await manageStockForOrder(orderToUpdate, 'add');
+            await manageStockForOrder(orderToUpdate, 'add', products);
         }
     }
   };
@@ -778,7 +746,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const batch = writeBatch(db);
         orders.forEach(order => {
             if (order.customer.cpf === updatedCustomer.cpf) {
-                batch.update(doc(db, 'orders', order.id), { customer: { ...order.customer, ...updatedCustomer } });
+                const customerData = { ...order.customer, ...updatedCustomer };
+                // Ensure password is not written back if it's empty
+                if (updatedCustomer.password === undefined || updatedCustomer.password === '') {
+                    delete customerData.password;
+                }
+                batch.update(doc(db, 'orders', order.id), { customer: customerData });
             }
         });
         await batch.commit();
@@ -801,7 +774,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if ('sellerId' in details && details.sellerId) {
           const tempOrderForCommissionCalc = {...order, ...detailsToUpdate};
           if (!tempOrderForCommissionCalc.isCommissionManual) {
-            detailsToUpdate.commission = calculateCommission(tempOrderForCommissionCalc);
+            detailsToUpdate.commission = calculateCommission(tempOrderForCommissionCalc, products);
           }
       }
       

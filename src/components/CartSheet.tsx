@@ -18,7 +18,11 @@ import { useCart } from '@/context/CartContext';
 import { Minus, Plus, Trash2, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { Product } from '@/lib/types';
+
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -28,7 +32,15 @@ const formatCurrency = (value: number) => {
 };
 
 export function CartSheet({ children }: { children: React.ReactNode }) {
-  const { cartItems, updateQuantity, removeFromCart, getCartTotal, cartCount, isCartOpen, setIsCartOpen, products } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, getCartTotal, cartCount, isCartOpen, setIsCartOpen } = useCart();
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+        setProducts(snapshot.docs.map(d => ({...d.data(), id: d.id } as Product)));
+    });
+    return () => unsubscribe();
+  }, []);
   
   const cartItemsWithStock = useMemo(() => {
     return cartItems.map(item => {
