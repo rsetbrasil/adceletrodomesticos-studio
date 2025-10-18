@@ -193,10 +193,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
         // Real-time listener will update the state
         logAction('Atualização de Produto', `Produto "${updatedProduct.name}" (ID: ${updatedProduct.id}) foi atualizado.`, user);
-        toast({
-            title: 'Produto Atualizado!',
-            description: `O produto "${updatedProduct.name}" foi atualizado.`,
-        });
     } catch (error) {
         console.error("Error updating product:", error);
         toast({ title: "Erro", description: "Falha ao atualizar o produto.", variant: "destructive" });
