@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { useCart } from '@/context/CartContext';
+import { useAdmin } from '@/context/AdminContext';
 import type { Product } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +29,7 @@ const formatCurrency = (value: number) => {
 };
 
 export default function ManageProductsPage() {
-    const { products, deleteProduct } = useCart();
+    const { products, deleteProduct } = useAdmin();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [productToEdit, setProductToEdit] = useState<Product | null>(null);
 

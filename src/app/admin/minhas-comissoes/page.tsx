@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useCart } from '@/context/CartContext';
+import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -21,7 +21,7 @@ const formatCurrency = (value: number) => {
 };
 
 export default function MyCommissionsPage() {
-  const { orders, commissionPayments, reverseCommissionPayment } = useCart();
+  const { orders, commissionPayments, reverseCommissionPayment } = useAdmin();
   const { user, users } = useAuth();
   
   const pendingCommissions = useMemo(() => {

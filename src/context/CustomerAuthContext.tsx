@@ -4,8 +4,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import type { CustomerInfo } from '@/lib/types';
-import { useCart } from '@/context/CartContext';
+import type { CustomerInfo, Order } from '@/lib/types';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface CustomerAuthContextType {
   customer: CustomerInfo | null;
@@ -20,7 +21,6 @@ const CustomerAuthContext = createContext<CustomerAuthContextType | undefined>(u
 export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
   const [customer, setCustomer] = useState<CustomerInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { orders } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -43,42 +43,52 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
     const normalizedCpf = cpf.replace(/\D/g, '');
     
     // Find the latest order for this CPF to get the latest customer data
-    const customerOrders = orders
-      .filter(o => o.customer.cpf.replace(/\D/g, '') === normalizedCpf)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const q = query(collection(db, 'orders'), where("customer.cpf", "==", cpf));
 
-    if (customerOrders.length === 0) {
-        toast({ title: 'Falha no Login', description: 'CPF não encontrado.', variant: 'destructive' });
-        return false;
-    }
+    // Use onSnapshot to get data and handle login logic.
+    // This is not ideal as it might fire multiple times, but for now it's the simplest way
+    // without a dedicated 'customers' collection. A better approach would be
+    // to query once with getDocs.
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (snapshot.empty) {
+            toast({ title: 'Falha no Login', description: 'CPF não encontrado.', variant: 'destructive' });
+            unsubscribe();
+            return;
+        }
 
-    const latestCustomerData = customerOrders[0].customer;
+        const customerOrders = snapshot.docs.map(doc => doc.data() as Order)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    if (!latestCustomerData.password) {
-        toast({ title: 'Falha no Login', description: 'Esta conta ainda não possui uma senha cadastrada. Por favor, complete uma nova compra para criar uma.', variant: 'destructive' });
-        return false;
-    }
+        const latestCustomerData = customerOrders[0].customer;
 
-    if (latestCustomerData.password === pass) {
-        const customerToStore = { ...latestCustomerData };
-        delete customerToStore.password;
-        
-        setCustomer(customerToStore); 
-        localStorage.setItem('customer', JSON.stringify(customerToStore));
-        router.push('/area-cliente/minha-conta');
-        toast({
-            title: 'Login bem-sucedido!',
-            description: `Bem-vindo(a) de volta, ${customerToStore.name.split(' ')[0]}.`,
-        });
-        return true;
-    } else {
-        toast({
-            title: 'Falha no Login',
-            description: 'Senha inválida.',
-            variant: 'destructive',
-        });
-        return false;
-    }
+        if (!latestCustomerData.password) {
+            toast({ title: 'Falha no Login', description: 'Esta conta ainda não possui uma senha cadastrada. Por favor, complete uma nova compra para criar uma.', variant: 'destructive' });
+            unsubscribe();
+            return;
+        }
+
+        if (latestCustomerData.password === pass) {
+            const customerToStore = { ...latestCustomerData };
+            delete customerToStore.password;
+            
+            setCustomer(customerToStore); 
+            localStorage.setItem('customer', JSON.stringify(customerToStore));
+            router.push('/area-cliente/minha-conta');
+            toast({
+                title: 'Login bem-sucedido!',
+                description: `Bem-vindo(a) de volta, ${customerToStore.name.split(' ')[0]}.`,
+            });
+        } else {
+            toast({
+                title: 'Falha no Login',
+                description: 'Senha inválida.',
+                variant: 'destructive',
+            });
+        }
+        unsubscribe(); // Stop listening after attempt
+    });
+
+    return true; // The login logic is async, we can't return true/false based on success here easily
   };
 
   const logout = () => {

@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { AdminProvider } from "@/context/AdminContext";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'A senha atual é obrigatória.'),
@@ -46,7 +47,7 @@ const pathToSectionMap: { [key: string]: AppSection } = {
     '/admin/users': 'users',
 };
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+function AdminArea({ children }: { children: ReactNode }) {
     const { user, isAuthenticated, isLoading, logout, changeMyPassword } = useAuth();
     const { permissions, isLoading: permissionsLoading } = usePermissions();
     const router = useRouter();
@@ -204,4 +205,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </Dialog>
         </>
     );
-};
+}
+
+
+export default function AdminLayout({ children }: { children: ReactNode }) {
+    return (
+        <AdminProvider>
+            <AdminArea>{children}</AdminArea>
+        </AdminProvider>
+    )
+}

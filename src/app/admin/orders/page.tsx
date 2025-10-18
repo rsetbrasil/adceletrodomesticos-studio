@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useCart } from '@/context/CartContext';
+import { useAdmin } from '@/context/AdminContext';
 import type { Order, Installment, PaymentMethod, User } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -71,7 +71,7 @@ const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'o
 };
 
 export default function OrdersAdminPage() {
-  const { products, orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder } = useCart();
+  const { products, orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder } = useAdmin();
   const { user, users } = useAuth();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);

@@ -3,7 +3,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useCart } from '@/context/CartContext';
+import { useAdmin } from '@/context/AdminContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useMemo, useRef } from 'react';
 import type { Order, CommissionPayment } from '@/lib/types';
@@ -22,7 +22,7 @@ const formatCurrency = (value: number) => {
 export default function CommissionReceiptPage() {
   const params = useParams();
   const router = useRouter();
-  const { commissionPayments, orders, isLoading } = useCart();
+  const { commissionPayments, orders, isLoading } = useAdmin();
   const { settings } = useSettings();
   const receiptRef = useRef<HTMLDivElement>(null);
 

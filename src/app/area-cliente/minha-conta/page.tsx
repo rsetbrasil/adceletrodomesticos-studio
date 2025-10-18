@@ -14,6 +14,8 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -21,7 +23,8 @@ const formatCurrency = (value: number) => {
 
 export default function MyAccountPage() {
   const { customer, logout, isAuthenticated, isLoading: authLoading } = useCustomerAuth();
-  const { orders, isLoading: cartLoading } = useCart();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [cartLoading, setCartLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -29,11 +32,23 @@ export default function MyAccountPage() {
       router.replace('/area-cliente/login');
     }
   }, [authLoading, isAuthenticated, router]);
+  
+  useEffect(() => {
+      if (customer) {
+        setCartLoading(true);
+        const q = query(collection(db, 'orders'), where("customer.cpf", "==", customer.cpf));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
+            setCartLoading(false);
+        });
+        return () => unsubscribe();
+      }
+  }, [customer]);
 
   const customerOrders = useMemo(() => {
     if (!customer) return [];
     return orders
-      .filter(o => o.customer.cpf === customer.cpf && o.status !== 'Cancelado' && o.status !== 'Excluído')
+      .filter(o => o.status !== 'Cancelado' && o.status !== 'Excluído')
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [customer, orders]);
 

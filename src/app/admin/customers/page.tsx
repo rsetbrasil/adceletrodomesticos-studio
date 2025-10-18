@@ -5,7 +5,7 @@
 import { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useCart } from '@/context/CartContext';
+import { useAdmin } from '@/context/AdminContext';
 import type { Order, CustomerInfo, Installment, Attachment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,7 +72,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 };
 
 export default function CustomersAdminPage() {
-  const { orders, updateCustomer, updateInstallmentStatus, updateInstallmentDueDate, updateOrderDetails } = useCart();
+  const { orders, updateCustomer, updateInstallmentStatus, updateInstallmentDueDate, updateOrderDetails } = useAdmin();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
@@ -735,4 +735,5 @@ export default function CustomersAdminPage() {
     
 
     
+
 

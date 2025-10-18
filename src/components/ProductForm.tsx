@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useCart } from '@/context/CartContext';
+import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { PackagePlus, X, Percent, DollarSign } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
@@ -97,7 +97,7 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ productToEdit, onFinished }: ProductFormProps) {
-  const { addProduct, updateProduct, categories } = useCart();
+  const { addProduct, updateProduct, categories } = useAdmin();
   const { user } = useAuth();
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   

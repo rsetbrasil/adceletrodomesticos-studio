@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useSettings } from '@/context/SettingsContext';
-import { useCart } from '@/context/CartContext';
+import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
 import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock, Phone } from 'lucide-react';
@@ -32,7 +32,7 @@ const settingsSchema = z.object({
 
 export default function ConfiguracaoPage() {
   const { settings, updateSettings, isLoading: settingsLoading, restoreSettings, resetSettings } = useSettings();
-  const { products, orders, categories, restoreCartData, resetOrders, resetAllCartData } = useCart();
+  const { products, orders, categories, restoreAdminData, resetOrders, resetAllAdminData } = useAdmin();
   const { user, users, restoreUsers, initialUsers } = useAuth();
   const { permissions, updatePermissions, isLoading: permissionsLoading, resetPermissions } = usePermissions();
   const { toast } = useToast();
@@ -99,7 +99,7 @@ export default function ConfiguracaoPage() {
 
         if (data.settings && data.products && data.orders && data.categories && data.users) {
           await restoreSettings(data.settings);
-          await restoreCartData({ products: data.products, orders: data.orders, categories: data.categories });
+          await restoreAdminData({ products: data.products, orders: data.orders, categories: data.categories });
           await restoreUsers(data.users);
           if (data.permissions) {
              await updatePermissions(data.permissions);
@@ -127,7 +127,7 @@ export default function ConfiguracaoPage() {
   };
 
   const handleResetAll = async () => {
-    await resetAllCartData();
+    await resetAllAdminData();
     await restoreUsers(initialUsers);
     await resetSettings();
     await resetPermissions();

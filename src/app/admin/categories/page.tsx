@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useCart } from '@/context/CartContext';
+import { useAdmin } from '@/context/AdminContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 export default function ManageCategoriesPage() {
-    const { categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, deleteSubcategory, updateSubcategory, moveCategory, reorderSubcategories, moveSubcategory } = useCart();
+    const { categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, deleteSubcategory, updateSubcategory, moveCategory, reorderSubcategories, moveSubcategory } = useAdmin();
     const { toast } = useToast();
 
     const [dialogState, setDialogState] = useState<{

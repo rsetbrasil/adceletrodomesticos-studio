@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useCart } from '@/context/CartContext';
+import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import type { Product, Order } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -21,7 +21,7 @@ const formatCurrency = (value: number) => {
 };
 
 export default function FinanceiroPage() {
-  const { orders, products, payCommissions } = useCart();
+  const { orders, products, payCommissions } = useAdmin();
   const { users } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const router = useRouter();
