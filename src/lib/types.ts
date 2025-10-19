@@ -32,6 +32,7 @@ export type Attachment = {
   name: string;
   type: 'image' | 'pdf';
   url: string;
+  comment?: string;
 };
 
 export type CustomerInfo = {

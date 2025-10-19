@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const formatCurrency = (value: number) => {
@@ -82,6 +83,14 @@ export default function CustomersAdminPage() {
   const [editedInfo, setEditedInfo] = useState<Partial<CustomerInfo>>({});
   const [openDueDatePopover, setOpenDueDatePopover] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+
+  const [commentDialog, setCommentDialog] = useState<{
+    open: boolean;
+    orderId?: string;
+    attachmentIndex?: number;
+    initialFiles?: { file: File, comment?: string }[];
+    currentComment?: string;
+  }>({ open: false });
 
   useEffect(() => {
     setIsClient(true);
@@ -177,11 +186,11 @@ export default function CustomersAdminPage() {
     setOpenDueDatePopover(null);
   };
     
-  const addAttachments = useCallback(async (order: Order, files: File[]) => {
+  const addAttachments = useCallback(async (order: Order, files: { file: File; comment?: string }[]) => {
       const currentAttachments = order.attachments || [];
       const newAttachments: Attachment[] = [...currentAttachments];
 
-      for (const file of files) {
+      for (const { file, comment } of files) {
           try {
               const isImage = file.type.startsWith('image/');
               let fileUrl: string;
@@ -197,7 +206,7 @@ export default function CustomersAdminPage() {
                   });
               }
               const type = isImage ? 'image' : 'pdf';
-              newAttachments.push({ name: file.name, type, url: fileUrl });
+              newAttachments.push({ name: file.name, type, url: fileUrl, comment });
 
           } catch (error) {
               console.error("Erro ao processar arquivo:", error);
@@ -208,10 +217,18 @@ export default function CustomersAdminPage() {
       await updateOrderDetails(order.id, { attachments: newAttachments });
       toast({ title: 'Anexos Adicionados!', description: 'Os novos documentos foram salvos com sucesso.' });
   }, [updateOrderDetails, toast]);
+  
+  const handleOpenCommentDialog = (orderId: string, files: File[]) => {
+    setCommentDialog({ 
+      open: true, 
+      orderId, 
+      initialFiles: files.map(f => ({file: f})) 
+    });
+  }
 
   const handleFileChange = async (order: Order, event: ChangeEvent<HTMLInputElement>) => {
       if (!event.target.files) return;
-      await addAttachments(order, Array.from(event.target.files));
+      handleOpenCommentDialog(order.id, Array.from(event.target.files));
       event.target.value = ''; // Clear the input
   };
 
@@ -230,7 +247,7 @@ export default function CustomersAdminPage() {
         e.stopPropagation();
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            await addAttachments(order, Array.from(e.dataTransfer.files));
+            handleOpenCommentDialog(order.id, Array.from(e.dataTransfer.files));
         }
     };
   
@@ -254,7 +271,7 @@ export default function CustomersAdminPage() {
         }
 
         if (imageFiles.length > 0) {
-            await addAttachments(order, imageFiles);
+            handleOpenCommentDialog(order.id, imageFiles);
         } else {
             toast({ title: "Nenhuma imagem encontrada", description: "Não há imagens na sua área de transferência para colar." });
         }
@@ -293,6 +310,29 @@ export default function CustomersAdminPage() {
       setSelectedCustomer(updatedCustomerData as CustomerInfo);
       setIsEditDialogOpen(false);
     }
+  };
+
+  const handleCommentDialogSubmit = async () => {
+    const { orderId, attachmentIndex, initialFiles, currentComment } = commentDialog;
+
+    // Adding new files
+    if (orderId && initialFiles) {
+        const order = customerOrders.find(o => o.id === orderId);
+        if (order) {
+            await addAttachments(order, initialFiles.map(f => ({ ...f, comment: currentComment })));
+        }
+    }
+    // Editing existing comment
+    else if (orderId && typeof attachmentIndex !== 'undefined') {
+        const order = customerOrders.find(o => o.id === orderId);
+        if (order && order.attachments) {
+            const newAttachments = [...order.attachments];
+            newAttachments[attachmentIndex].comment = currentComment;
+            await updateOrderDetails(orderId, { attachments: newAttachments });
+            toast({ title: 'Comentário salvo!' });
+        }
+    }
+    setCommentDialog({ open: false });
   };
 
 
@@ -597,25 +637,38 @@ export default function CustomersAdminPage() {
                                                     {(order.attachments && order.attachments.length > 0) ? (
                                                         <div className="space-y-2">
                                                             {order.attachments.map((file, index) => (
-                                                                <div key={index} className="flex items-center justify-between p-2 rounded-md border bg-muted/50">
-                                                                    {file.type === 'image' ? (
-                                                                        <button onClick={() => setImageToView(file.url)} className="flex items-center gap-3 overflow-hidden group text-left w-full">
-                                                                            <Image src={file.url} alt={file.name} width={40} height={40} className="h-10 w-10 rounded-md object-cover flex-shrink-0" />
-                                                                            <span className="text-sm font-medium group-hover:underline truncate" title={file.name}>
-                                                                                {file.name}
-                                                                            </span>
-                                                                        </button>
-                                                                    ) : (
-                                                                        <a href={file.url} download={file.name} className="flex items-center gap-3 overflow-hidden group">
-                                                                            <FileText className="h-8 w-8 text-muted-foreground flex-shrink-0" />
-                                                                            <span className="text-sm font-medium group-hover:underline truncate" title={file.name}>
-                                                                                {file.name}
-                                                                            </span>
-                                                                        </a>
-                                                                    )}
-                                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive flex-shrink-0" onClick={() => handleDeleteAttachment(order, index)}>
-                                                                        <X className="h-4 w-4" />
-                                                                    </Button>
+                                                                <div key={index} className="flex items-start justify-between p-2 rounded-md border bg-muted/50">
+                                                                    <div className="flex-grow overflow-hidden">
+                                                                        {file.type === 'image' ? (
+                                                                            <button onClick={() => setImageToView(file.url)} className="flex items-center gap-3 group text-left w-full">
+                                                                                <Image src={file.url} alt={file.name} width={40} height={40} className="h-10 w-10 rounded-md object-cover flex-shrink-0" />
+                                                                                 <div>
+                                                                                    <span className="text-sm font-medium group-hover:underline truncate" title={file.name}>
+                                                                                        {file.name}
+                                                                                    </span>
+                                                                                    {file.comment && <p className="text-xs text-muted-foreground mt-1">{file.comment}</p>}
+                                                                                 </div>
+                                                                            </button>
+                                                                        ) : (
+                                                                            <a href={file.url} download={file.name} className="flex items-center gap-3 group w-full">
+                                                                                <FileText className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                                                                                <div>
+                                                                                    <span className="text-sm font-medium group-hover:underline truncate" title={file.name}>
+                                                                                        {file.name}
+                                                                                    </span>
+                                                                                    {file.comment && <p className="text-xs text-muted-foreground mt-1">{file.comment}</p>}
+                                                                                </div>
+                                                                            </a>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex-shrink-0 flex items-center">
+                                                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCommentDialog({ open: true, orderId: order.id, attachmentIndex: index, currentComment: file.comment || '' })}>
+                                                                            <MessageSquarePlus className="h-4 w-4" />
+                                                                        </Button>
+                                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteAttachment(order, index)}>
+                                                                            <X className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </div>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -728,6 +781,30 @@ export default function CustomersAdminPage() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        
+        <Dialog open={commentDialog.open} onOpenChange={(open) => !open && setCommentDialog({ open: false })}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{commentDialog.initialFiles ? 'Adicionar Comentário ao Anexo' : 'Editar Comentário'}</DialogTitle>
+                    <DialogDescription>
+                        {commentDialog.initialFiles ? 'Adicione um comentário opcional para o(s) anexo(s) que está enviando.' : 'Edite o comentário deste anexo.'}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Label htmlFor="comment-text">Comentário</Label>
+                    <Textarea 
+                        id="comment-text"
+                        value={commentDialog.currentComment || ''}
+                        onChange={(e) => setCommentDialog(prev => ({...prev, currentComment: e.target.value}))}
+                        placeholder="Ex: Comprovante de endereço, RG frente, etc."
+                    />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setCommentDialog({ open: false })}>Cancelar</Button>
+                    <Button onClick={handleCommentDialogSubmit}>Salvar</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </>
   );
 }
@@ -735,6 +812,7 @@ export default function CustomersAdminPage() {
     
 
     
+
 
 
 
