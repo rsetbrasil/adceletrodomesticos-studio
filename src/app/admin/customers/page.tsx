@@ -89,8 +89,8 @@ export default function CustomersAdminPage() {
     open: boolean;
     orderId?: string;
     attachmentIndex?: number;
-    initialFiles?: { file: File, comment?: string }[];
     currentComment?: string;
+    onSave?: (comment: string) => Promise<void>;
   }>({ open: false });
 
   useEffect(() => {
@@ -187,56 +187,67 @@ export default function CustomersAdminPage() {
     setOpenDueDatePopover(null);
   };
     
-  const addAttachments = useCallback(async (order: Order, files: { file: File; comment?: string }[]) => {
-      const currentAttachments = order.attachments || [];
-      const newAttachments: Attachment[] = [...currentAttachments];
+  const addAttachments = useCallback(async (order: Order, newAttachments: Omit<Attachment, 'addedAt' | 'addedBy'>[]) => {
+    const currentAttachments = order.attachments || [];
+    
+    const processedAttachments: Attachment[] = newAttachments.map(att => ({
+        ...att,
+        addedAt: new Date().toISOString(),
+        addedBy: user?.name || 'Desconhecido'
+    }));
 
-      for (const { file, comment } of files) {
-          try {
-              const isImage = file.type.startsWith('image/');
-              let fileUrl: string;
-
-              if (isImage) {
-                  fileUrl = await resizeImage(file);
-              } else {
-                  fileUrl = await new Promise<string>((resolve, reject) => {
-                      const reader = new FileReader();
-                      reader.onload = (e) => e.target?.result ? resolve(e.target.result as string) : reject(new Error('Falha ao ler o arquivo.'));
-                      reader.onerror = reject;
-                      reader.readAsDataURL(file);
-                  });
-              }
-              const type = isImage ? 'image' : 'pdf';
-              newAttachments.push({ 
-                  name: file.name, 
-                  type, 
-                  url: fileUrl, 
-                  comment,
-                  addedAt: new Date().toISOString(),
-                  addedBy: user?.name || 'Desconhecido'
-              });
-
-          } catch (error) {
-              console.error("Erro ao processar arquivo:", error);
-              toast({ title: 'Erro ao Anexar', description: 'Não foi possível processar um dos arquivos.', variant: 'destructive' });
-          }
-      }
-
-      updateOrderDetails(order.id, { attachments: newAttachments });
-      toast({ title: 'Anexos Adicionados!', description: 'Os novos documentos foram salvos com sucesso.' });
+    await updateOrderDetails(order.id, { attachments: [...currentAttachments, ...processedAttachments] });
+    toast({ title: 'Anexos Adicionados!', description: 'Os novos documentos foram salvos com sucesso.' });
   }, [updateOrderDetails, toast, user]);
-  
-  const handleOpenCommentDialog = (orderId: string, files: File[]) => {
-    setCommentDialog({ 
-      open: true, 
-      orderId, 
-      initialFiles: files.map(f => ({file: f})) 
-    });
-  }
 
+  const handleFileProcessing = useCallback(async (order: Order, files: File[]) => {
+    const filesToProcess = Array.from(files);
+    if (filesToProcess.length === 0) return;
+
+    const attachmentsToAdd: Omit<Attachment, 'addedAt' | 'addedBy'>[] = [];
+
+    for (const file of filesToProcess) {
+        try {
+            const isImage = file.type.startsWith('image/');
+            const fileUrl = isImage ? await resizeImage(file) : await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => e.target?.result ? resolve(e.target.result as string) : reject(new Error('Falha ao ler o arquivo.'));
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+
+            attachmentsToAdd.push({
+                name: file.name,
+                type: isImage ? 'image' : 'pdf',
+                url: fileUrl,
+            });
+        } catch (error) {
+            console.error("Error processing file:", error);
+            toast({ title: 'Erro ao Processar Arquivo', description: `Não foi possível processar o arquivo ${file.name}.`, variant: 'destructive' });
+        }
+    }
+    
+    if (attachmentsToAdd.length === 0) return;
+    
+    if (attachmentsToAdd.length > 1) {
+        // For multiple files, add them without individual comments for now
+        await addAttachments(order, attachmentsToAdd);
+    } else {
+        // For a single file, open comment dialog
+        setCommentDialog({
+            open: true,
+            onSave: async (comment) => {
+                const finalAttachment = { ...attachmentsToAdd[0], comment: comment || undefined };
+                await addAttachments(order, [finalAttachment]);
+            }
+        });
+    }
+  }, [addAttachments, toast]);
+  
+  
   const handleFileChange = async (order: Order, event: ChangeEvent<HTMLInputElement>) => {
       if (!event.target.files) return;
-      handleOpenCommentDialog(order.id, Array.from(event.target.files));
+      await handleFileProcessing(order, Array.from(event.target.files));
       event.target.value = ''; // Clear the input
   };
 
@@ -255,7 +266,7 @@ export default function CustomersAdminPage() {
         e.stopPropagation();
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleOpenCommentDialog(order.id, Array.from(e.dataTransfer.files));
+            await handleFileProcessing(order, Array.from(e.dataTransfer.files));
         }
     };
   
@@ -279,7 +290,7 @@ export default function CustomersAdminPage() {
         }
 
         if (imageFiles.length > 0) {
-            handleOpenCommentDialog(order.id, imageFiles);
+            await handleFileProcessing(order, imageFiles);
         } else {
             toast({ title: "Nenhuma imagem encontrada", description: "Não há imagens na sua área de transferência para colar." });
         }
@@ -292,6 +303,27 @@ export default function CustomersAdminPage() {
   const handleDeleteAttachment = (order: Order, indexToDelete: number) => {
     const newAttachments = (order.attachments || []).filter((_, index) => index !== indexToDelete);
     updateOrderDetails(order.id, { attachments: newAttachments });
+  };
+  
+  const handleEditComment = (order: Order, attachmentIndex: number) => {
+    const attachment = order.attachments?.[attachmentIndex];
+    if (!attachment) return;
+
+    setCommentDialog({
+      open: true,
+      currentComment: attachment.comment,
+      onSave: async (comment) => {
+        const newAttachments = [...(order.attachments || [])];
+        newAttachments[attachmentIndex] = {
+          ...newAttachments[attachmentIndex],
+          comment: comment || undefined,
+          addedAt: new Date().toISOString(),
+          addedBy: user?.name || 'Desconhecido',
+        };
+        await updateOrderDetails(order.id, { attachments: newAttachments });
+        toast({ title: 'Comentário salvo!' });
+      }
+    });
   };
 
   const handleOpenEditDialog = () => {
@@ -321,35 +353,13 @@ export default function CustomersAdminPage() {
   };
 
   const handleCommentDialogSubmit = () => {
-    const { orderId, attachmentIndex, initialFiles, currentComment } = commentDialog;
-
-    // Immediately close the dialog for better UX
+    const { onSave, currentComment } = commentDialog;
+    
+    // Optimistically close dialog
     setCommentDialog({ open: false });
 
-    // Perform the async operation in the background
-    const saveOperation = async () => {
-        // Adding new files
-        if (orderId && initialFiles) {
-            const order = customerOrders.find(o => o.id === orderId);
-            if (order) {
-                await addAttachments(order, initialFiles.map(f => ({ ...f, comment: currentComment })));
-            }
-        }
-        // Editing existing comment
-        else if (orderId && typeof attachmentIndex !== 'undefined') {
-            const order = customerOrders.find(o => o.id === orderId);
-            if (order && order.attachments) {
-                const newAttachments = [...order.attachments];
-                newAttachments[attachmentIndex].comment = currentComment || '';
-                newAttachments[attachmentIndex].addedAt = new Date().toISOString();
-                newAttachments[attachmentIndex].addedBy = user?.name || 'Desconhecido';
-                await updateOrderDetails(orderId, { attachments: newAttachments });
-                toast({ title: 'Comentário salvo!' });
-            }
-        }
-    };
-    
-    saveOperation();
+    // Perform save operation
+    onSave?.(currentComment || '');
   };
 
 
@@ -691,7 +701,7 @@ export default function CustomersAdminPage() {
                                                                         )}
                                                                     </div>
                                                                     <div className="flex-shrink-0 flex items-center">
-                                                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCommentDialog({ open: true, orderId: order.id, attachmentIndex: index, currentComment: file.comment || '' })}>
+                                                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditComment(order, index)}>
                                                                             <MessageSquarePlus className="h-4 w-4" />
                                                                         </Button>
                                                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteAttachment(order, index)}>
@@ -814,9 +824,9 @@ export default function CustomersAdminPage() {
         <Dialog open={commentDialog.open} onOpenChange={(open) => !open && setCommentDialog({ open: false })}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{commentDialog.initialFiles ? 'Adicionar Comentário ao Anexo' : 'Editar Comentário'}</DialogTitle>
+                    <DialogTitle>{commentDialog.onSave ? 'Adicionar Comentário ao Anexo' : 'Editar Comentário'}</DialogTitle>
                     <DialogDescription>
-                        {commentDialog.initialFiles ? 'Adicione um comentário opcional para o(s) anexo(s) que está enviando.' : 'Edite o comentário deste anexo.'}
+                         Adicione ou edite um comentário para o anexo.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
@@ -837,5 +847,3 @@ export default function CustomersAdminPage() {
     </>
   );
 }
-
-    
