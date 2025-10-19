@@ -223,7 +223,7 @@ export default function CustomersAdminPage() {
           }
       }
 
-      await updateOrderDetails(order.id, { attachments: newAttachments });
+      updateOrderDetails(order.id, { attachments: newAttachments });
       toast({ title: 'Anexos Adicionados!', description: 'Os novos documentos foram salvos com sucesso.' });
   }, [updateOrderDetails, toast, user]);
   
@@ -290,9 +290,9 @@ export default function CustomersAdminPage() {
     }
   };
 
-  const handleDeleteAttachment = async (order: Order, indexToDelete: number) => {
+  const handleDeleteAttachment = (order: Order, indexToDelete: number) => {
     const newAttachments = (order.attachments || []).filter((_, index) => index !== indexToDelete);
-    await updateOrderDetails(order.id, { attachments: newAttachments });
+    updateOrderDetails(order.id, { attachments: newAttachments });
   };
 
   const handleOpenEditDialog = () => {
@@ -321,27 +321,34 @@ export default function CustomersAdminPage() {
     }
   };
 
-  const handleCommentDialogSubmit = async () => {
+  const handleCommentDialogSubmit = () => {
     const { orderId, attachmentIndex, initialFiles, currentComment } = commentDialog;
 
-    // Adding new files
-    if (orderId && initialFiles) {
-        const order = customerOrders.find(o => o.id === orderId);
-        if (order) {
-            await addAttachments(order, initialFiles.map(f => ({ ...f, comment: currentComment })));
-        }
-    }
-    // Editing existing comment
-    else if (orderId && typeof attachmentIndex !== 'undefined') {
-        const order = customerOrders.find(o => o.id === orderId);
-        if (order && order.attachments) {
-            const newAttachments = [...order.attachments];
-            newAttachments[attachmentIndex].comment = currentComment;
-            await updateOrderDetails(orderId, { attachments: newAttachments });
-            toast({ title: 'Comentário salvo!' });
-        }
-    }
+    // Immediately close the dialog for better UX
     setCommentDialog({ open: false });
+
+    // Perform the async operation in the background
+    const saveOperation = async () => {
+        // Adding new files
+        if (orderId && initialFiles) {
+            const order = customerOrders.find(o => o.id === orderId);
+            if (order) {
+                await addAttachments(order, initialFiles.map(f => ({ ...f, comment: currentComment })));
+            }
+        }
+        // Editing existing comment
+        else if (orderId && typeof attachmentIndex !== 'undefined') {
+            const order = customerOrders.find(o => o.id === orderId);
+            if (order && order.attachments) {
+                const newAttachments = [...order.attachments];
+                newAttachments[attachmentIndex].comment = currentComment;
+                await updateOrderDetails(orderId, { attachments: newAttachments });
+                toast({ title: 'Comentário salvo!' });
+            }
+        }
+    };
+    
+    saveOperation();
   };
 
 
@@ -833,6 +840,7 @@ export default function CustomersAdminPage() {
     
 
     
+
 
 
 
