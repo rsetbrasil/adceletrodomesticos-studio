@@ -1,10 +1,9 @@
 
 'use client';
 
-import { useParams } from 'next/navigation';
-import { useCart } from '@/context/CartContext';
+import { useParams, useRouter } from 'next/navigation';
 import { useSettings } from '@/context/SettingsContext';
-import { useMemo, useRef }from 'react';
+import { useMemo, useRef, useState, useEffect }from 'react';
 import type { Order, Installment, StoreSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Printer, Send, ArrowLeft } from 'lucide-react';
@@ -13,7 +12,8 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 
 const formatCurrency = (value: number) => {
@@ -127,31 +127,50 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
 export default function SingleInstallmentPage() {
   const params = useParams();
   const router = useRouter();
-  const { orders, isLoading } = useCart();
   const { settings } = useSettings();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { order, installment } = useMemo(() => {
-    if (isLoading || !orders || !params.id || !params.installmentNumber) {
-        return { order: null, installment: null };
+  useEffect(() => {
+    const fetchOrder = async () => {
+        const orderId = params.id as string;
+        if (!orderId) {
+            setIsLoading(false);
+            return;
+        };
+
+        try {
+            const orderRef = doc(db, 'orders', orderId);
+            const docSnap = await getDoc(orderRef);
+
+            if(docSnap.exists()) {
+                setOrder({ id: docSnap.id, ...docSnap.data() } as Order);
+            } else {
+                setOrder(null);
+            }
+        } catch (error) {
+            console.error("Error fetching order:", error);
+            setOrder(null);
+        } finally {
+            setIsLoading(false);
+        }
     }
-    const orderId = params.id as string;
+
+    fetchOrder();
+  }, [params.id]);
+
+  const installment = useMemo(() => {
+    if (!order || !params.installmentNumber) {
+        return null;
+    }
     const installmentNum = parseInt(params.installmentNumber as string, 10);
-    
     if (isNaN(installmentNum)) {
-        return { order: null, installment: null };
+        return null;
     }
-
-    const foundOrder = orders.find(o => o.id === orderId);
-    if (!foundOrder) {
-        return { order: null, installment: null };
-    }
-
-    const foundInstallment = foundOrder.installmentDetails?.find(i => i.installmentNumber === installmentNum);
-    
-    return { order: foundOrder, installment: foundInstallment || null };
-  }, [isLoading, orders, params.id, params.installmentNumber]);
+    return order.installmentDetails?.find(i => i.installmentNumber === installmentNum) || null;
+  }, [order, params.installmentNumber]);
 
 
   const handleGeneratePdfAndSend = async () => {

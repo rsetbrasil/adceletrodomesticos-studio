@@ -2,15 +2,16 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useCart } from '@/context/CartContext';
 import { useSettings } from '@/context/SettingsContext';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { Order } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const formatCurrency = (value: number) => {
   if (typeof value !== 'number') return 'R$ 0,00';
@@ -60,7 +61,7 @@ const CarnetContent = ({ order, settings }: { order: Order; settings: any }) => 
             <table className="w-full text-xs">
                 <thead className="bg-muted/50 print:bg-gray-100">
                     <tr className="border-b">
-                        <th className="p-1 text-left font-medium w-[15%]">Parcela</th>
+                        <th className="p-1 text-center font-medium w-[15%]">Parcela</th>
                         <th className="p-1 text-left font-medium w-[25%]">Vencimento</th>
                         <th className="p-1 text-right font-medium w-[25%]">Valor (R$)</th>
                         <th className="p-1 text-left font-medium w-[35%]">Data do Pagamento</th>
@@ -103,16 +104,37 @@ const CarnetContent = ({ order, settings }: { order: Order; settings: any }) => 
 export default function CarnetPage() {
   const params = useParams();
   const router = useRouter();
-  const { orders, isLoading } = useCart();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { settings } = useSettings();
 
-  const order = useMemo(() => {
-    if (isLoading || !orders || !params.id) {
-        return null;
+  useEffect(() => {
+    const fetchOrder = async () => {
+        const orderId = params.id as string;
+        if (!orderId) {
+            setIsLoading(false);
+            return;
+        };
+
+        try {
+            const orderRef = doc(db, 'orders', orderId);
+            const docSnap = await getDoc(orderRef);
+
+            if(docSnap.exists()) {
+                setOrder({ id: docSnap.id, ...docSnap.data() } as Order);
+            } else {
+                setOrder(null);
+            }
+        } catch (error) {
+            console.error("Error fetching order:", error);
+            setOrder(null);
+        } finally {
+            setIsLoading(false);
+        }
     }
-    const orderId = params.id as string;
-    return orders.find(o => o.id === orderId) || null;
-  }, [isLoading, orders, params.id]);
+
+    fetchOrder();
+  }, [params.id]);
 
 
   if (isLoading) {
