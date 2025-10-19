@@ -5,19 +5,28 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
-import type { Product, Order } from '@/lib/types';
+import type { Order } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
-import { DollarSign, CheckCircle, Clock, Percent, Award, FileText, TrendingUp } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, Percent, Award, FileText, TrendingUp, Eye } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+};
+
+type SellerCommissionDetails = {
+    id: string;
+    name: string;
+    total: number;
+    count: number;
+    orderIds: string[];
 };
 
 export default function FinanceiroPage() {
@@ -25,6 +34,8 @@ export default function FinanceiroPage() {
   const { users } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const router = useRouter();
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedSeller, setSelectedSeller] = useState<SellerCommissionDetails | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -100,7 +111,7 @@ export default function FinanceiroPage() {
         }
     });
 
-    const commissionsBySeller = Array.from(sellerCommissions.entries())
+    const commissionsBySeller: SellerCommissionDetails[] = Array.from(sellerCommissions.entries())
       .map(([id, data]) => ({ id, ...data }))
       .sort((a,b) => b.total - a.total);
 
@@ -116,6 +127,16 @@ export default function FinanceiroPage() {
           router.push(`/admin/commission-receipt/${paymentId}`);
       }
   };
+  
+  const handleOpenDetails = (seller: SellerCommissionDetails) => {
+    setSelectedSeller(seller);
+    setIsDetailModalOpen(true);
+  };
+  
+  const ordersForSelectedSeller = useMemo(() => {
+    if (!selectedSeller) return [];
+    return orders.filter(o => selectedSeller.orderIds.includes(o.id));
+  }, [selectedSeller, orders]);
 
 
   if (!isClient) {
@@ -134,6 +155,7 @@ export default function FinanceiroPage() {
     };
 
   return (
+    <>
     <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -239,10 +261,16 @@ export default function FinanceiroPage() {
                         <TableCell className="text-center">{seller.count}</TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(seller.total)}</TableCell>
                         <TableCell className="text-right">
-                            <Button size="sm" onClick={() => handlePayCommission(seller.id, seller.name, seller.total, seller.orderIds)}>
-                                <DollarSign className="mr-2 h-4 w-4" />
-                                Pagar Comissão
-                            </Button>
+                           <div className="flex items-center justify-end gap-2">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(seller)}>
+                                    <Eye className="h-4 w-4" />
+                                    <span className="sr-only">Ver detalhes</span>
+                                </Button>
+                                <Button size="sm" onClick={() => handlePayCommission(seller.id, seller.name, seller.total, seller.orderIds)}>
+                                    <DollarSign className="mr-2 h-4 w-4" />
+                                    Pagar
+                                </Button>
+                            </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -260,5 +288,47 @@ export default function FinanceiroPage() {
         </Card>
       </div>
     </div>
+    
+    <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+        <DialogContent className="max-w-4xl">
+            <DialogHeader>
+                <DialogTitle>Vendas Pendentes de Comissão</DialogTitle>
+                <DialogDescription>
+                    Lista de vendas para o vendedor <span className="font-bold">{selectedSeller?.name}</span> que compõem o total da comissão.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-md border max-h-[60vh] overflow-y-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Data</TableHead>
+                            <TableHead>Pedido</TableHead>
+                            <TableHead>Cliente</TableHead>
+                            <TableHead className="text-right">Valor Pedido</TableHead>
+                            <TableHead className="text-right">Valor Comissão</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {ordersForSelectedSeller.length > 0 ? (
+                            ordersForSelectedSeller.map(order => (
+                                <TableRow key={order.id}>
+                                    <TableCell>{format(parseISO(order.date), "dd/MM/yy")}</TableCell>
+                                    <TableCell className="font-mono">{order.id}</TableCell>
+                                    <TableCell>{order.customer.name}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
+                                    <TableCell className="text-right font-semibold">{formatCurrency(order.commission || 0)}</TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center">Nenhum pedido encontrado.</TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
