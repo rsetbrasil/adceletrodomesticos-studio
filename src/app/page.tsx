@@ -145,7 +145,7 @@ export default function Home() {
                    <h3 className="text-3xl font-bold">{saleProducts[0].name}</h3>
                    <p className="text-muted-foreground text-md mt-2 mb-4">{saleProducts[0].description}</p>
                    <p className="text-4xl font-bold text-accent">{formatCurrency(saleProducts[0].price)}</p>
-                   <Link href={`/products/${saleProducts[0].id}`} className="mt-6">
+                   <Link href={`/produtos/${saleProducts[0].id}`} className="mt-6">
                      <Button size="lg">Ver Detalhes da Oferta</Button>
                    </Link>
                  </div>
@@ -182,7 +182,7 @@ export default function Home() {
                               <h3 className="text-xl font-bold">{product.name}</h3>
                               <p className="text-muted-foreground text-sm mt-1 mb-3 h-10 overflow-hidden">{product.description}</p>
                               <p className="text-3xl font-bold text-accent">{formatCurrency(product.price)}</p>
-                              <Link href={`/products/${product.id}`} className="mt-4">
+                              <Link href={`/produtos/${product.id}`} className="mt-4">
                                 <Button>Ver Detalhes</Button>
                               </Link>
                             </div>

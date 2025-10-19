@@ -36,15 +36,15 @@ const changePasswordSchema = z.object({
 });
 
 const pathToSectionMap: { [key: string]: AppSection } = {
-    '/admin/orders': 'orders',
-    '/admin/customers': 'customers',
-    '/admin/products': 'products',
-    '/admin/categories': 'categories',
+    '/admin/pedidos': 'orders',
+    '/admin/clientes': 'customers',
+    '/admin/produtos': 'products',
+    '/admin/categorias': 'categories',
     '/admin/financeiro': 'financeiro',
     '/admin/minhas-comissoes': 'minhas-comissoes',
     '/admin/auditoria': 'auditoria',
     '/admin/configuracao': 'configuracao',
-    '/admin/users': 'users',
+    '/admin/usuarios': 'users',
 };
 
 function AdminArea({ children }: { children: ReactNode }) {
@@ -83,7 +83,7 @@ function AdminArea({ children }: { children: ReactNode }) {
                     description: "Você não tem permissão para acessar esta página.",
                     variant: "destructive"
                 });
-                router.push('/admin/orders');
+                router.push('/admin/pedidos');
             }
         }
     }, [isLoading, permissionsLoading, isAuthenticated, user, permissions, router, pathname, toast]);

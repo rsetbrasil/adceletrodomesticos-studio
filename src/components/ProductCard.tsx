@@ -42,7 +42,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     : 'https://placehold.co/600x600.png';
 
   return (
-    <Link href={`/products/${product.id}`} className="block h-full" aria-label={`Ver detalhes de ${product.name}`}>
+    <Link href={`/produtos/${product.id}`} className="block h-full" aria-label={`Ver detalhes de ${product.name}`}>
       <Card className="flex flex-col overflow-hidden h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
         <CardHeader className="p-0 relative">
           {product.onSale && (

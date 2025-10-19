@@ -158,7 +158,7 @@ export default function MyCommissionsPage() {
                                                     <TableCell className="text-right">
                                                         <div className="flex justify-end gap-2">
                                                             <Button variant="outline" size="sm" asChild>
-                                                                <Link href={`/admin/commission-receipt/${payment.id}`}>
+                                                                <Link href={`/admin/comprovante-comissao/${payment.id}`}>
                                                                     <Eye className="mr-2 h-4 w-4" />
                                                                     Ver Comprovante
                                                                 </Link>
@@ -232,7 +232,7 @@ export default function MyCommissionsPage() {
                                                         <TableCell className="text-right">
                                                             <div className="flex justify-end gap-2">
                                                                 <Button variant="outline" size="sm" asChild>
-                                                                    <Link href={`/admin/commission-receipt/${payment.id}`}>
+                                                                    <Link href={`/admin/comprovante-comissao/${payment.id}`}>
                                                                         <Eye className="mr-2 h-4 w-4" />
                                                                         Ver Comprovante
                                                                     </Link>
@@ -281,4 +281,3 @@ export default function MyCommissionsPage() {
     </div>
   );
 }
-

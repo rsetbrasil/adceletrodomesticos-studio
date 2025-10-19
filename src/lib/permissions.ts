@@ -3,44 +3,44 @@
 import type { UserRole, AppSection, RolePermissions } from './types';
 
 export const ALL_SECTIONS: { id: AppSection, label: string }[] = [
-    { id: 'orders', label: 'Pedidos' },
-    { id: 'customers', label: 'Clientes' },
-    { id: 'products', label: 'Produtos' },
-    { id: 'categories', label: 'Categorias' },
+    { id: 'pedidos', label: 'Pedidos' },
+    { id: 'clientes', label: 'Clientes' },
+    { id: 'produtos', label: 'Produtos' },
+    { id: 'categorias', label: 'Categorias' },
     { id: 'financeiro', label: 'Financeiro' },
     { id: 'minhas-comissoes', label: 'Minhas Comissões' },
     { id: 'auditoria', label: 'Auditoria' },
     { id: 'configuracao', label: 'Configurações' },
-    { id: 'users', label: 'Usuários' },
+    { id: 'usuarios', label: 'Usuários' },
 ];
 
 export const initialPermissions: RolePermissions = {
     vendedor: [
-        'orders',
-        'customers',
-        'products',
+        'pedidos',
+        'clientes',
+        'produtos',
         'minhas-comissoes',
     ],
     gerente: [
-        'orders',
-        'customers',
-        'products',
-        'categories',
+        'pedidos',
+        'clientes',
+        'produtos',
+        'categorias',
         'financeiro',
         'minhas-comissoes',
         'auditoria',
         'configuracao',
     ],
     admin: [
-        'orders',
-        'customers',
-        'products',
-        'categories',
+        'pedidos',
+        'clientes',
+        'produtos',
+        'categorias',
         'financeiro',
         'minhas-comissoes',
         'auditoria',
         'configuracao',
-        'users',
+        'usuarios',
     ],
 };
 
@@ -53,4 +53,3 @@ export function hasAccess(role: UserRole, section: AppSection, permissions: Role
     }
     return rolePermissions.includes(section);
 }
-
