@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -14,6 +15,7 @@ import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import Logo from '@/components/Logo';
 
 
 const formatCurrency = (value: number) => {
@@ -74,9 +76,12 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
     return (
         <div className="bg-white p-6 break-inside-avoid-page text-black font-mono text-xs">
             <div className="flex justify-between items-start mb-4">
-                <div>
-                    <p className="font-bold">Empresa: {settings.storeName}</p>
-                    <p>CNPJ: {'00.000.000/0001-00'}</p>
+                <div className="flex items-center gap-4">
+                    <Logo />
+                    <div>
+                        <p className="font-bold">Empresa: {settings.storeName}</p>
+                        <p>CNPJ: {'00.000.000/0001-00'}</p>
+                    </div>
                 </div>
                 <h1 className="font-bold text-lg tracking-wider">RECIBO</h1>
             </div>
