@@ -74,13 +74,13 @@ function numeroParaExtenso(n: number) {
 const ReceiptContent = ({ order, installment, settings, via }: { order: Order; installment: Installment; settings: StoreSettings; via: 'Empresa' | 'Cliente' }) => {
     
     return (
-        <div className="bg-white p-6 break-inside-avoid-page text-black font-mono text-xs">
-            <div className="flex justify-between items-start mb-4">
+        <div className="bg-white p-6 break-inside-avoid-page text-black font-mono text-xs relative">
+             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-4">
                     <Logo />
-                    <div>
-                        <p className="font-bold">Empresa: {settings.storeName}</p>
-                        <p>CNPJ: {'00.000.000/0001-00'}</p>
+                    <div className="text-[10px]">
+                        <p className="font-bold">{settings.storeName}</p>
+                        <p className="whitespace-pre-line">{settings.storeAddress}</p>
                     </div>
                 </div>
                 <h1 className="font-bold text-lg tracking-wider">RECIBO</h1>
@@ -112,11 +112,15 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
                 </p>
             </div>
             
-            <div className="flex justify-center items-end flex-col">
+            <div className="flex justify-center items-end flex-col mt-4">
                 <p>{settings.storeCity}, {format(new Date(installment.paymentDate || new Date()), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
-                <div className="border-t border-black w-72 mt-8 pt-1 text-center">
-                    <p>{settings.storeName}</p>
-                </div>
+                {installment.status === 'Pago' && (
+                    <div className="relative mt-2">
+                        <div className="border-4 border-blue-500 rounded-md px-6 py-2 transform -rotate-12">
+                            <p className="text-2xl font-black text-blue-500 tracking-wider">PAGO</p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="flex justify-between items-center mt-12 border-t border-black pt-1">
@@ -226,8 +230,8 @@ export default function SingleInstallmentPage() {
     const phone = order.customer.phone.replace(/\D/g, '');
     const message = `Olá ${customerName}, segue o comprovante de pagamento da sua parcela nº ${installment.installmentNumber} (pedido ${order.id}), no valor de ${formatCurrency(installment.amount)}.\n\nObrigado!\n*${settings.storeName}*`;
     
-    const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    const webUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+    window.open(webUrl, '_blank');
 
     toast({
         title: "Passo 1/2: PDF Gerado!",

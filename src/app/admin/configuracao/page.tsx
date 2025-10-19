@@ -21,10 +21,12 @@ import { usePermissions } from '@/context/PermissionsContext';
 import type { RolePermissions, UserRole, AppSection } from '@/lib/types';
 import { ALL_SECTIONS } from '@/lib/permissions';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const settingsSchema = z.object({
   storeName: z.string().min(3, 'O nome da loja é obrigatório.'),
+  storeAddress: z.string().min(10, 'O endereço da loja é obrigatório.'),
   storeCity: z.string().min(3, 'A cidade da loja é obrigatória.'),
   pixKey: z.string().min(1, 'A chave PIX é obrigatória.'),
   storePhone: z.string().min(10, 'O telefone da loja é obrigatório.'),
@@ -47,6 +49,7 @@ export default function ConfiguracaoPage() {
     defaultValues: {
         storeName: '',
         storeCity: '',
+        storeAddress: '',
         pixKey: '',
         storePhone: '',
     },
@@ -168,7 +171,7 @@ export default function ConfiguracaoPage() {
               Configurações da Loja
           </CardTitle>
           <CardDescription>
-            Altere as informações da sua loja, como nome, chave PIX e telefone para notificações.
+            Altere as informações da sua loja, como nome, endereço, chave PIX e telefone para notificações.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -187,13 +190,26 @@ export default function ConfiguracaoPage() {
                   </FormItem>
                 )}
               />
+               <FormField
+                control={form.control}
+                name="storeAddress"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Endereço da Loja</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Ex: Rua da Loja, 123 - Centro, São Paulo/SP" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <FormField
                     control={form.control}
                     name="storeCity"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Cidade da Loja</FormLabel>
+                        <FormLabel>Cidade da Loja (para Recibos)</FormLabel>
                         <FormControl>
                           <Input placeholder="Ex: São Paulo" {...field} />
                         </FormControl>

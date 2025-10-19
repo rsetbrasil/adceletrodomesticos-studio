@@ -12,6 +12,7 @@ import { useAuth } from './AuthContext';
 export type StoreSettings = {
     storeName: string;
     storeCity: string;
+    storeAddress: string;
     pixKey: string;
     storePhone: string;
 };
@@ -19,6 +20,7 @@ export type StoreSettings = {
 const initialSettings: StoreSettings = {
     storeName: 'ADC MOVEIS E ELETRO',
     storeCity: 'SAO PAULO',
+    storeAddress: 'Rua da Loja, 123 - Centro, São Paulo/SP - CEP 01000-000',
     pixKey: 'fb43228c-4740-4c16-a217-21706a782496', // Example key
     storePhone: '5511999999999', // Example phone
 };
