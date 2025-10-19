@@ -131,7 +131,7 @@ export default function CustomersAdminPage() {
   const customerOrders = useMemo(() => {
       if (!selectedCustomer) return [];
       return orders
-        .filter(o => o.customer.cpf === selectedCustomer.cpf && o.status !== 'Cancelado')
+        .filter(o => o.customer.cpf === selectedCustomer.cpf && o.status !== 'Cancelado' && o.status !== 'Excluído')
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [selectedCustomer, orders]);
 
@@ -735,5 +735,6 @@ export default function CustomersAdminPage() {
     
 
     
+
 
 
