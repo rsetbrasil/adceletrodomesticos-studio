@@ -342,6 +342,8 @@ export default function CustomersAdminPage() {
             if (order && order.attachments) {
                 const newAttachments = [...order.attachments];
                 newAttachments[attachmentIndex].comment = currentComment;
+                newAttachments[attachmentIndex].addedAt = new Date().toISOString();
+                newAttachments[attachmentIndex].addedBy = user?.name || 'Desconhecido';
                 await updateOrderDetails(orderId, { attachments: newAttachments });
                 toast({ title: 'Comentário salvo!' });
             }
@@ -840,6 +842,7 @@ export default function CustomersAdminPage() {
     
 
     
+
 
 
 
