@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent } from 'react';
@@ -341,7 +340,7 @@ export default function CustomersAdminPage() {
             const order = customerOrders.find(o => o.id === orderId);
             if (order && order.attachments) {
                 const newAttachments = [...order.attachments];
-                newAttachments[attachmentIndex].comment = currentComment;
+                newAttachments[attachmentIndex].comment = currentComment || '';
                 newAttachments[attachmentIndex].addedAt = new Date().toISOString();
                 newAttachments[attachmentIndex].addedBy = user?.name || 'Desconhecido';
                 await updateOrderDetails(orderId, { attachments: newAttachments });
@@ -840,13 +839,3 @@ export default function CustomersAdminPage() {
 }
 
     
-
-    
-
-
-
-
-
-
-
-
