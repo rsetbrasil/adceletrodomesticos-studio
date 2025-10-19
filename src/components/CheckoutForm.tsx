@@ -270,7 +270,7 @@ export default function CheckoutForm() {
     };
     
     try {
-        const savedOrder = await addOrder(order, products);
+        const savedOrder = await addOrder(order, products, orders);
         setLastOrder(savedOrder as Order);
         clearCart();
     
