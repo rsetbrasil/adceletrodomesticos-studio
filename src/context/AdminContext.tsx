@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -653,35 +654,26 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateOrderDetails = async (orderId: string, details: Partial<Order>) => {
-      const order = orders.find(o => o.id === orderId);
-      if (!order) return;
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) return;
 
-      let detailsToUpdate = { ...details };
+    let detailsToUpdate = { ...details };
 
-      // If the seller is being changed or the commission is not being set manually
-      if ('sellerId' in details && details.sellerId) {
-          const tempOrderForCommissionCalc = {...order, ...detailsToUpdate};
-          if (!tempOrderForCommissionCalc.isCommissionManual) {
-            detailsToUpdate.commission = calculateCommission(tempOrderForCommissionCalc, products);
-          }
+    // Only recalculate commission if the sellerId is what's being changed.
+    if ('sellerId' in details && details.sellerId && details.sellerId !== order.sellerId) {
+      const tempOrderForCommissionCalc = { ...order, ...detailsToUpdate };
+      if (!tempOrderForCommissionCalc.isCommissionManual) {
+        detailsToUpdate.commission = calculateCommission(tempOrderForCommissionCalc, products);
       }
-      
-      // If manual commission is being updated, set the flag
-      if ('commission' in details && details.commission !== order.commission) {
-        if ('isCommissionManual' in details) {
-          // do nothing, the flag is being passed
-        } else {
-          detailsToUpdate.isCommissionManual = true;
-        }
-      }
+    }
 
     try {
-        await updateDoc(doc(db, 'orders', orderId), detailsToUpdate);
-        // Real-time listener will update the state
-        logAction('Atualização de Detalhes do Pedido', `Detalhes do pedido #${orderId} foram atualizados.`, user);
-        toast({ title: "Pedido Atualizado!", description: `Os detalhes do pedido #${orderId} foram atualizados.` });
-    } catch(e) {
-        toast({ title: "Erro", description: "Falha ao atualizar os detalhes do pedido.", variant: "destructive" });
+      await updateDoc(doc(db, 'orders', orderId), detailsToUpdate);
+      logAction('Atualização de Detalhes do Pedido', `Detalhes do pedido #${orderId} foram atualizados.`, user);
+      toast({ title: "Pedido Atualizado!", description: `Os detalhes do pedido #${orderId} foram atualizados.` });
+    } catch (e) {
+      console.error("Failed to update order details:", e);
+      toast({ title: "Erro", description: "Falha ao atualizar os detalhes do pedido.", variant: "destructive" });
     }
   };
 
