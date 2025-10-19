@@ -500,6 +500,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
             
             if (newStock < 0) {
+              // This should be checked before calling, but as a safeguard:
               toast({
                   title: 'Estoque Insuficiente',
                   description: `Não há estoque suficiente para ${product.name}. Disponível: ${product.stock}, Pedido: ${stockChange}.`,
@@ -557,7 +558,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
     // Recalculate commission if status is 'Entregue' and commission is not manual, otherwise zero it out.
     if (newStatus === 'Entregue' && orderToUpdate.sellerId) {
-      detailsToUpdate.commission = calculateCommission(orderToUpdate, products);
+      if (!orderToUpdate.isCommissionManual) {
+        detailsToUpdate.commission = calculateCommission(orderToUpdate, products);
+      }
     } else {
         // If status is not 'Entregue', commission should be 0 and not paid
         if (!orderToUpdate.isCommissionManual) {

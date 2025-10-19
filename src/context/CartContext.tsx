@@ -7,7 +7,7 @@ import type { CartItem, Order, Product, CustomerInfo } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 import { useAudit } from './AuditContext';
 import { useRouter } from 'next/navigation';
@@ -60,7 +60,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [selectedCategoryForSheet, setSelectedCategoryForSheet] = useState<string | null>(null);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, users } = useAuth();
   const { logAction } = useAudit();
 
   useEffect(() => {
@@ -116,9 +116,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       saveDataToLocalStorage('lastOrder', order);
   }
   
-  const manageStockForOrder = async (order: Order | undefined, operation: 'add' | 'subtract', allProducts: Product[]): Promise<boolean> => {
-    if (!order) return false;
-    
+  const manageStockForOrder = async (order: Order, operation: 'add' | 'subtract', allProducts: Product[]): Promise<boolean> => {
+    const batch = writeBatch(db);
+    let hasEnoughStock = true;
+
     for (const orderItem of order.items) {
         const product = allProducts.find(p => p.id === orderItem.id);
         if (product) {
@@ -126,24 +127,35 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
             
             if (newStock < 0) {
+              hasEnoughStock = false;
               toast({
                   title: 'Estoque Insuficiente',
                   description: `Não há estoque suficiente para ${product.name}. Disponível: ${product.stock}, Pedido: ${stockChange}.`,
                   variant: 'destructive'
               });
-              return false; // Indicate failure
+              break; // Stop processing if any item is out of stock
             }
+            
+            batch.update(doc(db, 'products', product.id), { stock: newStock });
         }
     }
-    return true; // Indicate success
+    
+    if (hasEnoughStock) {
+        await batch.commit();
+        return true;
+    }
+    
+    return false;
   };
 
   const addOrder = async (order: Partial<Order>, allProducts: Product[], allOrders: Order[]): Promise<Order | null> => {
     try {
+        const adminUser = users.find(u => u.role === 'admin');
+
         const orderToSave = {
             ...order,
-            sellerId: '',
-            sellerName: '',
+            sellerId: adminUser?.id || '',
+            sellerName: adminUser?.name || 'Administrador',
             commission: 0,
             commissionPaid: false,
         } as Order;
