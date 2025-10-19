@@ -11,8 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus } from 'lucide-react';
-import { format } from 'date-fns';
+import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/context/AuthContext';
 
 
 const formatCurrency = (value: number) => {
@@ -74,6 +75,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 
 export default function CustomersAdminPage() {
   const { orders, updateCustomer, updateInstallmentStatus, updateInstallmentDueDate, updateOrderDetails } = useAdmin();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
@@ -206,7 +208,14 @@ export default function CustomersAdminPage() {
                   });
               }
               const type = isImage ? 'image' : 'pdf';
-              newAttachments.push({ name: file.name, type, url: fileUrl, comment });
+              newAttachments.push({ 
+                  name: file.name, 
+                  type, 
+                  url: fileUrl, 
+                  comment,
+                  addedAt: new Date().toISOString(),
+                  addedBy: user?.name || 'Desconhecido'
+              });
 
           } catch (error) {
               console.error("Erro ao processar arquivo:", error);
@@ -216,7 +225,7 @@ export default function CustomersAdminPage() {
 
       await updateOrderDetails(order.id, { attachments: newAttachments });
       toast({ title: 'Anexos Adicionados!', description: 'Os novos documentos foram salvos com sucesso.' });
-  }, [updateOrderDetails, toast]);
+  }, [updateOrderDetails, toast, user]);
   
   const handleOpenCommentDialog = (orderId: string, files: File[]) => {
     setCommentDialog({ 
@@ -640,23 +649,35 @@ export default function CustomersAdminPage() {
                                                                 <div key={index} className="flex items-start justify-between p-2 rounded-md border bg-muted/50">
                                                                     <div className="flex-grow overflow-hidden">
                                                                         {file.type === 'image' ? (
-                                                                            <button onClick={() => setImageToView(file.url)} className="flex items-center gap-3 group text-left w-full">
+                                                                            <button onClick={() => setImageToView(file.url)} className="flex items-start gap-3 group text-left w-full">
                                                                                 <Image src={file.url} alt={file.name} width={40} height={40} className="h-10 w-10 rounded-md object-cover flex-shrink-0" />
-                                                                                 <div>
-                                                                                    <span className="text-sm font-medium group-hover:underline truncate" title={file.name}>
+                                                                                 <div className="flex-grow">
+                                                                                    <span className="text-sm font-medium group-hover:underline break-words" title={file.name}>
                                                                                         {file.name}
                                                                                     </span>
-                                                                                    {file.comment && <p className="text-xs text-muted-foreground mt-1">{file.comment}</p>}
+                                                                                    {file.comment && <p className="text-xs text-muted-foreground mt-1 italic">"{file.comment}"</p>}
+                                                                                     {file.addedAt && (
+                                                                                        <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                                                            <span className="flex items-center gap-1"><ClockIcon className="h-3 w-3" />{format(parseISO(file.addedAt), 'dd/MM/yy HH:mm')}</span>
+                                                                                            <span className="flex items-center gap-1"><UserSquare className="h-3 w-3" />{file.addedBy}</span>
+                                                                                        </div>
+                                                                                     )}
                                                                                  </div>
                                                                             </button>
                                                                         ) : (
-                                                                            <a href={file.url} download={file.name} className="flex items-center gap-3 group w-full">
+                                                                            <a href={file.url} download={file.name} className="flex items-start gap-3 group w-full">
                                                                                 <FileText className="h-8 w-8 text-muted-foreground flex-shrink-0" />
-                                                                                <div>
-                                                                                    <span className="text-sm font-medium group-hover:underline truncate" title={file.name}>
+                                                                                <div className="flex-grow">
+                                                                                    <span className="text-sm font-medium group-hover:underline break-words" title={file.name}>
                                                                                         {file.name}
                                                                                     </span>
-                                                                                    {file.comment && <p className="text-xs text-muted-foreground mt-1">{file.comment}</p>}
+                                                                                    {file.comment && <p className="text-xs text-muted-foreground mt-1 italic">"{file.comment}"</p>}
+                                                                                    {file.addedAt && (
+                                                                                        <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                                                            <span className="flex items-center gap-1"><ClockIcon className="h-3 w-3" />{format(parseISO(file.addedAt), 'dd/MM/yy HH:mm')}</span>
+                                                                                            <span className="flex items-center gap-1"><UserSquare className="h-3 w-3" />{file.addedBy}</span>
+                                                                                        </div>
+                                                                                     )}
                                                                                 </div>
                                                                             </a>
                                                                         )}
@@ -812,6 +833,7 @@ export default function CustomersAdminPage() {
     
 
     
+
 
 
 

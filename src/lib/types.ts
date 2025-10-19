@@ -33,6 +33,8 @@ export type Attachment = {
   type: 'image' | 'pdf';
   url: string;
   comment?: string;
+  addedAt?: string; // ISO String
+  addedBy?: string; // User name
 };
 
 export type CustomerInfo = {
