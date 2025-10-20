@@ -10,10 +10,18 @@ import { Button, buttonVariants } from './ui/button';
 import { ShoppingBag, User } from 'lucide-react';
 import { CartSheet } from './CartSheet';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
 
 export default function Header() {
-  const { cartCount, setIsCartOpen } = useCart();
+  const { cartCount } = useCart();
   const { customer } = useCustomerAuth();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const customerLink = isClient && customer ? "/area-cliente/minha-conta" : "/area-cliente/login";
 
   return (
     <div className="bg-card/80 backdrop-blur-lg border-b sticky top-0 z-40">
@@ -22,7 +30,7 @@ export default function Header() {
           <Logo />
         </Link>
         <div className="flex items-center gap-2">
-            <Link href={customer ? "/area-cliente/minha-conta" : "/area-cliente/login"} className={cn(buttonVariants({ variant: "ghost" }))}>
+            <Link href={customerLink} className={cn(buttonVariants({ variant: "ghost" }))}>
                 <User className="mr-2" />
                 Área do Cliente
             </Link>
