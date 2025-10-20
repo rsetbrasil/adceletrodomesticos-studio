@@ -22,20 +22,20 @@ export default function Header() {
         </Link>
         <div className="flex items-center gap-2">
             <Link href={customer ? "/area-cliente/minha-conta" : "/area-cliente/login"}>
-                <Button variant="ghost" size="icon" className="h-12 w-12">
-                    <User className="h-7 w-7" />
-                    <span className="sr-only">Área do Cliente</span>
+                <Button variant="ghost">
+                    <User className="mr-2" />
+                    Área do Cliente
                 </Button>
             </Link>
             <CartSheet>
-                <Button variant="ghost" size="icon" onClick={() => setIsCartOpen(true)} className="relative h-12 w-12">
-                    <ShoppingBag className="h-7 w-7" />
+                <Button variant="ghost" onClick={() => setIsCartOpen(true)} className="relative">
+                    <ShoppingBag className="mr-2" />
+                    Carrinho
                     {cartCount > 0 && (
-                        <span className="absolute top-1 right-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-primary-foreground transform translate-x-1/2 -translate-y-1/2 bg-accent rounded-full">
+                        <span className="absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold leading-none text-primary-foreground transform translate-x-1/2 -translate-y-1/2 bg-accent rounded-full">
                         {cartCount}
                         </span>
                     )}
-                    <span className="sr-only">Carrinho de Compras</span>
                 </Button>
             </CartSheet>
         </div>
