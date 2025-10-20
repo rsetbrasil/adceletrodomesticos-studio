@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -302,6 +302,11 @@ export default function OrdersAdminPage() {
     });
   };
 
+  const handleAssignToMe = (order: Order) => {
+    if (!user) return;
+    handleAssignSeller(order, user);
+  }
+
   const handleUpdateCommission = () => {
     if (!selectedOrder) return;
     const value = parseFloat(commissionInput.replace(',', '.'));
@@ -415,7 +420,7 @@ export default function OrdersAdminPage() {
                                                     <Pencil className="h-4 w-4" />
                                                     <span className="sr-only">Gerenciar Pedido</span>
                                                 </Button>
-                                                {(user?.role === 'admin' || user?.role === 'gerente') && (
+                                                {isManagerOrAdmin ? (
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -431,6 +436,11 @@ export default function OrdersAdminPage() {
                                                             ))}
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
+                                                ) : (
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAssignToMe(order)}>
+                                                        <UserPlus className="h-4 w-4" />
+                                                        <span className="sr-only">Atribuir a mim</span>
+                                                    </Button>
                                                 )}
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteOrder(order.id)}>
                                                     <Trash className="h-4 w-4" />
