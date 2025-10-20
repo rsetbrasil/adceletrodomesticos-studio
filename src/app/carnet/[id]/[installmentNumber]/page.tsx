@@ -23,51 +23,56 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-// Simple number to currency words converter (Portuguese)
-function numeroParaExtenso(n: number) {
-    const extenso = {
-        '0': 'zero', '1': 'um', '2': 'dois', '3': 'três', '4': 'quatro', '5': 'cinco', '6': 'seis', '7': 'sete', '8': 'oito', '9': 'nove', '10': 'dez',
-        '11': 'onze', '12': 'doze', '13': 'treze', '14': 'catorze', '15': 'quinze', '16': 'dezesseis', '17': 'dezessete', '18': 'dezoito', '19': 'dezenove',
-        '20': 'vinte', '30': 'trinta', '40': 'quarenta', '50': 'cinquenta', '60': 'sessenta', '70': 'setenta', '80': 'oitenta', '90': 'noventa',
-        '100': 'cem', '200': 'duzentos', '300': 'trezentos', '400': 'quatrocentos', '500': 'quinhentos', '600': 'seiscentos', '700': 'setecentos', '800': 'oitocentos', '900': 'novecentos',
-        '1000': 'mil'
-    };
+function numeroParaExtenso(n: number): string {
+    if (isNaN(n)) return 'valor inválido';
 
     const numStr = n.toFixed(2);
     const [reaisStr, centavosStr] = numStr.split('.');
-    const reais = parseInt(reaisStr);
-    const centavos = parseInt(centavosStr);
+    const reais = parseInt(reaisStr, 10);
+    const centavos = parseInt(centavosStr, 10);
+
+    const unidades = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+    const dezenas = ['', 'dez', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
+    const especiais = ['dez', 'onze', 'doze', 'treze', 'catorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
+    const centenas = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
 
     function getExtenso(num: number): string {
-        if (extenso[num]) return extenso[num];
-        if (num > 1000) { // Basic support for thousands
-             const thousands = Math.floor(num / 1000);
-             const remainder = num % 1000;
-             return `${getExtenso(thousands)} mil${remainder > 0 ? ' e ' + getExtenso(remainder) : ''}`;
+        if (num === 0) return '';
+        if (num < 10) return unidades[num];
+        if (num < 20) return especiais[num - 10];
+        if (num < 100) {
+            const dezena = Math.floor(num / 10);
+            const unidade = num % 10;
+            return `${dezenas[dezena]}${unidade > 0 ? ` e ${getExtenso(unidade)}` : ''}`;
         }
-        if (num > 100) {
-            const hundreds = Math.floor(num / 100) * 100;
-            const remainder = num % 100;
-            return `${extenso[hundreds]}${remainder > 0 ? ' e ' + getExtenso(remainder) : ''}`;
+        if (num === 100) return 'cem';
+        if (num < 1000) {
+            const centena = Math.floor(num / 100);
+            const resto = num % 100;
+            return `${centenas[centena]}${resto > 0 ? ` e ${getExtenso(resto)}` : ''}`;
         }
-        if (num > 19) {
-            const tens = Math.floor(num / 10) * 10;
-            const remainder = num % 10;
-            return `${extenso[tens]}${remainder > 0 ? ' e ' + getExtenso(remainder) : ''}`;
+        if (num < 1000000) {
+            const milhar = Math.floor(num / 1000);
+            const resto = num % 1000;
+            const milharStr = milhar === 1 ? 'mil' : `${getExtenso(milhar)} mil`;
+            return `${milharStr}${resto > 0 ? ` e ${getExtenso(resto)}` : ''}`;
         }
-        return '';
+        return 'valor muito alto';
     }
 
-    let result = '';
-    if (reais > 0) {
-        result += `${getExtenso(reais)} ${reais > 1 ? 'reais' : 'real'}`;
-    }
-    if (centavos > 0) {
-        if (reais > 0) result += ' e ';
-        result += `${getExtenso(centavos)} ${centavos > 1 ? 'centavos' : 'centavo'}`;
-    }
+    const reaisExtenso = reais > 0 ? `${getExtenso(reais)} ${reais > 1 ? 'reais' : 'real'}` : '';
+    const centavosExtenso = centavos > 0 ? `${getExtenso(centavos)} ${centavos > 1 ? 'centavos' : 'centavo'}` : '';
 
-    return result || 'zero reais';
+    if (reaisExtenso && centavosExtenso) {
+        return `${reaisExtenso} e ${centavosExtenso}`;
+    }
+    if (reaisExtenso) {
+        return reaisExtenso;
+    }
+    if (centavosExtenso) {
+        return centavosExtenso;
+    }
+    return 'zero reais';
 }
 
 
