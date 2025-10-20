@@ -6,9 +6,10 @@ import Link from 'next/link';
 import Logo from './Logo';
 import { useCart } from '@/context/CartContext';
 import { useCustomerAuth } from '@/context/CustomerAuthContext';
-import { Button } from './ui/button';
+import { Button, buttonVariants } from './ui/button';
 import { ShoppingBag, User } from 'lucide-react';
 import { CartSheet } from './CartSheet';
+import { cn } from '@/lib/utils';
 
 export default function Header() {
   const { cartCount, setIsCartOpen } = useCart();
@@ -21,14 +22,12 @@ export default function Header() {
           <Logo />
         </Link>
         <div className="flex items-center gap-2">
-            <Link href={customer ? "/area-cliente/minha-conta" : "/area-cliente/login"}>
-                <Button variant="ghost">
-                    <User className="mr-2" />
-                    Área do Cliente
-                </Button>
+            <Link href={customer ? "/area-cliente/minha-conta" : "/area-cliente/login"} className={cn(buttonVariants({ variant: "ghost" }))}>
+                <User className="mr-2" />
+                Área do Cliente
             </Link>
             <CartSheet>
-                <Button variant="ghost" onClick={() => setIsCartOpen(true)} className="relative">
+                <Button variant="ghost" className="relative">
                     <ShoppingBag className="mr-2" />
                     Carrinho
                     {cartCount > 0 && (
