@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(userToStore); 
             localStorage.setItem('user', JSON.stringify(userToStore));
             logAction('Login', `Usuário "${userWithId.name}" realizou login.`, userToStore);
-            router.push('/admin/orders');
+            router.push('/admin/pedidos');
             toast({
                 title: 'Login bem-sucedido!',
                 description: `Bem-vindo(a), ${userWithId.name}.`,

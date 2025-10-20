@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { ReactNode, useEffect, useState, useCallback } from "react";
@@ -36,15 +37,15 @@ const changePasswordSchema = z.object({
 });
 
 const pathToSectionMap: { [key: string]: AppSection } = {
-    '/admin/pedidos': 'orders',
-    '/admin/clientes': 'customers',
-    '/admin/produtos': 'products',
-    '/admin/categorias': 'categories',
+    '/admin/pedidos': 'pedidos',
+    '/admin/clientes': 'clientes',
+    '/admin/produtos': 'produtos',
+    '/admin/categorias': 'categorias',
     '/admin/financeiro': 'financeiro',
     '/admin/minhas-comissoes': 'minhas-comissoes',
     '/admin/auditoria': 'auditoria',
     '/admin/configuracao': 'configuracao',
-    '/admin/usuarios': 'users',
+    '/admin/usuarios': 'usuarios',
 };
 
 function AdminArea({ children }: { children: ReactNode }) {
