@@ -23,7 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order, CustomerInfo, Product } from '@/lib/types';
 import { addMonths } from 'date-fns';
-import { AlertTriangle, CreditCard, KeyRound } from 'lucide-react';
+import { AlertTriangle, CreditCard, KeyRound, Trash2 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -54,7 +54,7 @@ const formatCurrency = (value: number) => {
 };
 
 export default function CheckoutForm() {
-  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder } = useCart();
+  const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, removeFromCart } = useCart();
   const { settings } = useSettings();
   const router = useRouter();
   const { toast } = useToast();
@@ -317,12 +317,12 @@ export default function CheckoutForm() {
         <h3 className="text-xl font-semibold mb-4 font-headline">Resumo do Pedido</h3>
         <div className="space-y-4">
           {cartItemsWithDetails.map((item) => (
-            <div key={item.id} className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
+            <div key={item.id} className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-4 flex-grow">
                 <div className="relative h-16 w-16 rounded-md overflow-hidden">
                   <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
                 </div>
-                <div>
+                <div className="flex-grow">
                   <p className="font-semibold">{item.name}</p>
                   <p className="text-sm text-muted-foreground">Qtd: {item.quantity}</p>
                    <p className="text-xs text-accent font-semibold">(em até {item.maxInstallments}x)</p>
@@ -334,7 +334,12 @@ export default function CheckoutForm() {
                   )}
                 </div>
               </div>
-              <p className="font-semibold">{formatCurrency(item.price * item.quantity)}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold">{formatCurrency(item.price * item.quantity)}</p>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => removeFromCart(item.id)}>
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
           <Separator />
