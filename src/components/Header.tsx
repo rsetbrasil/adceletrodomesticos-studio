@@ -27,7 +27,7 @@ export default function Header() {
                 Área do Cliente
             </Link>
             <CartSheet>
-                <Button variant="ghost" className="relative">
+                <Button variant="ghost">
                     <ShoppingBag className="mr-2" />
                     Carrinho
                     {cartCount > 0 && (
