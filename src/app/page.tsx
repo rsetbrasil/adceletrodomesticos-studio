@@ -137,11 +137,11 @@ export default function Home() {
                 <CarouselContent>
                   {saleProducts.map((product) => (
                     <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
-                      <div className="p-1">
+                      <div className="p-1 h-full">
                         <Link href={`/produtos/${product.id}`} className="block h-full">
-                          <Card className="h-full overflow-hidden flex flex-col p-4 justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                            <CardContent className="flex flex-col md:flex-row items-center justify-center p-0 gap-6 h-full">
-                              <div className="relative w-40 h-40 flex-shrink-0">
+                          <Card className="h-full overflow-hidden flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                            <CardContent className="flex flex-col items-center text-center p-6 gap-4">
+                               <div className="relative w-48 h-48">
                                 <Badge className="absolute top-0 left-0 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
                                   Promoção
                                 </Badge>
@@ -153,10 +153,10 @@ export default function Home() {
                                   sizes="50vw"
                                 />
                               </div>
-                              <div className="flex flex-col text-center md:text-left h-full justify-between">
+                              <div className="flex flex-col justify-between flex-grow">
                                 <div>
-                                  <h3 className="text-xl font-bold leading-tight">{product.name}</h3>
-                                  <p className="text-muted-foreground text-sm mt-1 mb-3 h-10 overflow-hidden">{product.description}</p>
+                                    <h3 className="text-xl font-bold leading-tight min-h-[56px]">{product.name}</h3>
+                                    <p className="text-muted-foreground text-sm mt-1 mb-3 h-10 overflow-hidden">{product.description}</p>
                                 </div>
                                 <div className="mt-auto">
                                   <p className="text-3xl font-bold text-accent">{formatCurrency(product.price)}</p>
