@@ -229,7 +229,7 @@ export default function CarnetPage() {
                 <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
             <div className="hidden print:block print:pl-4">
-                <CarnetContent order={order} settings={settings} pixPayload={null} />
+                <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
         </main>
       </div>
