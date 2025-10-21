@@ -38,7 +38,7 @@ export default function WhatsAppButton() {
     <div className="fixed bottom-6 right-6 z-50 print-hidden">
       <Button
         asChild
-        className="w-16 h-16 p-2 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg transition-transform hover:scale-110 flex items-center justify-center"
+        className="w-16 h-16 p-0 rounded-full bg-transparent hover:bg-transparent text-white shadow-lg transition-transform hover:scale-110 flex items-center justify-center"
         aria-label="Fale conosco pelo WhatsApp"
       >
         <Link href={whatsappUrl} target="_blank" rel="noopener noreferrer">
