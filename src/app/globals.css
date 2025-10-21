@@ -147,11 +147,18 @@
   }
   
   .print-layout-a4 .a4-header-logo > div {
-    font-size: 1rem;
+    font-size: 1.5rem !important; /* 24px */
   }
 
   .print-layout-a4 .a4-header-logo > div > div {
-    font-size: 0.8rem;
+    font-size: 0.75rem !important; /* 12px */
+  }
+  .print-layout-a4 .a4-header-logo > div .w-\[0\.25em\] {
+    width: 0.25em !important;
+    height: 0.25em !important;
+  }
+   .print-layout-a4 .a4-header-logo > div .gap-\[1\.5px\] {
+    gap: 1.5px !important;
   }
 
   .print-layout-a4 .a4-header-info > p:first-child {
