@@ -690,124 +690,115 @@ export default function OrdersAdminPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <Accordion type="multiple" className="w-full">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Parcela</TableHead>
-                                                    <TableHead>Vencimento</TableHead>
-                                                    <TableHead>Valor</TableHead>
-                                                    <TableHead>Status</TableHead>
-                                                    <TableHead className="text-right">Ação</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {(selectedOrder.installmentDetails || []).map(inst => {
-                                                    const remainingAmount = inst.amount - (inst.paidAmount || 0);
-                                                    const isOverdue = inst.status === 'Pendente' && new Date(inst.dueDate) < new Date();
-                                                    
-                                                    let statusText = inst.status;
-                                                    if (inst.status === 'Pendente' && (inst.paidAmount || 0) > 0) {
-                                                        statusText = `Parcial (${formatCurrency(remainingAmount)} pendente)`;
-                                                    } else if (isOverdue) {
-                                                        statusText = 'Atrasado';
-                                                    }
+                                      <Table>
+                                          <TableBody>
+                                              {(selectedOrder.installmentDetails || []).map((inst, instIndex) => {
+                                                  const remainingAmount = inst.amount - (inst.paidAmount || 0);
+                                                  const isOverdue = inst.status === 'Pendente' && new Date(inst.dueDate) < new Date();
+                                                  
+                                                  let statusText = inst.status;
+                                                  if (inst.status === 'Pendente' && (inst.paidAmount || 0) > 0) {
+                                                      statusText = `Parcial (${formatCurrency(remainingAmount)} pendente)`;
+                                                  } else if (isOverdue) {
+                                                      statusText = 'Atrasado';
+                                                  }
 
-                                                    const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
-                                                    const uniqueKey = inst.id || `${selectedOrder.id}-${inst.installmentNumber}`;
-                                                    
-                                                    return (
-                                                        <AccordionItem value={uniqueKey} key={uniqueKey} asChild>
-                                                            <>
-                                                                <TableRow>
-                                                                    <TableCell>{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
-                                                                    <TableCell>
-                                                                        <Popover open={openDueDatePopover === uniqueKey} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? uniqueKey : null)}>
-                                                                            <PopoverTrigger asChild>
-                                                                                <Button variant={"outline"} className="w-[150px] justify-start text-left font-normal text-xs" disabled={inst.status === 'Pago'}>
-                                                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                                    {format(new Date(inst.dueDate), 'dd/MM/yyyy')}
-                                                                                </Button>
-                                                                            </PopoverTrigger>
-                                                                            <PopoverContent className="w-auto p-0">
-                                                                                <Calendar mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)} initialFocus/>
-                                                                            </PopoverContent>
-                                                                        </Popover>
-                                                                    </TableCell>
-                                                                    <TableCell>{formatCurrency(inst.amount)}</TableCell>
-                                                                    <TableCell>
-                                                                        <Badge variant={statusVariant}>{statusText}</Badge>
-                                                                    </TableCell>
-                                                                    <TableCell className="text-right">
-                                                                        <div className="flex gap-1 justify-end">
-                                                                            {(inst.payments && inst.payments.length > 0) && (
+                                                  const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
+                                                  const uniqueKey = inst.id ? `${inst.id}-${instIndex}` : `${selectedOrder.id}-${inst.installmentNumber}`;
+                                                  
+                                                  return (
+                                                      <AccordionItem value={uniqueKey} key={uniqueKey} asChild>
+                                                          <>
+                                                              <TableRow>
+                                                                  <TableCell className="font-medium">{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
+                                                                  <TableCell>
+                                                                      <Popover open={openDueDatePopover === uniqueKey} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? uniqueKey : null)}>
+                                                                          <PopoverTrigger asChild>
+                                                                              <Button variant={"outline"} className="justify-start text-left font-normal text-xs" disabled={inst.status === 'Pago'}>
+                                                                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                                  Venc: {format(new Date(inst.dueDate), 'dd/MM/yyyy')}
+                                                                              </Button>
+                                                                          </PopoverTrigger>
+                                                                          <PopoverContent className="w-auto p-0">
+                                                                              <Calendar mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)} initialFocus/>
+                                                                          </PopoverContent>
+                                                                      </Popover>
+                                                                  </TableCell>
+                                                                  <TableCell>{formatCurrency(inst.amount)}</TableCell>
+                                                                  <TableCell>
+                                                                      <Badge variant={statusVariant} className="w-full text-center justify-center">{statusText}</Badge>
+                                                                  </TableCell>
+                                                                  <TableCell className="text-right">
+                                                                      <div className="flex gap-1 justify-end">
+                                                                          {(inst.payments && inst.payments.length > 0) && (
                                                                                 <AccordionTrigger className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-8 w-8')}>
                                                                                     <History className="h-4 w-4" />
                                                                                 </AccordionTrigger>
                                                                             )}
-                                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenPaymentDialog(inst)} disabled={inst.status === 'Pago'}>
-                                                                                <CheckCircle className="h-4 w-4 text-green-600"/>
-                                                                            </Button>
-                                                                            <Button variant="outline" size="icon" className="h-8 w-8" asChild>
-                                                                                <Link href={`/carnet/${selectedOrder.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
-                                                                                    <Printer className="h-4 w-4" />
-                                                                                </Link>
-                                                                            </Button>
-                                                                        </div>
-                                                                    </TableCell>
-                                                                </TableRow>
-                                                                <AccordionContent asChild>
-                                                                    <TableRow>
-                                                                        <TableCell colSpan={5} className="p-0">
-                                                                            <div className="p-4 bg-muted/50">
-                                                                                <h4 className="font-semibold text-sm mb-2">Histórico de Pagamentos da Parcela</h4>
-                                                                                {(inst.payments && inst.payments.length > 0) ? (
-                                                                                    <Table>
-                                                                                        <TableHeader>
-                                                                                            <TableRow>
-                                                                                                <TableHead>Data</TableHead>
-                                                                                                <TableHead>Método</TableHead>
-                                                                                                <TableHead>Valor</TableHead>
-                                                                                                <TableHead className='text-right'>Ação</TableHead>
+                                                                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenPaymentDialog(inst)} disabled={inst.status === 'Pago'}>
+                                                                              <CheckCircle className="h-4 w-4 text-green-600"/>
+                                                                          </Button>
+                                                                          <Button variant="outline" size="icon" className="h-8 w-8" asChild>
+                                                                              <Link href={`/carnet/${selectedOrder.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
+                                                                                  <Printer className="h-4 w-4" />
+                                                                              </Link>
+                                                                          </Button>
+                                                                      </div>
+                                                                  </TableCell>
+                                                              </TableRow>
+                                                              <TableRow>
+                                                                <TableCell colSpan={5} className="p-0 border-none">
+                                                                    <AccordionContent>
+                                                                        <div className="p-4 bg-muted/50">
+                                                                            <h4 className="font-semibold text-sm mb-2">Histórico de Pagamentos da Parcela</h4>
+                                                                            {(inst.payments && inst.payments.length > 0) ? (
+                                                                                <Table>
+                                                                                    <TableHeader>
+                                                                                        <TableRow>
+                                                                                            <TableHead>Data</TableHead>
+                                                                                            <TableHead>Método</TableHead>
+                                                                                            <TableHead>Valor</TableHead>
+                                                                                            <TableHead className='text-right'>Ação</TableHead>
+                                                                                        </TableRow>
+                                                                                    </TableHeader>
+                                                                                    <TableBody>
+                                                                                        {inst.payments.map((p, index) => (
+                                                                                            <TableRow key={`${p.id}-${index}`}>
+                                                                                                <TableCell>{format(new Date(p.date), "dd/MM/yyyy 'às' HH:mm")}</TableCell>
+                                                                                                <TableCell>{p.method}</TableCell>
+                                                                                                <TableCell>{formatCurrency(p.amount)}</TableCell>
+                                                                                                <TableCell className="text-right">
+                                                                                                    <AlertDialog>
+                                                                                                        <AlertDialogTrigger asChild>
+                                                                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Undo2 className="h-4 w-4" /></Button>
+                                                                                                        </AlertDialogTrigger>
+                                                                                                        <AlertDialogContent>
+                                                                                                            <AlertDialogHeader>
+                                                                                                                <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
+                                                                                                                <AlertDialogDescription>Esta ação irá reverter o pagamento de {formatCurrency(p.amount)} feito em {format(new Date(p.date), 'dd/MM/yy')}. Isso não pode ser desfeito.</AlertDialogDescription>
+                                                                                                            </AlertDialogHeader>
+                                                                                                            <AlertDialogFooter>
+                                                                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                                                                <AlertDialogAction onClick={() => reversePayment(selectedOrder.id, inst.installmentNumber, p.id)}>Sim, Estornar</AlertDialogAction>
+                                                                                                            </AlertDialogFooter>
+                                                                                                        </AlertDialogContent>
+                                                                                                    </AlertDialog>
+                                                                                                </TableCell>
                                                                                             </TableRow>
-                                                                                        </TableHeader>
-                                                                                        <TableBody>
-                                                                                            {inst.payments.map(p => (
-                                                                                                <TableRow key={p.id}>
-                                                                                                    <TableCell>{format(new Date(p.date), "dd/MM/yyyy 'às' HH:mm")}</TableCell>
-                                                                                                    <TableCell>{p.method}</TableCell>
-                                                                                                    <TableCell>{formatCurrency(p.amount)}</TableCell>
-                                                                                                    <TableCell className="text-right">
-                                                                                                        <AlertDialog>
-                                                                                                            <AlertDialogTrigger asChild>
-                                                                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Undo2 className="h-4 w-4" /></Button>
-                                                                                                            </AlertDialogTrigger>
-                                                                                                            <AlertDialogContent>
-                                                                                                                <AlertDialogHeader>
-                                                                                                                    <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
-                                                                                                                    <AlertDialogDescription>Esta ação irá reverter o pagamento de {formatCurrency(p.amount)} feito em {format(new Date(p.date), 'dd/MM/yy')}. Isso não pode ser desfeito.</AlertDialogDescription>
-                                                                                                                </AlertDialogHeader>
-                                                                                                                <AlertDialogFooter>
-                                                                                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                                                                    <AlertDialogAction onClick={() => reversePayment(selectedOrder.id, inst.installmentNumber, p.id)}>Sim, Estornar</AlertDialogAction>
-                                                                                                                </AlertDialogFooter>
-                                                                                                            </AlertDialogContent>
-                                                                                                        </AlertDialog>
-                                                                                                    </TableCell>
-                                                                                                </TableRow>
-                                                                                            ))}
-                                                                                        </TableBody>
-                                                                                    </Table>
-                                                                                ) : <p className='text-xs text-muted-foreground'>Nenhum pagamento registrado para esta parcela.</p>}
-                                                                            </div>
-                                                                        </TableCell>
-                                                                    </TableRow>
-                                                                </AccordionContent>
-                                                            </>
-                                                        </AccordionItem>
-                                                    )
-                                                })}
-                                            </TableBody>
-                                        </Table>
+                                                                                        ))}
+                                                                                    </TableBody>
+                                                                                </Table>
+                                                                            ) : <p className='text-xs text-muted-foreground'>Nenhum pagamento registrado para esta parcela.</p>}
+                                                                        </div>
+                                                                  </AccordionContent>
+                                                                </TableCell>
+                                                              </TableRow>
+                                                          </>
+                                                      </AccordionItem>
+                                                  )
+                                              })}
+                                          </TableBody>
+                                      </Table>
                                     </Accordion>
                                 </CardContent>
                               </Card>
@@ -843,3 +834,5 @@ export default function OrdersAdminPage() {
     </>
   );
 }
+
+    

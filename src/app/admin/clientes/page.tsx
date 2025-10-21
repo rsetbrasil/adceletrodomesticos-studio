@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent } from 'react';
@@ -543,7 +544,7 @@ export default function CustomersAdminPage() {
                                         <div className="p-4 pt-0 space-y-6">
                                             {(order.installmentDetails && order.installmentDetails.length > 0) ? (
                                                 <Accordion type="multiple" className="w-full space-y-2">
-                                                    {(order.installmentDetails || []).map((inst) => {
+                                                    {(order.installmentDetails || []).map((inst, instIndex) => {
                                                          const remainingAmount = inst.amount - (inst.paidAmount || 0);
                                                          const isOverdue = inst.status === 'Pendente' && new Date(inst.dueDate) < new Date();
                                                          
@@ -555,13 +556,13 @@ export default function CustomersAdminPage() {
                                                          }
                                                          
                                                          const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
-                                                         const uniqueKey = inst.id || `${order.id}-${inst.installmentNumber}`;
+                                                         const uniqueKey = inst.id ? `${inst.id}-${instIndex}` : `${order.id}-${inst.installmentNumber}`;
                                                          
                                                         return (
                                                             <AccordionItem value={uniqueKey} key={uniqueKey} className="border rounded-md">
                                                                 <div className='flex items-center justify-between p-3'>
-                                                                    <div className='grid grid-cols-4 gap-4 text-sm items-center flex-grow'>
-                                                                        <div><span className="font-medium">Parcela:</span> {inst.installmentNumber}/{order.installments}</div>
+                                                                    <div className='flex items-center justify-between gap-4 text-sm flex-grow'>
+                                                                        <div className="whitespace-nowrap"><span className="font-medium">Parcela:</span> {inst.installmentNumber}/{order.installments}</div>
                                                                         <div>
                                                                             <Popover open={openDueDatePopover === `${order.id}-${inst.installmentNumber}`} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? `${order.id}-${inst.installmentNumber}` : null)}>
                                                                                 <PopoverTrigger asChild>
@@ -575,15 +576,15 @@ export default function CustomersAdminPage() {
                                                                                 </PopoverContent>
                                                                             </Popover>
                                                                         </div>
-                                                                        <div><span className="font-medium">Valor:</span> {formatCurrency(inst.amount)}</div>
-                                                                        <div><Badge variant={statusVariant}>{statusText}</Badge></div>
+                                                                        <div className="whitespace-nowrap"><span className="font-medium">Valor:</span> {formatCurrency(inst.amount)}</div>
+                                                                        <div className="min-w-[150px] text-right"><Badge variant={statusVariant}>{statusText}</Badge></div>
                                                                     </div>
                                                                     <div className="flex gap-2 justify-end ml-4">
                                                                         {(inst.payments && inst.payments.length > 0) && (
-                                                                              <AccordionTrigger className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-                                                                                  <History className="mr-2 h-4 w-4" />
-                                                                                  Histórico
-                                                                              </AccordionTrigger>
+                                                                            <AccordionTrigger className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+                                                                                <History className="mr-2 h-4 w-4" />
+                                                                                Histórico
+                                                                            </AccordionTrigger>
                                                                         )}
                                                                         <Button variant="outline" size="sm" onClick={() => handleOpenPaymentDialog(order, inst)} disabled={inst.status === 'Pago'}>
                                                                             <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
@@ -891,5 +892,7 @@ export default function CustomersAdminPage() {
     </>
   );
 }
+
+    
 
     
