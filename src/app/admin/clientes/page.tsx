@@ -569,7 +569,8 @@ export default function CustomersAdminPage() {
                                                                     const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
                                                                     
                                                                     return (
-                                                                        <AccordionItem value={inst.id || `${order.id}-${inst.installmentNumber}`} key={inst.id || `${order.id}-${inst.installmentNumber}`}>
+                                                                        <AccordionItem value={inst.id || `${order.id}-${inst.installmentNumber}`} key={inst.id || `${order.id}-${inst.installmentNumber}`} asChild>
+                                                                            <>
                                                                             <TableRow>
                                                                                 <TableCell>{inst.installmentNumber} / {order.installments}</TableCell>
                                                                                 <TableCell>
@@ -623,10 +624,10 @@ export default function CustomersAdminPage() {
                                                                                     </div>
                                                                                 </TableCell>
                                                                             </TableRow>
-                                                                            <AccordionContent asChild>
-                                                                                <tr className="bg-muted/30">
-                                                                                    <td colSpan={5} className="p-0">
-                                                                                        <div className="p-3">
+                                                                            <TableRow>
+                                                                                <TableCell colSpan={5} className="p-0 !border-none">
+                                                                                     <AccordionContent>
+                                                                                        <div className="p-3 bg-muted/30">
                                                                                             <h4 className="font-semibold text-sm mb-2">Histórico de Pagamentos da Parcela</h4>
                                                                                             <Table>
                                                                                                 <TableBody>
@@ -663,9 +664,10 @@ export default function CustomersAdminPage() {
                                                                                                 </TableBody>
                                                                                             </Table>
                                                                                         </div>
-                                                                                    </td>
-                                                                                </tr>
-                                                                            </AccordionContent>
+                                                                                    </AccordionContent>
+                                                                                </TableCell>
+                                                                            </TableRow>
+                                                                            </>
                                                                         </AccordionItem>
                                                                     );
                                                                 })}
@@ -914,5 +916,7 @@ export default function CustomersAdminPage() {
     </>
   );
 }
+
+    
 
     
