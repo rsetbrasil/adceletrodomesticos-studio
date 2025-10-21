@@ -141,18 +141,24 @@
   .print-layout-a4 .carnet-content-wrapper .print\:w-32 {
     width: 8rem; /* 128px */
   }
-  .print-layout-a4 .a4-header-logo {
-    transform: scale(1.2);
-    margin-left: -0.5rem; /* Adjust to align */
+  
+  .print-layout-a4 .a4-header-layout {
+    align-items: center;
   }
-  .print-layout-a4 .a4-header-info {
-    transform: translateY(4px);
+  
+  .print-layout-a4 .a4-header-logo > div {
+    font-size: 1rem;
   }
+
+  .print-layout-a4 .a4-header-logo > div > div {
+    font-size: 0.8rem;
+  }
+
   .print-layout-a4 .a4-header-info > p:first-child {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
   }
    .print-layout-a4 .a4-header-info > p {
-    font-size: 12px;
+    font-size: 10px;
   }
 }
