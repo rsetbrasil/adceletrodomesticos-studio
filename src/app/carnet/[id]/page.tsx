@@ -97,7 +97,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                 </table>
             </div>
              {pixPayload && (
-                <div className="w-full md:w-48 flex-shrink-0 print-hidden">
+                <div className="w-full md:w-48 flex-shrink-0">
                     <PixQRCode payload={pixPayload} />
                 </div>
             )}
@@ -204,7 +204,7 @@ export default function CarnetPage() {
 
   return (
     <div className="bg-muted/30 print:bg-white">
-      <div className="container mx-auto py-8 px-4 print:max-w-none print:px-8">
+      <div className="container mx-auto py-8 px-4 print:p-0 print:m-0 print:max-w-full">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -220,7 +220,7 @@ export default function CarnetPage() {
           </Button>
         </header>
         
-        <main className="max-w-4xl mx-auto bg-background rounded-lg border shadow-sm print:grid print:grid-cols-2 print:gap-x-8 print:border-none print:shadow-none print:bg-transparent">
+        <main className="w-full bg-background rounded-lg border shadow-sm print:grid print:grid-cols-2 print:gap-x-8 print:border-none print:shadow-none print:bg-transparent">
             <div className="print:border-r print:border-dashed print:border-black print:pr-4">
                 <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
