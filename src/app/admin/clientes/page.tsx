@@ -559,7 +559,7 @@ export default function CustomersAdminPage() {
                                                             const uniqueKey = `${order.id}-${inst.installmentNumber}`;
                                                             
                                                             return (
-                                                            <AccordionItem value={uniqueKey} key={uniqueKey} asChild>
+                                                            <AccordionItem value={uniqueKey} key={uniqueKey}>
                                                                 <>
                                                                     <TableRow>
                                                                         <TableCell colSpan={5} className="p-0">

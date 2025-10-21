@@ -705,7 +705,7 @@ export default function OrdersAdminPage() {
                                                   const uniqueKey = inst.id ? `${inst.id}-${instIndex}` : `${selectedOrder.id}-${inst.installmentNumber}`;
                                                   
                                                   return (
-                                                    <AccordionItem value={uniqueKey} key={uniqueKey} asChild>
+                                                    <AccordionItem value={uniqueKey} key={uniqueKey}>
                                                         <>
                                                             <TableRow>
                                                                 <TableCell className="font-medium">{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
