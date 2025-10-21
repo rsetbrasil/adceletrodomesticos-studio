@@ -27,17 +27,21 @@ const formatCurrency = (value: number) => {
 
 const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings: any, pixPayload: string | null }) => (
     <div className="carnet-content-wrapper bg-white p-6 break-inside-avoid print:p-0 text-sm print:text-[9px]">
-         <div className="flex justify-between items-start pb-2 print:pb-1 border-b">
-             <div className="flex items-center gap-4 print:gap-2 a4-header-layout">
-                <div className="a4-header-logo"><Logo /></div>
-                <div className="a4-header-info">
-                    <p className="font-bold print:text-[10px]">{settings.storeName}</p>
-                    <p className="text-xs print:text-[8px] text-muted-foreground whitespace-pre-line">{settings.storeAddress}</p>
-                     {settings.storePhone && (
-                        <p className="text-xs print:text-[8px] text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" /> WhatsApp: {settings.storePhone}</p>
-                    )}
+        <div className="pb-2 print:pb-1 border-b">
+            <div style={{ display: 'table', width: '100%' }}>
+                <div style={{ display: 'table-row' }}>
+                    <div style={{ display: 'table-cell', width: '30%', verticalAlign: 'middle' }}>
+                        <Logo />
+                    </div>
+                    <div style={{ display: 'table-cell', width: '70%', verticalAlign: 'middle' }} className="text-sm print:text-[10px]">
+                        <p className="font-bold print:text-base">{settings.storeName}</p>
+                        <p className="text-muted-foreground whitespace-pre-line">{settings.storeAddress}</p>
+                        {settings.storePhone && (
+                            <p className="text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" /> WhatsApp: {settings.storePhone}</p>
+                        )}
+                    </div>
                 </div>
-             </div>
+            </div>
         </div>
 
         <div className="text-center my-2 print:my-1">

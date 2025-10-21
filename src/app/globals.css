@@ -118,54 +118,30 @@
     display: block;
   }
 
-  /* A4 Print Styles */
   .print-layout-a4 .carnet-content-wrapper {
-    font-size: 12px;
+    font-size: 14px; /* Increased base font size for A4 */
   }
+
   .print-layout-a4 .carnet-content-wrapper p,
   .print-layout-a4 .carnet-content-wrapper div,
   .print-layout-a4 .carnet-content-wrapper span,
   .print-layout-a4 .carnet-content-wrapper th,
   .print-layout-a4 .carnet-content-wrapper td {
-    font-size: 12px;
+    font-size: inherit; /* Inherit from the wrapper */
   }
-   .print-layout-a4 .carnet-content-wrapper .font-mono {
-    font-size: 14px;
+
+  .print-layout-a4 .carnet-content-wrapper .font-mono {
+    font-size: 1.1em; /* Make mono text slightly larger */
   }
+  
   .print-layout-a4 .carnet-content-wrapper .text-lg {
-    font-size: 1.25rem; /* 20px */
+    font-size: 1.25em; 
   }
   .print-layout-a4 .carnet-content-wrapper .text-xs {
-    font-size: 10px;
+    font-size: 0.8em;
   }
   .print-layout-a4 .carnet-content-wrapper .print\:w-32 {
     width: 8rem; /* 128px */
   }
   
-  .print-layout-a4 .a4-header-layout {
-    align-items: center;
-  }
-  
-  .print-layout-a4 .a4-header-logo > div {
-    font-size: 1.5rem !important; /* 24px */
-  }
-
-  .print-layout-a4 .a4-header-logo > div > div {
-    font-size: 0.75rem !important; /* 12px */
-  }
-  .print-layout-a4 .a4-header-logo > div .w-\[0\.25em\] {
-    width: 0.25em !important;
-    height: 0.25em !important;
-  }
-   .print-layout-a4 .a4-header-logo > div .gap-\[1\.5px\] {
-    gap: 1.5px !important;
-  }
-
-  .print-layout-a4 .a4-header-info > p:first-child {
-    font-size: 14px;
-    font-weight: 700;
-  }
-   .print-layout-a4 .a4-header-info > p {
-    font-size: 10px;
-  }
 }
