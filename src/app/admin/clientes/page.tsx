@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent } from 'react';
@@ -556,7 +555,7 @@ export default function CustomersAdminPage() {
                                                          }
                                                          
                                                          const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
-                                                         const uniqueKey = `${order.id}-${inst.installmentNumber}`;
+                                                         const uniqueKey = inst.id || `${order.id}-${inst.installmentNumber}`;
                                                          
                                                         return (
                                                             <AccordionItem value={uniqueKey} key={uniqueKey} className="border rounded-md">
@@ -581,8 +580,9 @@ export default function CustomersAdminPage() {
                                                                     </div>
                                                                     <div className="flex gap-2 justify-end ml-4">
                                                                         {(inst.payments && inst.payments.length > 0) && (
-                                                                             <AccordionTrigger className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-                                                                                    <History className="mr-2 h-4 w-4" /> Histórico
+                                                                              <AccordionTrigger className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+                                                                                  <History className="mr-2 h-4 w-4" />
+                                                                                  Histórico
                                                                               </AccordionTrigger>
                                                                         )}
                                                                         <Button variant="outline" size="sm" onClick={() => handleOpenPaymentDialog(order, inst)} disabled={inst.status === 'Pago'}>
@@ -611,8 +611,8 @@ export default function CustomersAdminPage() {
                                                                                     </TableRow>
                                                                                 </TableHeader>
                                                                                 <TableBody>
-                                                                                    {inst.payments.map(p => (
-                                                                                        <TableRow key={p.id}>
+                                                                                    {inst.payments.map((p, index) => (
+                                                                                        <TableRow key={`${p.id}-${index}`}>
                                                                                             <TableCell>{format(parseISO(p.date), "dd/MM/yyyy 'às' HH:mm")}</TableCell>
                                                                                             <TableCell>{p.method}</TableCell>
                                                                                             <TableCell>{formatCurrency(p.amount)}</TableCell>
