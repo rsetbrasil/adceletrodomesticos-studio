@@ -10,6 +10,8 @@ import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 import { useAudit } from './AuditContext';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const saveDataToLocalStorage = (key: string, data: any) => {
     if (typeof window === 'undefined') return;
@@ -80,15 +82,43 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     const productsUnsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       setProducts(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
+    },
+    (error) => {
+      console.error("Error fetching products:", error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'products',
+        operation: 'list',
+      }));
     });
     const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
       setCategories(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
+    },
+    (error) => {
+      console.error("Error fetching categories:", error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'categories',
+        operation: 'list',
+      }));
     });
     const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
       setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    },
+    (error) => {
+      console.error("Error fetching orders:", error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'orders',
+        operation: 'list',
+      }));
     });
     const commissionPaymentsUnsubscribe = onSnapshot(collection(db, 'commissionPayments'), (snapshot) => {
       setCommissionPayments(snapshot.docs.map(d => d.data() as CommissionPayment));
+    },
+    (error) => {
+      console.error("Error fetching commission payments:", error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'commissionPayments',
+        operation: 'list',
+      }));
     });
 
     setIsLoading(false);
@@ -172,39 +202,45 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         createdAt: new Date().toISOString(),
         'data-ai-hint': productData.name.toLowerCase().split(' ').slice(0, 2).join(' '),
       };
-      try {
-        await setDoc(doc(db, 'products', newProductId), newProduct);
-        // Real-time listener will update the state
+      
+      const productRef = doc(db, 'products', newProductId);
+      setDoc(productRef, newProduct).then(() => {
         logAction('Criação de Produto', `Produto "${newProduct.name}" (ID: ${newProductId}) foi criado.`, user);
         toast({
             title: "Produto Cadastrado!",
             description: `O produto "${newProduct.name}" foi adicionado ao catálogo.`,
         });
-      } catch (error) {
-        console.error("Error adding product:", error);
-        toast({ title: "Erro", description: "Falha ao cadastrar o produto.", variant: "destructive" });
-      }
+      }).catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+            path: productRef.path,
+            operation: 'create',
+            requestResourceData: newProduct,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   const updateProduct = async (updatedProduct: Product) => {
-    try {
-        const productRef = doc(db, 'products', updatedProduct.id);
-        const productToUpdate = { ...updatedProduct };
-        await setDoc(productRef, productToUpdate, { merge: true });
-
-        // Real-time listener will update the state
+    const productRef = doc(db, 'products', updatedProduct.id);
+    const productToUpdate = { ...updatedProduct };
+    
+    setDoc(productRef, productToUpdate, { merge: true }).then(() => {
         logAction('Atualização de Produto', `Produto "${updatedProduct.name}" (ID: ${updatedProduct.id}) foi atualizado.`, user);
-    } catch (error) {
-        console.error("Error updating product:", error);
-        toast({ title: "Erro", description: "Falha ao atualizar o produto.", variant: "destructive" });
-    }
+    }).catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+            path: productRef.path,
+            operation: 'update',
+            requestResourceData: productToUpdate,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const deleteProduct = async (productId: string) => {
-      try {
-        const productToDelete = products.find(p => p.id === productId);
-        await deleteDoc(doc(db, 'products', productId));
-        // Real-time listener will update the state
+      const productRef = doc(db, 'products', productId);
+      const productToDelete = products.find(p => p.id === productId);
+
+      deleteDoc(productRef).then(() => {
         if (productToDelete) {
           logAction('Exclusão de Produto', `Produto "${productToDelete.name}" (ID: ${productId}) foi excluído.`, user);
         }
@@ -213,10 +249,13 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             description: 'O produto foi removido do catálogo.',
             variant: 'destructive',
         });
-      } catch (error) {
-        console.error("Error deleting product:", error);
-        toast({ title: "Erro", description: "Falha ao excluir o produto.", variant: "destructive" });
-      }
+      }).catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+            path: productRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   const addCategory = async (categoryName: string) => {
@@ -232,15 +271,19 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       order: newOrder,
       subcategories: []
     };
-    try {
-        await setDoc(doc(db, 'categories', newCategoryId), newCategory);
-        // Real-time listener will update the state
+    
+    const categoryRef = doc(db, 'categories', newCategoryId);
+    setDoc(categoryRef, newCategory).then(() => {
         logAction('Criação de Categoria', `Categoria "${categoryName}" foi criada.`, user);
         toast({ title: "Categoria Adicionada!" });
-    } catch (error) {
-        console.error("Error adding category:", error);
-        toast({ title: "Erro", description: "Falha ao adicionar a categoria.", variant: "destructive" });
-    }
+    }).catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+            path: categoryRef.path,
+            operation: 'create',
+            requestResourceData: newCategory,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const updateCategoryName = async (categoryId: string, newName: string) => {
@@ -267,14 +310,15 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         });
 
         await batch.commit();
-
-        // Real-time listeners will update the state
         logAction('Atualização de Categoria', `Categoria "${oldName}" foi renomeada para "${newName}".`, user);
-
         toast({ title: "Categoria Renomeada!" });
     } catch (error) {
-        console.error("Error renaming category:", error);
-        toast({ title: "Erro", description: "Falha ao renomear a categoria.", variant: "destructive" });
+        const permissionError = new FirestorePermissionError({
+            path: `categories/${categoryId}`,
+            operation: 'update',
+            requestResourceData: { name: newName },
+        });
+        errorEmitter.emit('permission-error', permissionError);
     }
   };
 
@@ -289,14 +333,17 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: "Erro", description: "Não é possível excluir categorias que contêm produtos.", variant: "destructive" });
         return;
     }
-    try {
-        await deleteDoc(doc(db, 'categories', categoryId));
-        // Real-time listener will update the state
+    const categoryRef = doc(db, 'categories', categoryId);
+    deleteDoc(categoryRef).then(() => {
         logAction('Exclusão de Categoria', `Categoria "${categoryToDelete.name}" foi excluída.`, user);
         toast({ title: "Categoria Excluída!", variant: "destructive" });
-    } catch(e) {
-        toast({ title: "Erro", description: "Falha ao excluir a categoria.", variant: "destructive" });
-    }
+    }).catch(async(e) => {
+        const permissionError = new FirestorePermissionError({
+            path: categoryRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const addSubcategory = async (categoryId: string, subcategoryName: string) => {
@@ -307,15 +354,18 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     const newSubcategories = [...category.subcategories, subcategoryName].sort();
-    try {
-        await updateDoc(doc(db, 'categories', categoryId), { subcategories: newSubcategories });
-        // Real-time listener will update the state
+    const categoryRef = doc(db, 'categories', categoryId);
+    updateDoc(categoryRef, { subcategories: newSubcategories }).then(() => {
         logAction('Criação de Subcategoria', `Subcategoria "${subcategoryName}" foi adicionada à categoria "${category.name}".`, user);
         toast({ title: "Subcategoria Adicionada!" });
-    } catch (error) {
-        console.error("Error adding subcategory:", error);
-        toast({ title: "Erro", description: "Falha ao adicionar a subcategoria.", variant: "destructive" });
-    }
+    }).catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+            path: categoryRef.path,
+            operation: 'update',
+            requestResourceData: { subcategories: newSubcategories },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const updateSubcategory = async (categoryId: string, oldSub: string, newSub: string) => {
@@ -339,14 +389,14 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             }
         });
         await batch.commit();
-
-        // Real-time listeners will update the state
         logAction('Atualização de Subcategoria', `Subcategoria "${oldSub}" foi renomeada para "${newSub}" na categoria "${category.name}".`, user);
-
         toast({ title: "Subcategoria Renomeada!" });
     } catch (error) {
-        console.error("Error renaming subcategory:", error);
-        toast({ title: "Erro", description: "Falha ao renomear a subcategoria.", variant: "destructive" });
+        const permissionError = new FirestorePermissionError({
+            path: `categories/${categoryId}`,
+            operation: 'update',
+        });
+        errorEmitter.emit('permission-error', permissionError);
     }
   };
 
@@ -365,14 +415,18 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     const newSubcategories = category.subcategories.filter(s => s.toLowerCase() !== subcategoryName.toLowerCase());
-    try {
-        await updateDoc(doc(db, 'categories', categoryId), { subcategories: newSubcategories });
-        // Real-time listener will update the state
+    const categoryRef = doc(db, 'categories', categoryId);
+    updateDoc(categoryRef, { subcategories: newSubcategories }).then(() => {
         logAction('Exclusão de Subcategoria', `Subcategoria "${subcategoryName}" foi excluída da categoria "${category.name}".`, user);
         toast({ title: "Subcategoria Excluída!", variant: "destructive" });
-    } catch (error) {
-        toast({ title: "Erro", description: "Falha ao excluir a subcategoria.", variant: "destructive" });
-    }
+    }).catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+            path: categoryRef.path,
+            operation: 'update',
+            requestResourceData: { subcategories: newSubcategories },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
     
   const moveCategory = async (categoryId: string, direction: 'up' | 'down') => {
@@ -396,11 +450,13 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         batch.update(doc(db, 'categories', category1.id), { order: order2 });
         batch.update(doc(db, 'categories', category2.id), { order: order1 });
         await batch.commit();
-        // Real-time listener will handle state update
         logAction('Reordenação de Categoria', `Categoria "${category1.name}" foi movida ${direction === 'up' ? 'para cima' : 'para baixo'}.`, user);
     } catch(e) {
-        console.error('Error moving category:', e);
-        toast({ title: "Erro", description: "Falha ao reordenar a categoria.", variant: "destructive" });
+        const permissionError = new FirestorePermissionError({
+            path: 'categories',
+            operation: 'update',
+        });
+        errorEmitter.emit('permission-error', permissionError);
     }
   };
 
@@ -414,18 +470,20 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
     if (draggedIndex === -1 || targetIndex === -1) return;
 
-    // Remove the dragged subcategory and insert it before the target
     const [removed] = subs.splice(draggedIndex, 1);
     subs.splice(targetIndex, 0, removed);
     
-    try {
-        await updateDoc(doc(db, 'categories', categoryId), { subcategories: subs });
+    const categoryRef = doc(db, 'categories', categoryId);
+    updateDoc(categoryRef, { subcategories: subs }).then(() => {
         logAction('Reordenação de Subcategoria', `Subcategorias da categoria "${category.name}" foram reordenadas.`, user);
-        // Real-time listener will update UI
-    } catch (e) {
-        console.error('Error reordering subcategories:', e);
-        toast({ title: "Erro", description: "Falha ao reordenar as subcategorias.", variant: "destructive" });
-    }
+    }).catch(async (e) => {
+        const permissionError = new FirestorePermissionError({
+            path: categoryRef.path,
+            operation: 'update',
+            requestResourceData: { subcategories: subs },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const moveSubcategory = async (sourceCategoryId: string, subName: string, targetCategoryId: string) => {
@@ -443,7 +501,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     
     try {
         const batch = writeBatch(db);
-        // Update products
         const productsSnapshot = await getDocs(collection(db, 'products'));
         productsSnapshot.forEach(productDoc => {
             const p = productDoc.data() as Product;
@@ -451,7 +508,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
                 batch.update(doc(db, 'products', productDoc.id), { category: targetCategory.name });
             }
         });
-        // Update categories
         batch.update(doc(db, 'categories', sourceCategoryId), { subcategories: newSourceSubs });
         batch.update(doc(db, 'categories', targetCategoryId), { subcategories: newTargetSubs });
         
@@ -461,8 +517,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: 'Subcategoria Movida!', description: `"${subName}" agora faz parte de "${targetCategory.name}".`});
 
     } catch(e) {
-        console.error('Error moving subcategory:', e);
-        toast({ title: "Erro", description: "Falha ao mover a subcategoria.", variant: "destructive" });
+        const permissionError = new FirestorePermissionError({
+            path: 'categories',
+            operation: 'update',
+        });
+        errorEmitter.emit('permission-error', permissionError);
     }
   };
 
@@ -500,7 +559,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
             
             if (newStock < 0) {
-              // This should be checked before calling, but as a safeguard:
               toast({
                   title: 'Estoque Insuficiente',
                   description: `Não há estoque suficiente para ${product.name}. Disponível: ${product.stock}, Pedido: ${stockChange}.`,
@@ -513,7 +571,16 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         }
     }
     
-    await batch.commit();
+    await batch.commit().catch(async (e) => {
+        const permissionError = new FirestorePermissionError({
+            path: 'products',
+            operation: 'update',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        // Re-throw to indicate failure
+        throw e;
+    });
+
     return true; // Indicate success
   };
 
@@ -528,14 +595,16 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    try {
-        await deleteDoc(doc(db, 'orders', orderId));
-        // Real-time listener will update the state
+    const orderRef = doc(db, 'orders', orderId);
+    deleteDoc(orderRef).then(() => {
         logAction('Exclusão Permanente de Pedido', `Pedido #${orderId} foi excluído permanentemente.`, user);
-    } catch(e) {
-        console.error("Failed to permanently delete order", e);
-        toast({ title: "Erro", description: "Falha ao excluir o pedido permanentemente.", variant: "destructive" });
-    }
+    }).catch(async (e) => {
+        const permissionError = new FirestorePermissionError({
+            path: orderRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
@@ -546,38 +615,33 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const wasCanceledOrDeleted = oldStatus === 'Cancelado' || oldStatus === 'Excluído';
     const isNowCanceledOrDeleted = newStatus === 'Cancelado' || newStatus === 'Excluído';
 
-    // if moving out of canceled/deleted, subtract stock
-    if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
-        if (!await manageStockForOrder(orderToUpdate, 'subtract', products)) {
-            // Stop update if not enough stock
-            return;
-        }
-    }
-    
-    const detailsToUpdate: Partial<Order> = { status: newStatus };
-
-    // Recalculate commission if status is 'Entregue' and commission is not manual, otherwise zero it out.
-    if (newStatus === 'Entregue' && orderToUpdate.sellerId) {
-      if (!orderToUpdate.isCommissionManual) {
-        detailsToUpdate.commission = calculateCommission(orderToUpdate, products);
-      }
-    } else {
-        // If status is not 'Entregue', commission should be 0 and not paid
-        if (!orderToUpdate.isCommissionManual) {
-          detailsToUpdate.commission = 0;
-        }
-        detailsToUpdate.commissionPaid = false;
-    }
-    
     try {
-        await updateDoc(doc(db, 'orders', orderId), detailsToUpdate);
+        if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
+            if (!await manageStockForOrder(orderToUpdate, 'subtract', products)) {
+                return;
+            }
+        }
+        
+        const detailsToUpdate: Partial<Order> = { status: newStatus };
 
-        // If moving TO canceled/deleted, add stock back *after* DB update
+        if (newStatus === 'Entregue' && orderToUpdate.sellerId) {
+          if (!orderToUpdate.isCommissionManual) {
+            detailsToUpdate.commission = calculateCommission(orderToUpdate, products);
+          }
+        } else {
+            if (!orderToUpdate.isCommissionManual) {
+              detailsToUpdate.commission = 0;
+            }
+            detailsToUpdate.commissionPaid = false;
+        }
+        
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, detailsToUpdate);
+
         if (!wasCanceledOrDeleted && isNowCanceledOrDeleted) {
             await manageStockForOrder(orderToUpdate, 'add', products);
         }
         
-        // Real-time listener will update the state
         logAction('Atualização de Status de Pedido', `Status do pedido #${orderId} alterado de "${oldStatus}" para "${newStatus}".`, user);
         
         if (newStatus !== 'Excluído') {
@@ -587,11 +651,15 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
           toast({ title: "Pedido movido para a Lixeira", description: `O pedido #${orderId} foi movido para a lixeira.` });
         }
     } catch(e) {
-        console.error('Failed to update order status:', e);
-        // If there was an error and we subtracted stock, we need to add it back.
         if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
             await manageStockForOrder(orderToUpdate, 'add', products);
         }
+        const orderRef = doc(db, 'orders', orderId);
+        const permissionError = new FirestorePermissionError({
+            path: orderRef.path,
+            operation: 'update',
+        });
+        errorEmitter.emit('permission-error', permissionError);
     }
   };
 
@@ -605,13 +673,17 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         : inst
     );
 
-    try {
-        await updateDoc(doc(db, 'orders', orderId), { installmentDetails: updatedInstallments });
-        // Real-time listener will update the state
+    const orderRef = doc(db, 'orders', orderId);
+    updateDoc(orderRef, { installmentDetails: updatedInstallments }).then(() => {
         logAction('Atualização de Parcela', `Parcela ${installmentNumber} do pedido #${orderId} foi marcada como "${status}".`, user);
-    } catch(e) {
-        toast({ title: "Erro", description: "Falha ao atualizar o status da parcela.", variant: "destructive" });
-    }
+    }).catch(async(e) => {
+        const permissionError = new FirestorePermissionError({
+            path: orderRef.path,
+            operation: 'update',
+            requestResourceData: { installmentDetails: updatedInstallments },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const updateInstallmentDueDate = async (orderId: string, installmentNumber: number, newDueDate: Date) => {
@@ -623,14 +695,18 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const updatedInstallments = (order.installmentDetails || []).map((inst) =>
       inst.installmentNumber === installmentNumber ? { ...inst, dueDate: newDueDate.toISOString() } : inst
     );
-     try {
-        await updateDoc(doc(db, 'orders', orderId), { installmentDetails: updatedInstallments });
-        // Real-time listener will update the state
+    const orderRef = doc(db, 'orders', orderId);
+    updateDoc(orderRef, { installmentDetails: updatedInstallments }).then(() => {
         logAction('Atualização de Vencimento', `Vencimento da parcela ${installmentNumber} do pedido #${orderId} alterado de ${oldDueDate ? new Date(oldDueDate).toLocaleDateString() : 'N/A'} para ${newDueDate.toLocaleDateString()}.`, user);
         toast({ title: "Vencimento Atualizado!" });
-    } catch(e) {
-        toast({ title: "Erro", description: "Falha ao atualizar o vencimento.", variant: "destructive" });
-    }
+    }).catch(async(e) => {
+        const permissionError = new FirestorePermissionError({
+            path: orderRef.path,
+            operation: 'update',
+            requestResourceData: { installmentDetails: updatedInstallments },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const updateCustomer = async (updatedCustomer: CustomerInfo) => {
@@ -639,7 +715,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         orders.forEach(order => {
             if (order.customer.cpf === updatedCustomer.cpf) {
                 const customerData = { ...order.customer, ...updatedCustomer };
-                // Ensure password is not written back if it's empty
                 if (updatedCustomer.password === undefined || updatedCustomer.password === '') {
                     delete customerData.password;
                 }
@@ -648,11 +723,14 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         });
         await batch.commit();
 
-        // Real-time listener will update the state
         logAction('Atualização de Cliente', `Dados do cliente ${updatedCustomer.name} (CPF: ${updatedCustomer.cpf}) foram atualizados.`, user);
         toast({ title: "Cliente Atualizado!", description: `Os dados de ${updatedCustomer.name} foram salvos.` });
     } catch(e) {
-        toast({ title: "Erro", description: "Falha ao atualizar dados do cliente.", variant: "destructive" });
+        const permissionError = new FirestorePermissionError({
+            path: `orders`,
+            operation: 'update',
+        });
+        errorEmitter.emit('permission-error', permissionError);
     }
   };
 
@@ -662,22 +740,25 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
     let detailsToUpdate = { ...details };
 
-    // Only recalculate commission if the sellerId is what's being changed.
     if ('sellerId' in details && details.sellerId && details.sellerId !== order.sellerId) {
       const tempOrderForCommissionCalc = { ...order, ...detailsToUpdate };
       if (!tempOrderForCommissionCalc.isCommissionManual) {
         detailsToUpdate.commission = calculateCommission(tempOrderForCommissionCalc, products);
       }
     }
-
-    try {
-      await updateDoc(doc(db, 'orders', orderId), detailsToUpdate);
+    
+    const orderRef = doc(db, 'orders', orderId);
+    updateDoc(orderRef, detailsToUpdate).then(() => {
       logAction('Atualização de Detalhes do Pedido', `Detalhes do pedido #${orderId} foram atualizados.`, user);
       toast({ title: "Pedido Atualizado!", description: `Os detalhes do pedido #${orderId} foram atualizados.` });
-    } catch (e) {
-      console.error("Failed to update order details:", e);
-      toast({ title: "Erro", description: "Falha ao atualizar os detalhes do pedido.", variant: "destructive" });
-    }
+    }).catch(async (e) => {
+      const permissionError = new FirestorePermissionError({
+          path: orderRef.path,
+          operation: 'update',
+          requestResourceData: detailsToUpdate,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const payCommissions = async (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string): Promise<string | null> => {
@@ -693,12 +774,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     };
     try {
         const batch = writeBatch(db);
-
-        // Create the payment record
         const paymentRef = doc(db, 'commissionPayments', paymentId);
         batch.set(paymentRef, payment);
 
-        // Mark orders' commissions as paid
         orderIds.forEach(orderId => {
             const orderRef = doc(db, 'orders', orderId);
             batch.update(orderRef, { commissionPaid: true });
@@ -711,8 +789,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         return paymentId;
 
     } catch (e) {
-        console.error("Error paying commissions:", e);
-        toast({ title: "Erro", description: "Não foi possível registrar o pagamento da comissão.", variant: "destructive" });
+        const permissionError = new FirestorePermissionError({
+            path: 'commissionPayments',
+            operation: 'create',
+            requestResourceData: payment,
+        });
+        errorEmitter.emit('permission-error', permissionError);
         return null;
     }
   };
@@ -726,11 +808,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     
     try {
       const batch = writeBatch(db);
-      
-      // Delete the payment record
       batch.delete(doc(db, 'commissionPayments', paymentId));
 
-      // Mark commissions as not paid again on the orders
       paymentToReverse.orderIds.forEach(orderId => {
         batch.update(doc(db, 'orders', orderId), { commissionPaid: false });
       });
@@ -741,8 +820,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: "Pagamento Estornado!", description: "As comissões dos pedidos voltaram a ficar pendentes." });
 
     } catch (e) {
-      console.error("Error reversing commission payment:", e);
-      toast({ title: "Erro", description: "Não foi possível estornar o pagamento.", variant: "destructive" });
+        const permissionError = new FirestorePermissionError({
+            path: `commissionPayments/${paymentId}`,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
     }
   };
 

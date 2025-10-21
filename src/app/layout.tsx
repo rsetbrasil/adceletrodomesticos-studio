@@ -14,6 +14,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { AuditProvider } from '@/context/AuditContext';
+import FirebaseErrorListener from '@/components/FirebaseErrorListener';
 
 // This is a new component that wraps the main content
 // It has access to all the contexts defined in the main RootLayout
@@ -35,6 +36,7 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
         </div>
       )}
       <Toaster />
+      <FirebaseErrorListener />
     </>
   );
 };
