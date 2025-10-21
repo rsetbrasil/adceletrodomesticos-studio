@@ -650,12 +650,17 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const paymentAmount = Number(payment.amount) || 0;
         const newPaidAmount = currentPaidAmount + paymentAmount;
         const newStatus = newPaidAmount >= inst.amount ? 'Pago' : 'Pendente';
-        const newPayments = Array.isArray(inst.payments) ? [...inst.payments, payment] : [payment];
-
+        
         // Ensure payment amount is a number before adding
         const validPayment = { ...payment, amount: paymentAmount };
+        const existingPayments = (Array.isArray(inst.payments) ? inst.payments : []).filter(p => p.amount !== null && p.amount !== undefined);
 
-        return { ...inst, status: newStatus, paidAmount: newPaidAmount, payments: Array.isArray(inst.payments) ? [...inst.payments, validPayment] : [validPayment] };
+        return { 
+          ...inst, 
+          status: newStatus, 
+          paidAmount: newPaidAmount, 
+          payments: [...existingPayments, validPayment]
+        };
       }
       return inst;
     });
