@@ -650,7 +650,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const currentPaidAmount = Number(inst.paidAmount) || 0;
         const paymentAmount = Number(payment.amount) || 0;
         const newPaidAmount = currentPaidAmount + paymentAmount;
-        const newStatus = newPaidAmount >= inst.amount ? 'Pago' : 'Pendente';
+        // Check if paid amount is effectively equal to installment amount, handling floating point inaccuracies
+        const isPaid = Math.abs(newPaidAmount - inst.amount) < 0.01;
+        const newStatus = isPaid ? 'Pago' : 'Pendente';
         
         const existingPayments = (Array.isArray(inst.payments) ? inst.payments : []).filter(p => typeof p.amount === 'number' && p.amount > 0);
 
