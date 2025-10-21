@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -7,6 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import type { CustomerInfo, Order } from '@/lib/types';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface CustomerAuthContextType {
   customer: CustomerInfo | null;
@@ -86,6 +89,13 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
             });
         }
         unsubscribe(); // Stop listening after attempt
+    },
+    (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: `orders where customer.cpf == ${cpf}`,
+            operation: 'list',
+        }));
+        unsubscribe();
     });
 
     return true; // The login logic is async, we can't return true/false based on success here easily
