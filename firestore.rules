@@ -4,40 +4,41 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Public read for products and categories for the storefront
+    // As coleções de produtos e categorias são públicas para leitura, para que os clientes possam ver a loja.
+    // A escrita requer autenticação (somente administradores/vendedores logados podem alterar).
     match /products/{productId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
-
+    
     match /categories/{categoryId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
-    
-    // Authenticated users can manage orders
+
+    // Apenas usuários autenticados podem ler ou escrever na coleção de pedidos.
     match /orders/{orderId} {
       allow read, write: if request.auth != null;
     }
     
-    // Authenticated users can manage users
+    // Apenas usuários autenticados podem ler a lista de usuários ou editar um usuário.
     match /users/{userId} {
       allow read, write: if request.auth != null;
     }
     
-    // Authenticated users can manage audit logs
-    match /auditLogs/{logId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Authenticated users can manage commission payments
-    match /commissionPayments/{paymentId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Authenticated users can read and write app configuration
+    // Apenas usuários autenticados podem ler ou escrever nas configurações.
     match /config/{configId} {
       allow read, write: if request.auth != null;
+    }
+    
+    // Apenas usuários autenticados podem ler a lista de logs ou criar um novo.
+    match /auditLogs/{logId} {
+        allow read, create: if request.auth != null;
+    }
+    
+    // Apenas usuários autenticados podem gerenciar os pagamentos de comissão.
+    match /commissionPayments/{paymentId} {
+        allow read, write: if request.auth != null;
     }
   }
 }
