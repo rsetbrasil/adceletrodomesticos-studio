@@ -72,7 +72,20 @@ export default function PaymentDialog({
   const handleSubmit = () => {
     if (amountPaid <= 0) return;
 
-    const finalAmountToRecord = Math.min(amountPaid, remainingAmount);
+    let finalAmountToRecord: number;
+
+    if (paymentMethod === 'Dinheiro') {
+        finalAmountToRecord = Math.min(amountPaid, remainingAmount);
+    } else {
+        // For Pix or Card, we record the amount paid, up to the remaining amount.
+        finalAmountToRecord = Math.min(amountPaid, remainingAmount);
+        if(amountPaid > remainingAmount) {
+            // Optional: You could show a toast here that you can't overpay with Pix/Card
+        }
+    }
+    
+    if (isNaN(finalAmountToRecord) || finalAmountToRecord <= 0) return;
+
 
     const payment: Payment = {
       id: `pay-${Date.now()}`,
