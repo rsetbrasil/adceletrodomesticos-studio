@@ -4,8 +4,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useAdmin } from '@/context/AdminContext';
-import { useAuth } from '@/context/AuthContext';
-import type { Order } from '@/lib/types';
+import type { Order, User } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
@@ -16,6 +15,10 @@ import { ptBR } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -31,7 +34,7 @@ type SellerCommissionDetails = {
 
 export default function FinanceiroPage() {
   const { orders, products, payCommissions } = useAdmin();
-  const { users } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
   const [isClient, setIsClient] = useState(false);
   const router = useRouter();
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -39,6 +42,17 @@ export default function FinanceiroPage() {
 
   useEffect(() => {
     setIsClient(true);
+    const usersUnsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+      setUsers(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as User)));
+    },
+    (error) => {
+      console.error("Error fetching users:", error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'users',
+        operation: 'list',
+      }));
+    });
+    return () => usersUnsubscribe();
   }, []);
 
   const financialSummary = useMemo(() => {
@@ -120,11 +134,11 @@ export default function FinanceiroPage() {
     return { totalPendingCommission, commissionsBySeller };
   }, [orders, users, isClient]);
 
-  const handlePayCommission = async (sellerId: string, sellerName: string, amount: number, orderIds: string[]) => {
+  const handlePayCommission = async (seller: SellerCommissionDetails) => {
       const period = format(new Date(), 'MMMM/yyyy', { locale: ptBR });
-      const paymentId = await payCommissions(sellerId, sellerName, amount, orderIds, period);
+      const paymentId = await payCommissions(seller.id, seller.name, seller.total, seller.orderIds, period);
       if (paymentId) {
-          router.push(`/admin/commission-receipt/${paymentId}`);
+          router.push(`/admin/comprovante-comissao/${paymentId}`);
       }
   };
   
@@ -266,7 +280,7 @@ export default function FinanceiroPage() {
                                     <Eye className="h-4 w-4" />
                                     <span className="sr-only">Ver detalhes</span>
                                 </Button>
-                                <Button size="sm" onClick={() => handlePayCommission(seller.id, seller.name, seller.total, seller.orderIds)}>
+                                <Button size="sm" onClick={() => handlePayCommission(seller)}>
                                     <DollarSign className="mr-2 h-4 w-4" />
                                     Pagar
                                 </Button>

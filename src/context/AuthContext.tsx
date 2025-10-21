@@ -14,7 +14,6 @@ import { errorEmitter } from '@/firebase/error-emitter';
 
 interface AuthContextType {
   user: User | null;
-  users: User[];
   initialUsers: User[];
   login: (user: string, pass: string) => void;
   logout: () => void;
@@ -30,52 +29,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
   const { logAction } = useAudit();
   
   useEffect(() => {
-    const checkUser = () => {
-        setIsLoading(true);
-        try {
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-                setUser(JSON.parse(storedUser));
-            }
-        } catch (error) {
-            console.error("Failed to read user from localStorage", error);
-            localStorage.removeItem('user');
-        } 
-    };
-    checkUser();
-
-    const usersCollection = collection(db, 'users');
-    const unsubscribe = onSnapshot(usersCollection, async (querySnapshot) => {
-        if (querySnapshot.empty) {
-            const batch = writeBatch(db);
-            initialUsers.forEach(u => {
-                const docRef = doc(db, 'users', u.id);
-                batch.set(docRef, u);
-            });
-            await batch.commit();
-            setUsers(initialUsers);
-        } else {
-            const fetchedUsers = querySnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as User[];
-            setUsers(fetchedUsers);
+    setIsLoading(true);
+    try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            setUser(JSON.parse(storedUser));
         }
+    } catch (error) {
+        console.error("Failed to read user from localStorage", error);
+        localStorage.removeItem('user');
+    } finally {
         setIsLoading(false);
-    }, (error) => {
-        console.error("Error fetching users from Firestore:", error);
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: 'users',
-            operation: 'list',
-        }));
-        setIsLoading(false);
-    });
-
-    return () => unsubscribe();
+    }
   }, []);
 
   const login = async (username: string, pass: string) => {
@@ -144,7 +115,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     try {
         await setDoc(doc(db, 'users', newUserId), newUser);
-        // Real-time listener will update the state
         logAction('Criação de Usuário', `Novo usuário "${data.name}" (Perfil: ${data.role}) foi criado.`, user);
         toast({
             title: 'Usuário Criado!',
@@ -160,7 +130,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUser = async (userId: string, data: Partial<Omit<User, 'id'>>) => {
     
-    // Check for username uniqueness if it's being changed
     if (data.username) {
         const q = query(collection(db, 'users'), where("username", "==", data.username.toLowerCase()));
         const querySnapshot = await getDocs(q);
@@ -178,7 +147,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     try {
         const userRef = doc(db, 'users', userId);
-        const updatedUser = users.find(u => u.id === userId);
+        const userDoc = await getDoc(userRef);
+        const updatedUser = userDoc.data() as User | undefined;
         
         if (updatedUser) {
             let details = `Dados do usuário "${updatedUser.name}" foram alterados.`;
@@ -195,9 +165,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         
         await updateDoc(userRef, data);
-        // Real-time listener will update the state
         
-        // If the current user is being updated, update the localStorage object too
         if (user?.id === userId) {
             const updatedCurrentUser = { ...user, ...data };
             delete updatedCurrentUser.password;
@@ -257,7 +225,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             addBatch.set(docRef, u);
         });
         await addBatch.commit();
-        // Real-time listener will update the state
         logAction('Restauração de Usuários', 'Todos os usuários foram restaurados a partir de um backup.', user);
       } catch (error) {
         console.error("Error restoring users to Firestore:", error);
@@ -266,7 +233,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, users, initialUsers, login, logout, addUser, updateUser, changeMyPassword, isLoading, isAuthenticated: !!user, restoreUsers }}>
+    <AuthContext.Provider value={{ user, initialUsers, login, logout, addUser, updateUser, changeMyPassword, isLoading, isAuthenticated: !!user, restoreUsers }}>
       {children}
     </AuthContext.Provider>
   );

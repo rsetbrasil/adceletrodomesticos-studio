@@ -47,6 +47,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 const formatCurrency = (value: number) => {
@@ -71,9 +75,10 @@ const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'o
 
 export default function OrdersAdminPage() {
   const { products, orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder } = useAdmin();
-  const { user, users } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [installmentsInput, setInstallmentsInput] = useState(1);
@@ -88,6 +93,18 @@ export default function OrdersAdminPage() {
 
   useEffect(() => {
     setIsClient(true);
+    const usersUnsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+        setUsers(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as User)));
+    },
+    (error) => {
+      console.error("Error fetching users:", error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'users',
+        operation: 'list',
+      }));
+    });
+
+    return () => usersUnsubscribe();
   }, []);
 
   const sellers = useMemo(() => {

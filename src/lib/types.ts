@@ -119,15 +119,15 @@ export type AuditLog = {
 };
 
 export type AppSection = 
-    | 'orders' 
-    | 'customers' 
-    | 'products' 
-    | 'categories' 
+    | 'pedidos' 
+    | 'clientes' 
+    | 'produtos' 
+    | 'categorias' 
     | 'financeiro'
     | 'minhas-comissoes'
     | 'auditoria'
     | 'configuracao'
-    | 'users';
+    | 'usuarios';
 
 export type RolePermissions = Record<UserRole, AppSection[]>;
 
