@@ -158,18 +158,7 @@ export default function ConfiguracaoPage() {
         }
 
         updatedPermissions[role] = rolePermissions;
-
-        // Apply hierarchy: if a permission is added/removed for a role, it affects roles above it.
-        if (role === 'vendedor') {
-            const gerentePermissions = updatedPermissions['gerente'] ? [...updatedPermissions['gerente']] : [];
-            if(checked && !gerentePermissions.includes(section)) gerentePermissions.push(section);
-            if(!checked) {
-                updatedPermissions['gerente'] = gerentePermissions.filter(p => p !== section);
-            } else {
-                updatedPermissions['gerente'] = gerentePermissions;
-            }
-        }
-
+        
         return updatedPermissions;
     });
   };
@@ -322,7 +311,6 @@ export default function ConfiguracaoPage() {
                                               id={`gerente-${section.id}`}
                                               checked={localPermissions.gerente?.includes(section.id)}
                                               onCheckedChange={(checked) => handlePermissionChange('gerente', section.id, !!checked)}
-                                              disabled={isVendedorPermission(section.id)}
                                           />
                                           <label
                                               htmlFor={`gerente-${section.id}`}
@@ -439,7 +427,3 @@ export default function ConfiguracaoPage() {
     </div>
   );
 }
-
-    
-
-    
