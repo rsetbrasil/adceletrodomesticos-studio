@@ -2,29 +2,40 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Coleções com leitura pública para o site
     match /products/{productId} {
-      allow read;
+      allow read: if true;
       allow write: if request.auth != null;
     }
+    
     match /categories/{categoryId} {
-      allow read;
+      allow read: if true;
       allow write: if request.auth != null;
     }
+
+    // Coleções administrativas que exigem autenticação para todas as operações
     match /orders/{orderId} {
       allow read, write: if request.auth != null;
     }
+
     match /users/{userId} {
+      // Permite ler/escrever um usuário específico se autenticado
       allow read, write: if request.auth != null;
+      // Permite listar TODOS os usuários se autenticado
       allow list: if request.auth != null;
     }
+
     match /auditLogs/{logId} {
       allow read, write: if request.auth != null;
     }
+
     match /commissionPayments/{paymentId} {
       allow read, write: if request.auth != null;
     }
+
     match /config/{configId} {
-      allow read, write: if request.auth != null;
+       allow read, write: if request.auth != null;
     }
   }
 }
