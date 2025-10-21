@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/AuthContext';
 import PaymentDialog from '@/components/PaymentDialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 const formatCurrency = (value: number) => {
@@ -519,7 +519,7 @@ export default function CustomersAdminPage() {
                                 order.installmentDetails.length > 0 &&
                                 order.installmentDetails.every(inst => inst.status === 'Pago');
                             
-                            const isPaidOff = allInstallmentsPaid || (order.paymentMethod && ['Pix', 'Dinheiro'].includes(order.paymentMethod));
+                            const isPaidOff = allInstallmentsPaid || (order.paymentMethod && ['Pix', 'Dinheiro'].includes(order.paymentMethod]));
 
                             return (
                                 <AccordionItem value={order.id} key={order.id} className="border-b-0 rounded-lg border bg-background">
@@ -914,3 +914,7 @@ export default function CustomersAdminPage() {
     </>
   );
 }
+
+    
+
+    
