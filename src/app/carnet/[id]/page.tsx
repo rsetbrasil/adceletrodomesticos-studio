@@ -6,7 +6,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { useMemo, useState, useEffect } from 'react';
 import type { Order } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Printer } from 'lucide-react';
+import { ArrowLeft, Printer, ShoppingCart } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -29,7 +29,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                 <Logo />
                 <div>
                     <p className="font-bold">{settings.storeName}</p>
-                    <p className="text-xs text-muted-foreground">CNPJ/Endereço da loja aqui se necessário</p>
+                    <p className="text-xs text-muted-foreground whitespace-pre-line">{settings.storeAddress}</p>
                 </div>
              </div>
              <div className="text-right">
@@ -61,7 +61,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
             </div>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-grow border rounded-md overflow-hidden">
                 <table className="w-full text-xs">
                     <thead className="bg-muted/50 print:bg-gray-100">
@@ -97,7 +97,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                 </table>
             </div>
              {pixPayload && (
-                <div className="w-48 flex-shrink-0 print-hidden">
+                <div className="w-full md:w-48 flex-shrink-0 print-hidden">
                     <PixQRCode payload={pixPayload} />
                 </div>
             )}
@@ -154,7 +154,9 @@ export default function CarnetPage() {
 
   const nextPendingInstallment = useMemo(() => {
     if (!order || !order.installmentDetails) return null;
-    return order.installmentDetails.find(inst => inst.status === 'Pendente');
+    // Garante que as parcelas estão ordenadas antes de encontrar a primeira pendente
+    const sortedInstallments = [...order.installmentDetails].sort((a,b) => a.installmentNumber - b.installmentNumber);
+    return sortedInstallments.find(inst => inst.status === 'Pendente');
   }, [order]);
 
   const pixPayload = useMemo(() => {
@@ -178,6 +180,20 @@ export default function CarnetPage() {
     return (
       <div className="container mx-auto py-24 text-center">
         <h1 className="text-2xl font-bold">Pedido não encontrado</h1>
+        <Button onClick={() => router.back()} className="mt-6">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar
+        </Button>
+      </div>
+    );
+  }
+  
+  if (order.paymentMethod !== 'Crediário' || !order.installmentDetails || order.installmentDetails.length === 0) {
+    return (
+      <div className="container mx-auto py-24 text-center">
+        <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h1 className="mt-4 text-2xl font-bold">Este pedido não é um carnê</h1>
+        <p className="text-muted-foreground mt-2">O método de pagamento foi {order.paymentMethod} e não possui parcelamento.</p>
         <Button onClick={() => router.back()} className="mt-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
