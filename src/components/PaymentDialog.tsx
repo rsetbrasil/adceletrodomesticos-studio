@@ -59,7 +59,7 @@ export default function PaymentDialog({
   }, [amountPaidStr]);
 
   const change = useMemo(() => {
-    if (paymentMethod === 'Dinheiro' && amountPaid > remainingAmount) {
+    if (paymentMethod === 'Dinheiro' && amountPaid > 0 && amountPaid > remainingAmount) {
       return amountPaid - remainingAmount;
     }
     return 0;
