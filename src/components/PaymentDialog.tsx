@@ -78,8 +78,11 @@ export default function PaymentDialog({
       amount: finalAmountToRecord,
       date: new Date().toISOString(),
       method: paymentMethod,
-      change: change > 0 ? change : undefined,
     };
+    
+    if (change > 0) {
+      payment.change = change;
+    }
     
     const isFullPayment = finalAmountToRecord >= remainingAmount;
 
