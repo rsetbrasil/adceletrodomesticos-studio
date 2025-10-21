@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent } from 'react';
@@ -580,8 +581,10 @@ export default function CustomersAdminPage() {
                                                                     </div>
                                                                     <div className="flex gap-2 justify-end ml-4">
                                                                         {(inst.payments && inst.payments.length > 0) && (
-                                                                            <AccordionTrigger asChild>
-                                                                                <Button variant="ghost" size="sm"><span><History className="mr-2 h-4 w-4"/> Histórico</span></Button>
+                                                                             <AccordionTrigger asChild>
+                                                                                <Button variant="ghost" size="sm">
+                                                                                    <History className="mr-2 h-4 w-4" /> Histórico
+                                                                                </Button>
                                                                             </AccordionTrigger>
                                                                         )}
                                                                         <Button variant="outline" size="sm" onClick={() => handleOpenPaymentDialog(order, inst)} disabled={inst.status === 'Pago'}>
