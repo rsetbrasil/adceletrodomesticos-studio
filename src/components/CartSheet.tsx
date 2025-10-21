@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Image from 'next/image';
@@ -22,6 +21,8 @@ import { useMemo, useState, useEffect } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Product } from '@/lib/types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 const formatCurrency = (value: number) => {
@@ -38,6 +39,13 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
         setProducts(snapshot.docs.map(d => ({...d.data(), id: d.id } as Product)));
+    },
+    (error) => {
+      console.error("Error fetching products for cart:", error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'products',
+          operation: 'list',
+      }));
     });
     return () => unsubscribe();
   }, []);

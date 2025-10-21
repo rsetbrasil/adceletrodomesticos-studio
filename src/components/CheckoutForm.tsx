@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -27,6 +26,8 @@ import { AlertTriangle, CreditCard, KeyRound, Trash2 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -65,10 +66,20 @@ export default function CheckoutForm() {
   useEffect(() => {
     const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
       setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
+    },
+    (error) => {
+        console.error("Error fetching orders:", error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'orders', operation: 'list' }));
     });
+
     const productsUnsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       setProducts(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
+    },
+    (error) => {
+        console.error("Error fetching products:", error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'products', operation: 'list' }));
     });
+
     return () => {
       ordersUnsubscribe();
       productsUnsubscribe();

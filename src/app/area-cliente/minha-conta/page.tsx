@@ -16,6 +16,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import Link from 'next/link';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -40,6 +42,14 @@ export default function MyAccountPage() {
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
             setCartLoading(false);
+        },
+        (error) => {
+          console.error("Error fetching customer orders:", error);
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+              path: `orders where customer.cpf == ${customer.cpf}`,
+              operation: 'list',
+          }));
+          setCartLoading(false);
         });
         return () => unsubscribe();
       }

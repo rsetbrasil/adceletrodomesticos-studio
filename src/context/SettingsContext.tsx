@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -8,6 +7,8 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { useAudit } from './AuditContext';
 import { useAuth } from './AuthContext';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export type StoreSettings = {
     storeName: string;
@@ -55,9 +56,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             setIsLoading(false);
         }, (error) => {
             console.error("Failed to load settings from Firestore:", error);
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: 'config/storeSettings',
+                operation: 'get',
+            }));
             setSettings(initialSettings);
             setIsLoading(false);
-            toast({ title: "Erro de Conexão", description: "Não foi possível carregar as configurações da loja.", variant: "destructive" });
         });
 
         return () => unsubscribe();

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -16,6 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import Logo from '@/components/Logo';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 const formatCurrency = (value: number) => {
@@ -166,6 +167,10 @@ export default function SingleInstallmentPage() {
             }
         } catch (error) {
             console.error("Error fetching order:", error);
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: `orders/${orderId}`,
+                operation: 'get',
+            }));
             setOrder(null);
         } finally {
             setIsLoading(false);

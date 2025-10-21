@@ -12,6 +12,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formatCurrency = (value: number) => {
   if (typeof value !== 'number') return 'R$ 0,00';
@@ -127,6 +129,10 @@ export default function CarnetPage() {
             }
         } catch (error) {
             console.error("Error fetching order:", error);
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: `orders/${orderId}`,
+                operation: 'get',
+            }));
             setOrder(null);
         } finally {
             setIsLoading(false);

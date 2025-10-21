@@ -9,6 +9,8 @@ import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './AuthContext';
 import { useAudit } from './AuditContext';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface PermissionsContextType {
     permissions: RolePermissions | null;
@@ -38,9 +40,12 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
             setIsLoading(false);
         }, (error) => {
             console.error("Failed to load permissions from Firestore:", error);
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: 'config/rolePermissions',
+                operation: 'get',
+            }));
             setPermissions(initialPermissions); // Fallback
             setIsLoading(false);
-            toast({ title: "Erro de Conexão", description: "Não foi possível carregar as permissões de acesso.", variant: "destructive" });
         });
 
         return () => unsubscribe();

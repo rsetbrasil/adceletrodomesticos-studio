@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -16,6 +15,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Product } from '@/lib/types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 const formatCurrency = (value: number) => {
@@ -37,11 +38,21 @@ export default function ProductDetailPage() {
         if (!id) return;
         setIsLoading(true);
         const productRef = doc(db, 'products', id);
-        const docSnap = await getDoc(productRef);
-        if (docSnap.exists()) {
-            setProduct({ ...docSnap.data(), id: docSnap.id } as Product);
+        
+        try {
+            const docSnap = await getDoc(productRef);
+            if (docSnap.exists()) {
+                setProduct({ ...docSnap.data(), id: docSnap.id } as Product);
+            }
+        } catch (error) {
+             console.error("Error fetching product:", error);
+              errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: `products/${id}`,
+                operation: 'get',
+            }));
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }
     fetchProduct();
   }, [id]);

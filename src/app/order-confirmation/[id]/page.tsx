@@ -18,6 +18,8 @@ import PixQRCode from '@/components/PixQRCode';
 import { format } from 'date-fns';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -50,7 +52,11 @@ export default function OrderConfirmationPage() {
             }
         } catch (error) {
             console.error("Error fetching order:", error);
-            router.push('/');
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: `orders/${orderId}`,
+                operation: 'get',
+            }));
+            // We don't push to router here, because the error overlay will show
         } finally {
             setIsLoading(false);
         }

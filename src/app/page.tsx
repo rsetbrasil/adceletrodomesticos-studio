@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -16,6 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import FilterSheet from '@/components/FilterSheet';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 const formatCurrency = (value: number) => {
@@ -44,11 +45,26 @@ export default function Home() {
         const loadedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Product[];
         setAllProducts(loadedProducts);
         setIsLoading(false);
+    },
+    (error) => {
+      console.error("Error fetching products:", error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'products',
+          operation: 'list',
+      }));
+      setIsLoading(false);
     });
 
     const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
         const loadedCategories = snapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Category[];
         setCategories(loadedCategories);
+    },
+    (error) => {
+      console.error("Error fetching categories:", error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'categories',
+          operation: 'list',
+      }));
     });
 
     return () => {

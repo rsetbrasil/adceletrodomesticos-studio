@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -10,6 +9,8 @@ import { initialUsers } from '@/lib/users';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where, getDoc, onSnapshot } from 'firebase/firestore';
 import { useAudit } from './AuditContext';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 interface AuthContextType {
   user: User | null;
@@ -67,6 +68,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
     }, (error) => {
         console.error("Error fetching users from Firestore:", error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'users',
+            operation: 'list',
+        }));
         setIsLoading(false);
     });
 
