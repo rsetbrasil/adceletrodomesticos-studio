@@ -4,7 +4,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useSettings } from '@/context/SettingsContext';
 import { useMemo, useRef, useState, useEffect }from 'react';
-import type { Order, Installment, StoreSettings } from '@/lib/types';
+import type { Order, Installment, StoreSettings, Payment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Printer, Send, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
@@ -79,6 +79,12 @@ function numeroParaExtenso(n: number): string {
 
 const ReceiptContent = ({ order, installment, settings, via }: { order: Order; installment: Installment; settings: StoreSettings; via: 'Empresa' | 'Cliente' }) => {
     
+    const lastPayment = useMemo(() => {
+        if (!installment.payments || installment.payments.length === 0) return null;
+        // The payments are not guaranteed to be sorted, so we sort them by date.
+        return [...installment.payments].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+    }, [installment.payments]);
+    
     return (
         <div className="bg-white p-6 break-inside-avoid-page text-black font-mono text-xs relative">
              <div className="flex justify-between items-start mb-4">
@@ -105,6 +111,8 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
                 <div className="space-y-1 text-right">
                     <p>Título/Parcela: {installment.installmentNumber}/{order.installments}</p>
                     <p>Tipo Parc: {'PM'}</p>
+                     <p>Forma Pag.: {lastPayment?.method || 'N/A'}</p>
+                    {lastPayment?.change ? <p>Troco: {formatCurrency(lastPayment.change)}</p> : null}
                     <p>Desconto: R$ 0,00</p>
                     <p>Líquido: {formatCurrency(installment.amount)}</p>
                 </div>
@@ -119,7 +127,7 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
             </div>
             
             <div className="flex justify-center items-end flex-col mt-4">
-                <p>{settings.storeCity}, {format(new Date(installment.paymentDate || new Date()), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+                <p>{settings.storeCity}, {format(new Date(lastPayment?.date || new Date()), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
                 {installment.status === 'Pago' && (
                     <div className="relative mt-2">
                         <div className="border-4 border-blue-500 rounded-md px-6 py-2 transform -rotate-12">

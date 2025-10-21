@@ -271,7 +271,8 @@ export default function CheckoutForm() {
         amount: finalInstallmentValue,
         dueDate: addMonths(orderDate, i + 1).toISOString(),
         status: 'Pendente' as const,
-        paymentDate: null,
+        paidAmount: 0,
+        payments: [],
     }));
 
     const order: Partial<Order> = {

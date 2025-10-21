@@ -56,6 +56,7 @@ export type Payment = {
   amount: number;
   date: string;
   method: 'Dinheiro' | 'Pix' | 'Cartão';
+  change?: number;
 }
 
 export type Installment = {
