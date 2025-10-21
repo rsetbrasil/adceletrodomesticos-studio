@@ -100,14 +100,8 @@ export default function OrdersAdminPage() {
 
     let filtered = [...orders];
 
-    if (user?.role === 'vendedor') {
-      // Vendedor só vê os seus pedidos
-      filtered = filtered.filter(o => o.sellerId === user.id);
-    } else {
-      // Admin/Gerente podem filtrar por vendedor
-      if (filters.seller !== 'all') {
-        filtered = filtered.filter(o => o.sellerId === filters.seller);
-      }
+    if (filters.seller !== 'all') {
+      filtered = filtered.filter(o => o.sellerId === filters.seller);
     }
     
     if (filters.search) {
@@ -365,21 +359,19 @@ export default function OrdersAdminPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        {user?.role !== 'vendedor' && (
-                            <div className="flex-grow min-w-[150px]">
-                                <Select value={filters.seller} onValueChange={(value) => handleFilterChange('seller', value)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Filtrar por vendedor" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Todos os Vendedores</SelectItem>
-                                        {sellers.map(s => (
-                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
+                        <div className="flex-grow min-w-[150px]">
+                            <Select value={filters.seller} onValueChange={(value) => handleFilterChange('seller', value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filtrar por vendedor" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos os Vendedores</SelectItem>
+                                    {sellers.map(s => (
+                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <Button variant="ghost" onClick={clearFilters}>
                             <X className="mr-2 h-4 w-4"/>
                             Limpar Filtros
@@ -782,6 +774,3 @@ export default function OrdersAdminPage() {
     </>
   );
 }
-
-
-    
