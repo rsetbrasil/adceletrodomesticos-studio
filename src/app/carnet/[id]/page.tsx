@@ -32,13 +32,14 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                     <p className="text-xs print:text-[8px] text-muted-foreground whitespace-pre-line">{settings.storeAddress}</p>
                 </div>
              </div>
-             <div className="text-right">
-                <p className="font-semibold print:text-[10px]">Pedido Nº</p>
-                <p className="font-mono text-lg print:text-base">{order.id}</p>
-             </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 py-2 print:py-1">
+        <div className="text-center my-2 print:my-1">
+            <p className="font-semibold print:text-[10px]">Pedido Nº</p>
+            <p className="font-mono text-lg print:text-base">{order.id}</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 py-2 print:py-1 border-t">
             <div>
                 <p className="text-xs print:text-[8px] text-muted-foreground">CLIENTE</p>
                 <p className="font-semibold">{order.customer.name}</p>
@@ -232,5 +233,3 @@ export default function CarnetPage() {
     </div>
   );
 }
-
-    
