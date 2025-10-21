@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { Installment, Payment } from '@/lib/types';
 import { Banknote, CreditCard, Smartphone } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const formatCurrency = (value: number) => {
   if (isNaN(value)) return 'R$ 0,00';
@@ -108,17 +109,17 @@ export default function PaymentDialog({
               onValueChange={(value) => setPaymentMethod(value as Payment['method'])}
               className="flex gap-4"
             >
-              <Label className="flex flex-col items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground has-[:checked]:border-primary has-[:checked]:bg-primary/10 flex-1 cursor-pointer">
+              <Label className={cn("flex flex-col items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground flex-1 cursor-pointer", paymentMethod === 'Dinheiro' && "border-primary bg-primary/10")}>
                 <RadioGroupItem value="Dinheiro" id="dinheiro" className="sr-only" />
                 <Banknote />
                 <span className="text-sm">Dinheiro</span>
               </Label>
-               <Label className="flex flex-col items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground has-[:checked]:border-primary has-[:checked]:bg-primary/10 flex-1 cursor-pointer">
+               <Label className={cn("flex flex-col items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground flex-1 cursor-pointer", paymentMethod === 'Pix' && "border-primary bg-primary/10")}>
                 <RadioGroupItem value="Pix" id="pix" className="sr-only" />
                 <Smartphone />
                 <span className="text-sm">Pix</span>
               </Label>
-               <Label className="flex flex-col items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground has-[:checked]:border-primary has-[:checked]:bg-primary/10 flex-1 cursor-pointer">
+               <Label className={cn("flex flex-col items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground flex-1 cursor-pointer", paymentMethod === 'Cartão' && "border-primary bg-primary/10")}>
                 <RadioGroupItem value="Cartão" id="cartao" className="sr-only" />
                 <CreditCard />
                 <span className="text-sm">Cartão</span>

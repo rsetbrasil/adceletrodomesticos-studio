@@ -699,11 +699,11 @@ export default function OrdersAdminPage() {
                                             </TableHeader>
                                             <TableBody>
                                                 {(selectedOrder.installmentDetails || []).map(inst => {
-                                                    const remainingAmount = inst.amount - inst.paidAmount;
+                                                    const remainingAmount = inst.amount - (inst.paidAmount || 0);
                                                     const isOverdue = inst.status === 'Pendente' && new Date(inst.dueDate) < new Date();
                                                     
                                                     let statusText = inst.status;
-                                                    if (inst.status === 'Pendente' && inst.paidAmount > 0) {
+                                                    if (inst.status === 'Pendente' && (inst.paidAmount || 0) > 0) {
                                                         statusText = `Parcial (${formatCurrency(remainingAmount)} pendente)`;
                                                     } else if (isOverdue) {
                                                         statusText = 'Atrasado';
