@@ -18,6 +18,7 @@ import type { Installment, Payment } from '@/lib/types';
 import { Banknote, CreditCard, Smartphone } from 'lucide-react';
 
 const formatCurrency = (value: number) => {
+  if (isNaN(value)) return 'R$ 0,00';
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
@@ -42,7 +43,7 @@ export default function PaymentDialog({
   const [paymentMethod, setPaymentMethod] = useState<Payment['method']>('Dinheiro');
 
   const remainingAmount = useMemo(() => {
-    return installment.amount - installment.paidAmount;
+    return (installment.amount || 0) - (installment.paidAmount || 0);
   }, [installment]);
 
   useEffect(() => {
@@ -83,7 +84,7 @@ export default function PaymentDialog({
     onSubmit(payment, isFullPayment);
   };
   
-  const quickValues = [10, 20, 50, 100, remainingAmount];
+  const quickValues = [10, 20, 50, 100, remainingAmount].filter(v => v > 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

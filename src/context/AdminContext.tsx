@@ -646,7 +646,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     
     const updatedInstallments = (order.installmentDetails || []).map((inst) => {
       if (inst.installmentNumber === installmentNumber) {
-        const newPaidAmount = inst.paidAmount + payment.amount;
+        const currentPaidAmount = Number(inst.paidAmount) || 0;
+        const paymentAmount = Number(payment.amount) || 0;
+        const newPaidAmount = currentPaidAmount + paymentAmount;
         const newStatus = newPaidAmount >= inst.amount ? 'Pago' : 'Pendente';
         const newPayments = [...(inst.payments || []), payment];
         return { ...inst, status: newStatus, paidAmount: newPaidAmount, payments: newPayments };
