@@ -6,7 +6,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { useMemo, useState, useEffect } from 'react';
 import type { Order } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Printer, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Printer, ShoppingCart, Phone } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -30,6 +30,9 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                 <div>
                     <p className="font-bold print:text-[10px]">{settings.storeName}</p>
                     <p className="text-xs print:text-[8px] text-muted-foreground whitespace-pre-line">{settings.storeAddress}</p>
+                     {settings.storePhone && (
+                        <p className="text-xs print:text-[8px] text-muted-foreground">WhatsApp: {settings.storePhone}</p>
+                    )}
                 </div>
              </div>
         </div>
@@ -205,7 +208,7 @@ export default function CarnetPage() {
 
   return (
     <div className="bg-muted/30 print:bg-white">
-      <div className="container mx-auto max-w-7xl py-8 px-4 print:p-0 print:m-0 print:max-w-full">
+       <div className="container mx-auto max-w-none py-8 px-4 print:p-0 print:m-0 print:max-w-full">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
