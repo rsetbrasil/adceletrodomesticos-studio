@@ -141,4 +141,14 @@
   .print-layout-a4 .carnet-content-wrapper .print\:w-32 {
     width: 10rem; /* 160px */
   }
+  .print-layout-a4 .a4-header-logo {
+    transform: scale(1.2);
+    margin-left: 0.5rem;
+  }
+  .print-layout-a4 .a4-header-info > p:first-child {
+    font-size: 14px;
+  }
+   .print-layout-a4 .a4-header-info > p {
+    font-size: 11px;
+  }
 }
