@@ -658,7 +658,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
     const orderRef = doc(db, 'orders', orderId);
     updateDoc(orderRef, { installmentDetails: updatedInstallments }).then(() => {
-        logAction('Registro de Pagamento de Parcela', `Registrado pagamento de R$${payment.amount.toFixed(2)} (${payment.method}) na parcela ${installmentNumber} do pedido #${orderId}.`, user);
+        logAction('Registro de Pagamento de Parcela', `Registrado pagamento de ${formatCurrency(payment.amount)} (${payment.method}) na parcela ${installmentNumber} do pedido #${orderId}.`, user);
         toast({ title: 'Pagamento Registrado!' });
     }).catch(async(e) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -717,7 +717,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
 
-    let detailsToUpdate = { ...details };
+    let detailsToUpdate: Partial<Order> = { ...details };
 
     if ('sellerId' in details && details.sellerId && details.sellerId !== order.sellerId) {
       const tempOrderForCommissionCalc = { ...order, ...detailsToUpdate };
@@ -725,6 +725,13 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         detailsToUpdate.commission = calculateCommission(tempOrderForCommissionCalc, products);
       }
     }
+
+    // Remove undefined values before sending to Firestore
+    Object.keys(detailsToUpdate).forEach(key => {
+        if (detailsToUpdate[key as keyof typeof detailsToUpdate] === undefined) {
+            delete detailsToUpdate[key as keyof typeof detailsToUpdate];
+        }
+    });
     
     const orderRef = doc(db, 'orders', orderId);
     updateDoc(orderRef, detailsToUpdate).then(() => {
