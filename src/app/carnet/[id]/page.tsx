@@ -14,13 +14,15 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { generatePixPayload } from '@/lib/pix';
+import PixQRCode from '@/components/PixQRCode';
 
 const formatCurrency = (value: number) => {
   if (typeof value !== 'number') return 'R$ 0,00';
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-const CarnetContent = ({ order, settings }: { order: Order; settings: any }) => (
+const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings: any, pixPayload: string | null }) => (
     <div className="bg-background p-6 break-inside-avoid print:p-0 text-sm">
         <div className="flex justify-between items-start pb-4 border-b">
              <div className="flex items-center gap-4">
@@ -59,40 +61,48 @@ const CarnetContent = ({ order, settings }: { order: Order; settings: any }) => 
             </div>
         </div>
 
-        <div className="border rounded-md overflow-hidden">
-            <table className="w-full text-xs">
-                <thead className="bg-muted/50 print:bg-gray-100">
-                    <tr className="border-b">
-                        <th className="p-1 text-center font-medium w-[15%]">Parcela</th>
-                        <th className="p-1 text-left font-medium w-[25%]">Vencimento</th>
-                        <th className="p-1 text-right font-medium w-[25%]">Valor (R$)</th>
-                        <th className="p-1 text-left font-medium w-[35%]">Data do Pagamento</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {(order.installmentDetails || []).map((installment) => (
-                        <tr key={installment.installmentNumber} className="border-b last:border-none">
-                            <td className="p-1 text-center font-medium">{installment.installmentNumber} / {order.installments}</td>
-                            <td className="p-1">{format(new Date(installment.dueDate), 'dd/MM/yyyy')}</td>
-                            <td className="p-1 text-right font-mono">{formatCurrency(installment.amount)}</td>
-                            <td className="p-1 border-l">
-                                {installment.status === 'Pago' 
-                                    ? (installment.paymentDate ? format(new Date(installment.paymentDate), 'dd/MM/yyyy') : 'Pago')
-                                    : '___ / ___ / ______'
-                                }
-                            </td>
+        <div className="flex gap-4">
+            <div className="flex-grow border rounded-md overflow-hidden">
+                <table className="w-full text-xs">
+                    <thead className="bg-muted/50 print:bg-gray-100">
+                        <tr className="border-b">
+                            <th className="p-1 text-center font-medium w-[15%]">Parcela</th>
+                            <th className="p-1 text-left font-medium w-[25%]">Vencimento</th>
+                            <th className="p-1 text-right font-medium w-[25%]">Valor (R$)</th>
+                            <th className="p-1 text-left font-medium w-[35%]">Data do Pagamento</th>
                         </tr>
-                    ))}
-                </tbody>
-                 <tfoot className="bg-muted/50 print:bg-gray-100 font-bold">
-                    <tr className="border-t">
-                        <td colSpan={2} className="p-1 text-right">VALOR TOTAL:</td>
-                        <td className="p-1 text-right font-mono">{formatCurrency(order.total)}</td>
-                        <td className="p-1"></td>
-                    </tr>
-                </tfoot>
-            </table>
+                    </thead>
+                    <tbody>
+                        {(order.installmentDetails || []).map((installment) => (
+                            <tr key={installment.installmentNumber} className="border-b last:border-none">
+                                <td className="p-1 text-center font-medium">{installment.installmentNumber} / {order.installments}</td>
+                                <td className="p-1">{format(new Date(installment.dueDate), 'dd/MM/yyyy')}</td>
+                                <td className="p-1 text-right font-mono">{formatCurrency(installment.amount)}</td>
+                                <td className="p-1 border-l">
+                                    {installment.status === 'Pago' 
+                                        ? (installment.paymentDate ? format(new Date(installment.paymentDate), 'dd/MM/yyyy') : 'Pago')
+                                        : '___ / ___ / ______'
+                                    }
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                     <tfoot className="bg-muted/50 print:bg-gray-100 font-bold">
+                        <tr className="border-t">
+                            <td colSpan={2} className="p-1 text-right">VALOR TOTAL:</td>
+                            <td className="p-1 text-right font-mono">{formatCurrency(order.total)}</td>
+                            <td className="p-1"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+             {pixPayload && (
+                <div className="w-48 flex-shrink-0 print-hidden">
+                    <PixQRCode payload={pixPayload} />
+                </div>
+            )}
         </div>
+
 
         <div className="mt-4 text-xs text-muted-foreground">
             <p className="font-semibold">Observações:</p>
@@ -142,6 +152,23 @@ export default function CarnetPage() {
     fetchOrder();
   }, [params.id]);
 
+  const nextPendingInstallment = useMemo(() => {
+    if (!order || !order.installmentDetails) return null;
+    return order.installmentDetails.find(inst => inst.status === 'Pendente');
+  }, [order]);
+
+  const pixPayload = useMemo(() => {
+    if (!nextPendingInstallment || !settings.pixKey || !order) return null;
+    
+    return generatePixPayload(
+      settings.pixKey,
+      settings.storeName,
+      settings.storeCity,
+      `${order.id}-${nextPendingInstallment.installmentNumber}`,
+      nextPendingInstallment.amount
+    );
+  }, [nextPendingInstallment, order, settings]);
+
 
   if (isLoading) {
     return <div className="p-8 text-center">Carregando carnê...</div>;
@@ -179,10 +206,10 @@ export default function CarnetPage() {
         
         <main className="max-w-4xl mx-auto bg-background rounded-lg border shadow-sm print:grid print:grid-cols-2 print:gap-x-8 print:border-none print:shadow-none print:bg-transparent">
             <div className="print:border-r print:border-dashed print:border-black print:pr-4">
-                <CarnetContent order={order} settings={settings} />
+                <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
             <div className="hidden print:block print:pl-4">
-                <CarnetContent order={order} settings={settings} />
+                <CarnetContent order={order} settings={settings} pixPayload={null} />
             </div>
         </main>
       </div>
