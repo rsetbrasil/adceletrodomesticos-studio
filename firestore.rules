@@ -1,41 +1,49 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Coleções com leitura pública para o site
+    // Regra padrão: nega tudo, a menos que seja permitido por regras mais específicas abaixo.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Permite que qualquer pessoa leia a lista de produtos e categorias.
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
     }
-    
+
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
     }
 
-    // Coleções administrativas que exigem autenticação para todas as operações
+    // Apenas usuários autenticados podem interagir com pedidos.
     match /orders/{orderId} {
-      allow read, write: if request.auth != null;
+      allow read, create, update, delete: if request.auth != null;
     }
 
+    // Apenas usuários autenticados podem ler e escrever em seus próprios
+    // documentos ou listar todos os usuários.
     match /users/{userId} {
-      // Permite ler/escrever um usuário específico se autenticado
-      allow read, write: if request.auth != null;
-      // Permite listar TODOS os usuários se autenticado
-      allow list: if request.auth != null;
+      allow get, list: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
     }
-
+    
+    // Apenas usuários autenticados podem ler e criar logs de auditoria.
     match /auditLogs/{logId} {
-      allow read, write: if request.auth != null;
+      allow read, create: if request.auth != null;
     }
-
+    
+    // Apenas usuários autenticados podem gerenciar pagamentos de comissão.
     match /commissionPayments/{paymentId} {
-      allow read, write: if request.auth != null;
+        allow read, create, delete: if request.auth != null;
     }
 
-    match /config/{configId} {
-       allow read, write: if request.auth != null;
+    // Apenas usuários autenticados podem ler e escrever nas configurações.
+    match /config/{documentId} {
+      allow get, list, create, update, delete: if request.auth != null;
     }
   }
 }
