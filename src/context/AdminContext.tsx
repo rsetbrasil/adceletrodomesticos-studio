@@ -651,7 +651,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const newPaidAmount = currentPaidAmount + paymentAmount;
         const newStatus = newPaidAmount >= inst.amount ? 'Pago' : 'Pendente';
         const newPayments = Array.isArray(inst.payments) ? [...inst.payments, payment] : [payment];
-        return { ...inst, status: newStatus, paidAmount: newPaidAmount, payments: newPayments };
+
+        // Ensure payment amount is a number before adding
+        const validPayment = { ...payment, amount: paymentAmount };
+
+        return { ...inst, status: newStatus, paidAmount: newPaidAmount, payments: Array.isArray(inst.payments) ? [...inst.payments, validPayment] : [validPayment] };
       }
       return inst;
     });
@@ -728,8 +732,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
     // Remove undefined values before sending to Firestore
     Object.keys(detailsToUpdate).forEach(key => {
-        if (detailsToUpdate[key as keyof typeof detailsToUpdate] === undefined) {
-            delete detailsToUpdate[key as keyof typeof detailsToUpdate];
+        const k = key as keyof typeof detailsToUpdate;
+        if (detailsToUpdate[k] === undefined) {
+            delete detailsToUpdate[k];
         }
     });
     
