@@ -569,8 +569,7 @@ export default function CustomersAdminPage() {
                                                                     const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
                                                                     
                                                                     return (
-                                                                        <AccordionItem value={inst.id || `${order.id}-${inst.installmentNumber}`} key={inst.id || `${order.id}-${inst.installmentNumber}`} asChild>
-                                                                            <>
+                                                                        <AccordionItem value={inst.id || `${order.id}-${inst.installmentNumber}`} key={inst.id || `${order.id}-${inst.installmentNumber}`}>
                                                                             <TableRow>
                                                                                 <TableCell>{inst.installmentNumber} / {order.installments}</TableCell>
                                                                                 <TableCell>
@@ -667,7 +666,6 @@ export default function CustomersAdminPage() {
                                                                                     </AccordionContent>
                                                                                 </TableCell>
                                                                             </TableRow>
-                                                                            </>
                                                                         </AccordionItem>
                                                                     );
                                                                 })}
@@ -916,7 +914,5 @@ export default function CustomersAdminPage() {
     </>
   );
 }
-
-    
 
     
