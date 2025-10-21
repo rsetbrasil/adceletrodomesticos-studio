@@ -87,9 +87,10 @@ export default function FinanceiroPage() {
         if (order.paymentMethod === 'Crediário') {
             (order.installmentDetails || []).forEach(inst => {
             if (inst.status === 'Pago') {
-                totalRecebido += inst.amount;
+                totalRecebido += inst.paidAmount || inst.amount;
             } else {
-                totalPendente += inst.amount;
+                totalRecebido += inst.paidAmount || 0;
+                totalPendente += inst.amount - (inst.paidAmount || 0);
             }
             });
         } else {

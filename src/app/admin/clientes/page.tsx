@@ -580,8 +580,7 @@ export default function CustomersAdminPage() {
                                                                     <div className="flex gap-2 justify-end ml-4">
                                                                         {(inst.payments && inst.payments.length > 0) && (
                                                                             <AccordionTrigger className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-                                                                                <History className="mr-2 h-4 w-4" />
-                                                                                Histórico
+                                                                               <span><History className="mr-2 h-4 w-4" />Histórico</span>
                                                                             </AccordionTrigger>
                                                                         )}
                                                                         <Button variant="outline" size="sm" onClick={() => handleOpenPaymentDialog(order, inst)} disabled={inst.status === 'Pago'}>
