@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -24,59 +25,6 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-function numeroParaExtenso(n: number): string {
-    if (isNaN(n)) return 'valor inválido';
-
-    const numStr = n.toFixed(2);
-    const [reaisStr, centavosStr] = numStr.split('.');
-    const reais = parseInt(reaisStr, 10);
-    const centavos = parseInt(centavosStr, 10);
-
-    const unidades = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
-    const dezenas = ['', 'dez', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
-    const especiais = ['dez', 'onze', 'doze', 'treze', 'catorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
-    const centenas = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
-
-    function getExtenso(num: number): string {
-        if (num === 0) return '';
-        if (num < 10) return unidades[num];
-        if (num < 20) return especiais[num - 10];
-        if (num < 100) {
-            const dezena = Math.floor(num / 10);
-            const unidade = num % 10;
-            return `${dezenas[dezena]}${unidade > 0 ? ` e ${getExtenso(unidade)}` : ''}`;
-        }
-        if (num === 100) return 'cem';
-        if (num < 1000) {
-            const centena = Math.floor(num / 100);
-            const resto = num % 100;
-            return `${centenas[centena]}${resto > 0 ? ` e ${getExtenso(resto)}` : ''}`;
-        }
-        if (num < 1000000) {
-            const milhar = Math.floor(num / 1000);
-            const resto = num % 1000;
-            const milharStr = milhar === 1 ? 'mil' : `${getExtenso(milhar)} mil`;
-            return `${milharStr}${resto > 0 ? ` e ${getExtenso(resto)}` : ''}`;
-        }
-        return 'valor muito alto';
-    }
-
-    const reaisExtenso = reais > 0 ? `${getExtenso(reais)} ${reais > 1 ? 'reais' : 'real'}` : '';
-    const centavosExtenso = centavos > 0 ? `${getExtenso(centavos)} ${centavos > 1 ? 'centavos' : 'centavo'}` : '';
-
-    if (reaisExtenso && centavosExtenso) {
-        return `${reaisExtenso} e ${centavosExtenso}`;
-    }
-    if (reaisExtenso) {
-        return reaisExtenso;
-    }
-    if (centavosExtenso) {
-        return centavosExtenso;
-    }
-    return 'zero reais';
-}
-
-
 const ReceiptContent = ({ order, installment, settings, via }: { order: Order; installment: Installment; settings: StoreSettings; via: 'Empresa' | 'Cliente' }) => {
     
     const sortedPayments = useMemo(() => {
@@ -85,7 +33,8 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
     }, [installment.payments]);
 
     const totalPaidOnInstallment = installment.paidAmount || 0;
-    const remainingBalance = installment.amount - totalPaidOnInstallment;
+    const isPaid = installment.status === 'Pago';
+    const remainingBalance = isPaid ? 0 : installment.amount - totalPaidOnInstallment;
     
     return (
         <div className="bg-white p-6 break-inside-avoid-page text-black font-mono text-xs relative">
@@ -144,12 +93,16 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
                     <p>TOTAL PAGO:</p>
                     <p>{formatCurrency(totalPaidOnInstallment)}</p>
                 </div>
-                <div className="font-bold text-red-600">
-                    <p>SALDO PENDENTE:</p>
-                    <p>{formatCurrency(remainingBalance)}</p>
+                <div className="flex-grow">
+                    {!isPaid && (
+                        <div className="font-bold text-red-600">
+                            <p>SALDO PENDENTE:</p>
+                            <p>{formatCurrency(remainingBalance)}</p>
+                        </div>
+                    )}
                 </div>
                 <div className="text-right flex flex-col justify-center items-end">
-                    {installment.status === 'Pago' && (
+                    {isPaid && (
                         <div className="relative">
                             <div className="border-4 border-blue-500 rounded-md px-4 py-1 transform -rotate-12">
                                 <p className="text-xl font-black text-blue-500 tracking-wider">PAGO</p>
