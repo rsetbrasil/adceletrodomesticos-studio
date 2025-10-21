@@ -37,7 +37,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { format, addMonths } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -708,46 +708,45 @@ export default function OrdersAdminPage() {
                                                 return (
                                                     <React.Fragment key={uniqueKey}>
                                                         <TableRow>
-                                                            <TableCell className="font-medium">{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
-                                                            <TableCell>
-                                                                <Popover open={openDueDatePopover === uniqueKey} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? uniqueKey : null)}>
-                                                                    <PopoverTrigger asChild>
-                                                                        <Button variant={"outline"} className="justify-start text-left font-normal text-xs" disabled={inst.status === 'Pago'}>
-                                                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                            Venc: {format(new Date(inst.dueDate), 'dd/MM/yyyy')}
+                                                            <TableCell colSpan={5} className="p-0">
+                                                                <div className='flex items-center justify-between p-3 gap-2 text-sm w-full'>
+                                                                    <div className="whitespace-nowrap font-medium">{inst.installmentNumber}/{selectedOrder.installments}</div>
+                                                                    <Popover open={openDueDatePopover === uniqueKey} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? uniqueKey : null)}>
+                                                                        <PopoverTrigger asChild>
+                                                                            <Button variant={"outline"} className="w-[150px] justify-start text-left font-normal text-xs" disabled={inst.status === 'Pago'}>
+                                                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                                Venc: {format(new Date(inst.dueDate), 'dd/MM/yyyy')}
+                                                                            </Button>
+                                                                        </PopoverTrigger>
+                                                                        <PopoverContent className="w-auto p-0">
+                                                                            <Calendar mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)} initialFocus/>
+                                                                        </PopoverContent>
+                                                                    </Popover>
+                                                                    <div className="whitespace-nowrap font-semibold">{formatCurrency(inst.amount)}</div>
+                                                                    <div className="min-w-[150px] text-right"><Badge variant={statusVariant}>{statusText}</Badge></div>
+                                                                    
+                                                                    <div className="flex gap-1 justify-end ml-2">
+                                                                        {(inst.payments && inst.payments.length > 0) && (
+                                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedHistory(isExpanded ? null : uniqueKey)}>
+                                                                                <History className="h-4 w-4" />
+                                                                            </Button>
+                                                                        )}
+                                                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenPaymentDialog(inst)} disabled={inst.status === 'Pago'}>
+                                                                            <CheckCircle className="h-4 w-4 text-green-600"/>
                                                                         </Button>
-                                                                    </PopoverTrigger>
-                                                                    <PopoverContent className="w-auto p-0">
-                                                                        <Calendar mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)} initialFocus/>
-                                                                    </PopoverContent>
-                                                                </Popover>
-                                                            </TableCell>
-                                                            <TableCell>{formatCurrency(inst.amount)}</TableCell>
-                                                            <TableCell>
-                                                                <Badge variant={statusVariant} className="w-full text-center justify-center">{statusText}</Badge>
-                                                            </TableCell>
-                                                            <TableCell className="text-right">
-                                                                <div className="flex gap-1 justify-end">
-                                                                    {(inst.payments && inst.payments.length > 0) && (
-                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedHistory(isExpanded ? null : uniqueKey)}>
-                                                                            <History className="h-4 w-4" />
+                                                                        <Button variant="outline" size="icon" className="h-8 w-8" asChild>
+                                                                            <Link href={`/carnet/${selectedOrder.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
+                                                                                <Printer className="h-4 w-4" />
+                                                                            </Link>
                                                                         </Button>
-                                                                    )}
-                                                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenPaymentDialog(inst)} disabled={inst.status === 'Pago'}>
-                                                                        <CheckCircle className="h-4 w-4 text-green-600"/>
-                                                                    </Button>
-                                                                    <Button variant="outline" size="icon" className="h-8 w-8" asChild>
-                                                                        <Link href={`/carnet/${selectedOrder.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
-                                                                            <Printer className="h-4 w-4" />
-                                                                        </Link>
-                                                                    </Button>
+                                                                    </div>
                                                                 </div>
                                                             </TableCell>
                                                         </TableRow>
                                                         {isExpanded && (
                                                             <TableRow>
-                                                                <TableCell colSpan={5} className="p-0">
-                                                                    <div className="p-4 bg-muted/50">
+                                                                <TableCell colSpan={5} className="p-0 border-none">
+                                                                    <div className="p-3 bg-muted/30 border-t">
                                                                         <h4 className="font-semibold text-sm mb-2">Histórico de Pagamentos da Parcela</h4>
                                                                         {(inst.payments && inst.payments.length > 0) ? (
                                                                             <Table>
