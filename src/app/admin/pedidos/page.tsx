@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useAdmin } from '@/context/AdminContext';
 import type { Order, Installment, PaymentMethod, User, Payment } from '@/lib/types';

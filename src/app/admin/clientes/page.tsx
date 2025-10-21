@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAdmin } from '@/context/AdminContext';
