@@ -519,7 +519,7 @@ export default function CustomersAdminPage() {
                                 order.installmentDetails.length > 0 &&
                                 order.installmentDetails.every(inst => inst.status === 'Pago');
                             
-                            const isPaidOff = allInstallmentsPaid || (order.paymentMethod && ['Pix', 'Dinheiro'].includes(order.paymentMethod]));
+                            const isPaidOff = allInstallmentsPaid || (order.paymentMethod && ['Pix', 'Dinheiro'].includes(order.paymentMethod));
 
                             return (
                                 <AccordionItem value={order.id} key={order.id} className="border-b-0 rounded-lg border bg-background">
@@ -569,7 +569,8 @@ export default function CustomersAdminPage() {
                                                                 const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
                                                                 
                                                                 return (
-                                                                <AccordionItem value={inst.id || `${order.id}-${inst.installmentNumber}`} key={inst.id || `${order.id}-${inst.installmentNumber}`} className="border-b-0">
+                                                                <AccordionItem value={inst.id || `${order.id}-${inst.installmentNumber}`} key={inst.id || `${order.id}-${inst.installmentNumber}`} asChild>
+                                                                    <>
                                                                     <TableRow>
                                                                         <TableCell>{inst.installmentNumber} / {order.installments}</TableCell>
                                                                         <TableCell>
@@ -630,7 +631,7 @@ export default function CustomersAdminPage() {
                                                                                     <h4 className="font-semibold text-sm mb-2">Histórico de Pagamentos da Parcela</h4>
                                                                                     <Table>
                                                                                         <TableBody>
-                                                                                            {inst.payments?.map(p => (
+                                                                                            {(inst.payments || []).map(p => (
                                                                                                 <TableRow key={p.id}>
                                                                                                     <TableCell>{format(parseISO(p.date), "dd/MM/yyyy 'às' HH:mm")}</TableCell>
                                                                                                     <TableCell>{p.method}</TableCell>
@@ -666,6 +667,7 @@ export default function CustomersAdminPage() {
                                                                             </td>
                                                                         </tr>
                                                                     </AccordionContent>
+                                                                    </>
                                                                 </AccordionItem>
                                                                 );
                                                             })}
@@ -914,7 +916,5 @@ export default function CustomersAdminPage() {
     </>
   );
 }
-
-    
 
     
