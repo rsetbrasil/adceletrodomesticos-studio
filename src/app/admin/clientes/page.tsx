@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { useAdmin } from '@/context/AdminContext';
 import type { Order, CustomerInfo, Installment, Attachment, Payment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare, History } from 'lucide-react';
@@ -581,11 +581,9 @@ export default function CustomersAdminPage() {
                                                                     </div>
                                                                     <div className="flex gap-2 justify-end ml-4">
                                                                         {(inst.payments && inst.payments.length > 0) && (
-                                                                             <AccordionTrigger asChild>
-                                                                                <Button variant="ghost" size="sm">
+                                                                             <AccordionTrigger className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
                                                                                     <History className="mr-2 h-4 w-4" /> Histórico
-                                                                                </Button>
-                                                                            </AccordionTrigger>
+                                                                              </AccordionTrigger>
                                                                         )}
                                                                         <Button variant="outline" size="sm" onClick={() => handleOpenPaymentDialog(order, inst)} disabled={inst.status === 'Pago'}>
                                                                             <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
