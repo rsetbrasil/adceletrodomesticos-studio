@@ -90,6 +90,7 @@ export default function CustomersAdminPage() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [installmentToPay, setInstallmentToPay] = useState<Installment | null>(null);
   const [orderForPayment, setOrderForPayment] = useState<Order | null>(null);
+  const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
 
   const [commentDialog, setCommentDialog] = useState<{
     open: boolean;
@@ -541,127 +542,120 @@ export default function CustomersAdminPage() {
                                     <AccordionContent>
                                         <div className="p-4 pt-0 space-y-6">
                                             {(order.installmentDetails && order.installmentDetails.length > 0) ? (
-                                                 <Accordion type="multiple" className="w-full">
-                                                    <Table>
-                                                        <TableBody>
-                                                        {(order.installmentDetails || []).map((inst, instIndex) => {
-                                                            const remainingAmount = inst.amount - (inst.paidAmount || 0);
-                                                            const isOverdue = inst.status === 'Pendente' && new Date(inst.dueDate) < new Date();
-                                                            
-                                                            let statusText = inst.status;
-                                                            if (inst.status === 'Pendente' && (inst.paidAmount || 0) > 0) {
-                                                                statusText = `Parcial (${formatCurrency(remainingAmount)} pendente)`;
-                                                            } else if (isOverdue) {
-                                                                statusText = 'Atrasado';
-                                                            }
-                                                            
-                                                            const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
-                                                            const uniqueKey = `${order.id}-${inst.installmentNumber}`;
-                                                            
-                                                            return (
-                                                            <AccordionItem value={uniqueKey} key={uniqueKey}>
-                                                                <>
+                                                <Table>
+                                                    <TableBody>
+                                                    {(order.installmentDetails || []).map((inst) => {
+                                                        const uniqueKey = `${order.id}-${inst.installmentNumber}`;
+                                                        const isExpanded = expandedHistory === uniqueKey;
+                                                        const remainingAmount = inst.amount - (inst.paidAmount || 0);
+                                                        const isOverdue = inst.status === 'Pendente' && new Date(inst.dueDate) < new Date();
+                                                        
+                                                        let statusText = inst.status;
+                                                        if (inst.status === 'Pendente' && (inst.paidAmount || 0) > 0) {
+                                                            statusText = `Parcial (${formatCurrency(remainingAmount)} pendente)`;
+                                                        } else if (isOverdue) {
+                                                            statusText = 'Atrasado';
+                                                        }
+                                                        const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
+                                                        
+                                                        return (
+                                                            <React.Fragment key={uniqueKey}>
+                                                                <TableRow>
+                                                                    <TableCell colSpan={5} className="p-0">
+                                                                        <div className='flex items-center justify-between p-3 gap-4 text-sm w-full'>
+                                                                            <div className="whitespace-nowrap"><span className="font-medium">Parcela:</span> {inst.installmentNumber}/{order.installments}</div>
+                                                                            <Popover open={openDueDatePopover === uniqueKey} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? uniqueKey : null)}>
+                                                                                <PopoverTrigger asChild>
+                                                                                    <Button variant={"outline"} className="w-[150px] justify-start text-left font-normal text-xs" disabled={inst.status === 'Pago'}>
+                                                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                                        Venc: {format(new Date(inst.dueDate), 'dd/MM/yyyy')}
+                                                                                    </Button>
+                                                                                </PopoverTrigger>
+                                                                                <PopoverContent className="w-auto p-0">
+                                                                                    <Calendar mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(order.id, inst.installmentNumber, date)} initialFocus/>
+                                                                                </PopoverContent>
+                                                                            </Popover>
+                                                                            <div className="whitespace-nowrap"><span className="font-medium">Valor:</span> {formatCurrency(inst.amount)}</div>
+                                                                            <div className="min-w-[150px] text-right"><Badge variant={statusVariant}>{statusText}</Badge></div>
+                                                                            
+                                                                            <div className="flex gap-2 justify-end ml-4">
+                                                                                {(inst.payments && inst.payments.length > 0) && (
+                                                                                    <Button variant="ghost" size="sm" onClick={() => setExpandedHistory(isExpanded ? null : uniqueKey)}>
+                                                                                        <History className="mr-2 h-4 w-4" />Histórico
+                                                                                    </Button>
+                                                                                )}
+                                                                                <Button variant="outline" size="sm" onClick={() => handleOpenPaymentDialog(order, inst)} disabled={inst.status === 'Pago'}>
+                                                                                    <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                                                                                    Pagar
+                                                                                </Button>
+                                                                                <Button variant="outline" size="sm" asChild>
+                                                                                    <Link href={`/carnet/${order.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
+                                                                                        <Printer className="mr-2 h-4 w-4" />
+                                                                                        Ver
+                                                                                    </Link>
+                                                                                </Button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                                {isExpanded && (
                                                                     <TableRow>
-                                                                        <TableCell colSpan={5} className="p-0">
-                                                                            <div className='flex items-center justify-between p-3'>
-                                                                                <div className='flex items-center justify-between gap-4 text-sm flex-grow'>
-                                                                                    <div className="whitespace-nowrap"><span className="font-medium">Parcela:</span> {inst.installmentNumber}/{order.installments}</div>
-                                                                                    <div>
-                                                                                        <Popover open={openDueDatePopover === `${order.id}-${inst.installmentNumber}`} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? `${order.id}-${inst.installmentNumber}` : null)}>
-                                                                                            <PopoverTrigger asChild>
-                                                                                                <Button variant={"outline"} className="w-[150px] justify-start text-left font-normal text-xs" disabled={inst.status === 'Pago'}>
-                                                                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                                                    Venc: {format(new Date(inst.dueDate), 'dd/MM/yyyy')}
-                                                                                                </Button>
-                                                                                            </PopoverTrigger>
-                                                                                            <PopoverContent className="w-auto p-0">
-                                                                                                <Calendar mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(order.id, inst.installmentNumber, date)} initialFocus/>
-                                                                                            </PopoverContent>
-                                                                                        </Popover>
-                                                                                    </div>
-                                                                                    <div className="whitespace-nowrap"><span className="font-medium">Valor:</span> {formatCurrency(inst.amount)}</div>
-                                                                                    <div className="min-w-[150px] text-right"><Badge variant={statusVariant}>{statusText}</Badge></div>
-                                                                                </div>
-                                                                                <div className="flex gap-2 justify-end ml-4">
-                                                                                    {(inst.payments && inst.payments.length > 0) && (
-                                                                                         <AccordionTrigger className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-                                                                                            <History className="mr-2 h-4 w-4" />Histórico
-                                                                                         </AccordionTrigger>
-                                                                                    )}
-                                                                                    <Button variant="outline" size="sm" onClick={() => handleOpenPaymentDialog(order, inst)} disabled={inst.status === 'Pago'}>
-                                                                                        <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                                                                                        Pagar
-                                                                                    </Button>
-                                                                                    <Button variant="outline" size="sm" asChild>
-                                                                                        <Link href={`/carnet/${order.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
-                                                                                            <Printer className="mr-2 h-4 w-4" />
-                                                                                            Ver
-                                                                                        </Link>
-                                                                                    </Button>
-                                                                                </div>
+                                                                        <TableCell colSpan={5} className="p-0 border-none">
+                                                                            <div className="p-3 bg-muted/30 border-t">
+                                                                                <h4 className="font-semibold text-sm mb-2">Histórico de Pagamentos da Parcela</h4>
+                                                                                {(inst.payments && inst.payments.length > 0) ? (
+                                                                                    <Table>
+                                                                                        <TableHeader>
+                                                                                            <TableRow>
+                                                                                                <TableHead>Data</TableHead>
+                                                                                                <TableHead>Método</TableHead>
+                                                                                                <TableHead>Valor</TableHead>
+                                                                                                <TableHead className='text-right'>Ação</TableHead>
+                                                                                            </TableRow>
+                                                                                        </TableHeader>
+                                                                                        <TableBody>
+                                                                                            {inst.payments.map((p, index) => (
+                                                                                                <TableRow key={`${p.id}-${index}`}>
+                                                                                                    <TableCell>{format(parseISO(p.date), "dd/MM/yyyy 'às' HH:mm")}</TableCell>
+                                                                                                    <TableCell>{p.method}</TableCell>
+                                                                                                    <TableCell>{formatCurrency(p.amount)}</TableCell>
+                                                                                                    <TableCell className="text-right">
+                                                                                                        <AlertDialog>
+                                                                                                            <AlertDialogTrigger asChild>
+                                                                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                                                                                                    <Undo2 className="h-4 w-4" />
+                                                                                                                </Button>
+                                                                                                            </AlertDialogTrigger>
+                                                                                                            <AlertDialogContent>
+                                                                                                                <AlertDialogHeader>
+                                                                                                                    <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
+                                                                                                                    <AlertDialogDescription>
+                                                                                                                        Esta ação irá reverter o pagamento de {formatCurrency(p.amount)} feito em {format(parseISO(p.date), 'dd/MM/yy')}. Isso não pode ser desfeito.
+                                                                                                                    </AlertDialogDescription>
+                                                                                                                </AlertDialogHeader>
+                                                                                                                <AlertDialogFooter>
+                                                                                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                                                                    <AlertDialogAction onClick={() => reversePayment(order.id, inst.installmentNumber, p.id)}>
+                                                                                                                        Sim, Estornar
+                                                                                                                    </AlertDialogAction>
+                                                                                                                </AlertDialogFooter>
+                                                                                                            </AlertDialogContent>
+                                                                                                        </AlertDialog>
+                                                                                                    </TableCell>
+                                                                                                </TableRow>
+                                                                                            ))}
+                                                                                        </TableBody>
+                                                                                    </Table>
+                                                                                ) : <p className='text-xs text-muted-foreground'>Nenhum pagamento registrado para esta parcela.</p>}
                                                                             </div>
                                                                         </TableCell>
                                                                     </TableRow>
-                                                                    <TableRow>
-                                                                        <TableCell colSpan={5} className="p-0 border-none">
-                                                                            <AccordionContent>
-                                                                                <div className="p-3 bg-muted/30 border-t">
-                                                                                    <h4 className="font-semibold text-sm mb-2">Histórico de Pagamentos da Parcela</h4>
-                                                                                    {(inst.payments && inst.payments.length > 0) ? (
-                                                                                        <Table>
-                                                                                            <TableHeader>
-                                                                                                <TableRow>
-                                                                                                    <TableHead>Data</TableHead>
-                                                                                                    <TableHead>Método</TableHead>
-                                                                                                    <TableHead>Valor</TableHead>
-                                                                                                    <TableHead className='text-right'>Ação</TableHead>
-                                                                                                </TableRow>
-                                                                                            </TableHeader>
-                                                                                            <TableBody>
-                                                                                                {inst.payments.map((p, index) => (
-                                                                                                    <TableRow key={`${p.id}-${index}`}>
-                                                                                                        <TableCell>{format(parseISO(p.date), "dd/MM/yyyy 'às' HH:mm")}</TableCell>
-                                                                                                        <TableCell>{p.method}</TableCell>
-                                                                                                        <TableCell>{formatCurrency(p.amount)}</TableCell>
-                                                                                                        <TableCell className="text-right">
-                                                                                                            <AlertDialog>
-                                                                                                                <AlertDialogTrigger asChild>
-                                                                                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                                                                                                        <Undo2 className="h-4 w-4" />
-                                                                                                                    </Button>
-                                                                                                                </AlertDialogTrigger>
-                                                                                                                <AlertDialogContent>
-                                                                                                                    <AlertDialogHeader>
-                                                                                                                        <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
-                                                                                                                        <AlertDialogDescription>
-                                                                                                                            Esta ação irá reverter o pagamento de {formatCurrency(p.amount)} feito em {format(parseISO(p.date), 'dd/MM/yy')}. Isso não pode ser desfeito.
-                                                                                                                        </AlertDialogDescription>
-                                                                                                                    </AlertDialogHeader>
-                                                                                                                    <AlertDialogFooter>
-                                                                                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                                                                        <AlertDialogAction onClick={() => reversePayment(order.id, inst.installmentNumber, p.id)}>
-                                                                                                                            Sim, Estornar
-                                                                                                                        </AlertDialogAction>
-                                                                                                                    </AlertDialogFooter>
-                                                                                                                </AlertDialogContent>
-                                                                                                            </AlertDialog>
-                                                                                                        </TableCell>
-                                                                                                    </TableRow>
-                                                                                                ))}
-                                                                                            </TableBody>
-                                                                                        </Table>
-                                                                                    ) : <p className='text-xs text-muted-foreground'>Nenhum pagamento registrado para esta parcela.</p>}
-                                                                                </div>
-                                                                            </AccordionContent>
-                                                                        </TableCell>
-                                                                    </TableRow>
-                                                                </>
-                                                            </AccordionItem>
-                                                            );
-                                                        })}
-                                                        </TableBody>
-                                                    </Table>
-                                                </Accordion>
+                                                                )}
+                                                            </React.Fragment>
+                                                        );
+                                                    })}
+                                                    </TableBody>
+                                                </Table>
                                             ) : (
                                                 <p className="text-muted-foreground text-sm text-center py-4">Este pedido foi pago por {order.paymentMethod} e não possui parcelas.</p>
                                             )}
