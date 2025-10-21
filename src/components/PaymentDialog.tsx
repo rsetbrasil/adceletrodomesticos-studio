@@ -125,22 +125,27 @@ export default function PaymentDialog({
             <RadioGroup
               value={paymentMethod}
               onValueChange={(value) => setPaymentMethod(value as Payment['method'])}
-              className="flex gap-4"
+              className="grid grid-cols-2 gap-4"
             >
-              <Label className={cn("flex flex-col items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground flex-1 cursor-pointer", paymentMethod === 'Dinheiro' && "border-primary bg-primary/10")}>
+              <Label className={cn("flex items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer", paymentMethod === 'Dinheiro' && "border-primary bg-primary/10")}>
                 <RadioGroupItem value="Dinheiro" id="dinheiro" className="sr-only" />
                 <Banknote />
                 <span className="text-sm">Dinheiro</span>
               </Label>
-               <Label className={cn("flex flex-col items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground flex-1 cursor-pointer", paymentMethod === 'Pix' && "border-primary bg-primary/10")}>
+               <Label className={cn("flex items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer", paymentMethod === 'Pix' && "border-primary bg-primary/10")}>
                 <RadioGroupItem value="Pix" id="pix" className="sr-only" />
                 <Smartphone />
                 <span className="text-sm">Pix</span>
               </Label>
-               <Label className={cn("flex flex-col items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground flex-1 cursor-pointer", paymentMethod === 'Cartão' && "border-primary bg-primary/10")}>
-                <RadioGroupItem value="Cartão" id="cartao" className="sr-only" />
+               <Label className={cn("flex items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer", paymentMethod === 'Cartão (Crédito)' && "border-primary bg-primary/10")}>
+                <RadioGroupItem value="Cartão (Crédito)" id="cartao-credito" className="sr-only" />
                 <CreditCard />
-                <span className="text-sm">Cartão</span>
+                <span className="text-sm">Crédito</span>
+              </Label>
+              <Label className={cn("flex items-center justify-center gap-2 rounded-md border p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer", paymentMethod === 'Cartão (Débito)' && "border-primary bg-primary/10")}>
+                <RadioGroupItem value="Cartão (Débito)" id="cartao-debito" className="sr-only" />
+                <CreditCard />
+                <span className="text-sm">Débito</span>
               </Label>
             </RadioGroup>
           </div>
