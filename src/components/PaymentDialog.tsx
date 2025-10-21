@@ -29,7 +29,7 @@ interface PaymentDialogProps {
   installment: Installment;
   orderId: string;
   customerName: string;
-  onSubmit: (payment: Payment, isFullPayment: boolean) => void;
+  onSubmit: (payment: Payment) => void;
 }
 
 export default function PaymentDialog({
@@ -77,7 +77,6 @@ export default function PaymentDialog({
     if (paymentMethod === 'Dinheiro') {
       finalAmountToRecord = Math.min(amountPaid, remainingAmount);
     } else {
-      // For Pix or Card, we record the amount paid, up to the remaining amount.
       finalAmountToRecord = Math.min(amountPaid, remainingAmount);
     }
     
@@ -93,10 +92,8 @@ export default function PaymentDialog({
     if (change > 0) {
       payment.change = change;
     }
-    
-    const isFullPayment = finalAmountToRecord >= remainingAmount;
 
-    onSubmit(payment, isFullPayment);
+    onSubmit(payment);
   };
   
   const quickValues = useMemo(() => {

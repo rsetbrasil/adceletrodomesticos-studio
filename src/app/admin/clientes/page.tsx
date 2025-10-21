@@ -174,12 +174,10 @@ export default function CustomersAdminPage() {
     setPaymentDialogOpen(true);
   };
   
-  const handlePaymentSubmit = (payment: Payment, isFullPayment: boolean) => {
+  const handlePaymentSubmit = (payment: Payment) => {
     if (orderForPayment && installmentToPay) {
       recordInstallmentPayment(orderForPayment.id, installmentToPay.installmentNumber, payment);
-      if (isFullPayment) {
-        window.open(`/carnet/${orderForPayment.id}/${installmentToPay.installmentNumber}`, '_blank');
-      }
+      window.open(`/carnet/${orderForPayment.id}/${installmentToPay.installmentNumber}`, '_blank');
     }
     setPaymentDialogOpen(false);
     setInstallmentToPay(null);
@@ -556,7 +554,7 @@ export default function CustomersAdminPage() {
                                                          }
                                                          
                                                          const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
-                                                         const uniqueKey = inst.id ? `${inst.id}-${instIndex}` : `${order.id}-${inst.installmentNumber}`;
+                                                         const uniqueKey = `${order.id}-${inst.installmentNumber}`;
                                                          
                                                         return (
                                                             <AccordionItem value={uniqueKey} key={uniqueKey} className="border rounded-md">

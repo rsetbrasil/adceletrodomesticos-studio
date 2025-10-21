@@ -263,12 +263,10 @@ export default function OrdersAdminPage() {
     setPaymentDialogOpen(true);
   };
 
-  const handlePaymentSubmit = (payment: Payment, isFullPayment: boolean) => {
+  const handlePaymentSubmit = (payment: Payment) => {
     if (selectedOrder && installmentToPay) {
       recordInstallmentPayment(selectedOrder.id, installmentToPay.installmentNumber, payment);
-      if (isFullPayment) {
-        window.open(`/carnet/${selectedOrder.id}/${installmentToPay.installmentNumber}`, '_blank');
-      }
+      window.open(`/carnet/${selectedOrder.id}/${installmentToPay.installmentNumber}`, '_blank');
     }
     setPaymentDialogOpen(false);
     setInstallmentToPay(null);
@@ -707,7 +705,7 @@ export default function OrdersAdminPage() {
                                                   const uniqueKey = inst.id ? `${inst.id}-${instIndex}` : `${selectedOrder.id}-${inst.installmentNumber}`;
                                                   
                                                   return (
-                                                      <AccordionItem value={uniqueKey} key={uniqueKey} asChild>
+                                                      <AccordionItem value={uniqueKey} key={uniqueKey}>
                                                           <>
                                                               <TableRow>
                                                                   <TableCell className="font-medium">{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
