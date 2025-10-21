@@ -60,7 +60,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [selectedCategoryForSheet, setSelectedCategoryForSheet] = useState<string | null>(null);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
   const { toast } = useToast();
-  const { user, users } = useAuth();
+  const { user } = useAuth();
   const { logAction } = useAudit();
 
   useEffect(() => {
@@ -150,12 +150,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addOrder = async (order: Partial<Order>, allProducts: Product[], allOrders: Order[]): Promise<Order | null> => {
     try {
-        const adminUser = users.find(u => u.role === 'admin');
-
         const orderToSave = {
             ...order,
-            sellerId: adminUser?.id || '',
-            sellerName: adminUser?.name || 'Administrador',
+            sellerId: '',
+            sellerName: 'Não atribuído',
             commission: 0,
             commissionPaid: false,
         } as Order;
