@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment } from '@/lib/types';
+import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 import { db } from '@/lib/firebase';
@@ -41,7 +42,7 @@ interface AdminContextType {
   deleteOrder: (orderId: string) => Promise<void>;
   permanentlyDeleteOrder: (orderId: string) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
-  updateInstallmentStatus: (orderId: string, installmentNumber: number, status: Installment['status']) => Promise<void>;
+  recordInstallmentPayment: (orderId: string, installmentNumber: number, payment: Payment) => Promise<void>;
   updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date) => Promise<void>;
   updateCustomer: (customer: CustomerInfo) => Promise<void>;
   updateOrderDetails: (orderId: string, details: Partial<Order>) => Promise<void>;
@@ -639,19 +640,24 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const updateInstallmentStatus = async (orderId: string, installmentNumber: number, status: Installment['status']) => {
+  const recordInstallmentPayment = async (orderId: string, installmentNumber: number, payment: Payment) => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     
-    const updatedInstallments = (order.installmentDetails || []).map((inst) =>
-      inst.installmentNumber === installmentNumber
-        ? { ...inst, status, paymentDate: status === 'Pago' ? new Date().toISOString() : null }
-        : inst
-    );
+    const updatedInstallments = (order.installmentDetails || []).map((inst) => {
+      if (inst.installmentNumber === installmentNumber) {
+        const newPaidAmount = inst.paidAmount + payment.amount;
+        const newStatus = newPaidAmount >= inst.amount ? 'Pago' : 'Pendente';
+        const newPayments = [...(inst.payments || []), payment];
+        return { ...inst, status: newStatus, paidAmount: newPaidAmount, payments: newPayments };
+      }
+      return inst;
+    });
 
     const orderRef = doc(db, 'orders', orderId);
     updateDoc(orderRef, { installmentDetails: updatedInstallments }).then(() => {
-        logAction('Atualização de Parcela', `Parcela ${installmentNumber} do pedido #${orderId} foi marcada como "${status}".`, user);
+        logAction('Registro de Pagamento de Parcela', `Registrado pagamento de R$${payment.amount.toFixed(2)} (${payment.method}) na parcela ${installmentNumber} do pedido #${orderId}.`, user);
+        toast({ title: 'Pagamento Registrado!' });
     }).catch(async(e) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: orderRef.path,
@@ -794,7 +800,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AdminContext.Provider
       value={{
-        orders, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, updateInstallmentStatus, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
+        orders, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
         products, addProduct, updateProduct, deleteProduct,
         categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         commissionPayments, payCommissions, reverseCommissionPayment,

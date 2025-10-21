@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useAdmin } from '@/context/AdminContext';
-import type { Order, Installment, PaymentMethod, User } from '@/lib/types';
+import type { Order, Installment, PaymentMethod, User, Payment } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
 import {
   Table,
@@ -51,6 +51,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import PaymentDialog from '@/components/PaymentDialog';
 
 
 const formatCurrency = (value: number) => {
@@ -74,7 +75,7 @@ const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'o
 };
 
 export default function OrdersAdminPage() {
-  const { products, orders, updateOrderStatus, updateInstallmentStatus, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder } = useAdmin();
+  const { products, orders, updateOrderStatus, recordInstallmentPayment, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder } = useAdmin();
   const { user } = useAuth();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -84,6 +85,8 @@ export default function OrdersAdminPage() {
   const [installmentsInput, setInstallmentsInput] = useState(1);
   const [commissionInput, setCommissionInput] = useState('0');
   const [openDueDatePopover, setOpenDueDatePopover] = useState<string | null>(null);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [installmentToPay, setInstallmentToPay] = useState<Installment | null>(null);
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',
@@ -197,12 +200,13 @@ export default function OrdersAdminPage() {
     if (paymentMethod === 'Crediário') {
         const currentInstallments = selectedOrder.installments > 0 ? selectedOrder.installments : 1;
         const newInstallmentValue = selectedOrder.total / currentInstallments;
-        const newInstallmentDetails = Array.from({ length: currentInstallments }, (_, i) => ({
+        const newInstallmentDetails: Installment[] = Array.from({ length: currentInstallments }, (_, i) => ({
             installmentNumber: i + 1,
             amount: newInstallmentValue,
             dueDate: addMonths(new Date(selectedOrder.date), i + 1).toISOString(),
-            status: 'Pendente' as const,
-            paymentDate: null,
+            status: 'Pendente',
+            paidAmount: 0,
+            payments: [],
         }));
         newDetails = { 
             ...newDetails,
@@ -233,12 +237,13 @@ export default function OrdersAdminPage() {
     }
 
     const newInstallmentValue = selectedOrder.total / newInstallmentsCount;
-    const newInstallmentDetails = Array.from({ length: newInstallmentsCount }, (_, i) => ({
+    const newInstallmentDetails: Installment[] = Array.from({ length: newInstallmentsCount }, (_, i) => ({
         installmentNumber: i + 1,
         amount: newInstallmentValue,
         dueDate: addMonths(new Date(selectedOrder.date), i + 1).toISOString(),
-        status: 'Pendente' as const,
-        paymentDate: null,
+        status: 'Pendente',
+        paidAmount: 0,
+        payments: [],
     }));
     
     const newDetails: Partial<Order> = {
@@ -249,29 +254,23 @@ export default function OrdersAdminPage() {
     
     updateOrderDetails(selectedOrder.id, newDetails);
   };
+  
+  const handleOpenPaymentDialog = (installment: Installment) => {
+    setInstallmentToPay(installment);
+    setPaymentDialogOpen(true);
+  };
 
-  const handleToggleInstallmentStatus = (installmentNumber: number) => {
-    if (selectedOrder) {
-      const currentInstallment = selectedOrder.installmentDetails?.find(i => i.installmentNumber === installmentNumber);
-      if (!currentInstallment) return;
-
-      const newStatus = currentInstallment.status === 'Pendente' ? 'Pago' : 'Pendente';
-      updateInstallmentStatus(selectedOrder.id, installmentNumber, newStatus);
-
-      if (newStatus === 'Pago') {
-        window.open(`/carnet/${selectedOrder.id}/${installmentNumber}`, '_blank');
-        toast({
-            title: "Pagamento Confirmado!",
-            description: "Abrindo comprovante para gerar o PDF e enviar ao cliente.",
-        });
-      } else {
-          toast({
-              title: "Status Atualizado!",
-              description: `O pagamento do pedido #${selectedOrder.id} foi marcado como estornado.`,
-          });
+  const handlePaymentSubmit = (payment: Payment, isFullPayment: boolean) => {
+    if (selectedOrder && installmentToPay) {
+      recordInstallmentPayment(selectedOrder.id, installmentToPay.installmentNumber, payment);
+      if (isFullPayment) {
+        window.open(`/carnet/${selectedOrder.id}/${installmentToPay.installmentNumber}`, '_blank');
       }
     }
+    setPaymentDialogOpen(false);
+    setInstallmentToPay(null);
   };
+
 
   const handleDueDateChange = (orderId: string, installmentNumber: number, date: Date | undefined) => {
     if (date) {
@@ -700,12 +699,16 @@ export default function OrdersAdminPage() {
                                             </TableHeader>
                                             <TableBody>
                                                 {(selectedOrder.installmentDetails || []).map(inst => {
-                                                    const now = new Date();
-                                                    now.setHours(0, 0, 0, 0); // Set to start of today to compare dates only
-                                                    const dueDate = new Date(inst.dueDate);
-                                                    const isOverdue = inst.status === 'Pendente' && dueDate < now;
+                                                    const remainingAmount = inst.amount - inst.paidAmount;
+                                                    const isOverdue = inst.status === 'Pendente' && new Date(inst.dueDate) < new Date();
+                                                    
+                                                    let statusText = inst.status;
+                                                    if (inst.status === 'Pendente' && inst.paidAmount > 0) {
+                                                        statusText = `Parcial (${formatCurrency(remainingAmount)} pendente)`;
+                                                    } else if (isOverdue) {
+                                                        statusText = 'Atrasado';
+                                                    }
 
-                                                    const statusText = isOverdue ? 'Atrasado' : inst.status;
                                                     const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
                                                     
                                                     return (
@@ -742,14 +745,11 @@ export default function OrdersAdminPage() {
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
-                                                                    onClick={() => handleToggleInstallmentStatus(inst.installmentNumber)}
+                                                                    onClick={() => handleOpenPaymentDialog(inst)}
+                                                                    disabled={inst.status === 'Pago'}
                                                                 >
-                                                                    {inst.status === 'Pendente' ? (
-                                                                        <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
-                                                                    ) : (
-                                                                        <Undo2 className="mr-2 h-4 w-4 text-amber-600"/>
-                                                                    )}
-                                                                    {inst.status === 'Pendente' ? 'Pagar' : 'Estornar'}
+                                                                    <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
+                                                                    Pagar
                                                                 </Button>
                                                                 <Button variant="outline" size="sm" asChild>
                                                                     <Link href={`/carnet/${selectedOrder.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
@@ -788,6 +788,17 @@ export default function OrdersAdminPage() {
               )}
           </DialogContent>
       </Dialog>
+      
+      {installmentToPay && selectedOrder && (
+        <PaymentDialog
+          isOpen={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          installment={installmentToPay}
+          orderId={selectedOrder.id}
+          customerName={selectedOrder.customer.name}
+          onSubmit={handlePaymentSubmit}
+        />
+      )}
     </>
   );
 }

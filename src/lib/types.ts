@@ -52,12 +52,19 @@ export type CustomerInfo = {
   password?: string;
 };
 
+export type Payment = {
+  amount: number;
+  date: string;
+  method: 'Dinheiro' | 'Pix' | 'Cartão';
+}
+
 export type Installment = {
   installmentNumber: number;
   dueDate: string;
   amount: number;
   status: 'Pendente' | 'Pago';
-  paymentDate?: string | null;
+  paidAmount: number;
+  payments: Payment[];
 }
 
 export type PaymentMethod = 'Crediário' | 'Pix' | 'Dinheiro';

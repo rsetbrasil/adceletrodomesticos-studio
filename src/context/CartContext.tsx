@@ -3,7 +3,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem, Order, Product, CustomerInfo } from '@/lib/types';
+import type { CartItem, Order, Product, CustomerInfo, Installment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 import { db } from '@/lib/firebase';
@@ -157,6 +157,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             commission: 0,
             commissionPaid: false,
         } as Order;
+        
+        if (orderToSave.installmentDetails) {
+            orderToSave.installmentDetails = orderToSave.installmentDetails.map(inst => ({
+                ...inst,
+                paidAmount: 0,
+                payments: [],
+            }));
+        }
         
         if (!await manageStockForOrder(orderToSave, 'subtract', allProducts)) {
           throw new Error(`Estoque insuficiente para um ou mais produtos.`);
