@@ -161,6 +161,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         if (orderToSave.installmentDetails) {
             orderToSave.installmentDetails = orderToSave.installmentDetails.map(inst => ({
                 ...inst,
+                id: `inst-${orderToSave.id}-${inst.installmentNumber}`,
                 paidAmount: 0,
                 payments: [],
             }));

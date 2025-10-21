@@ -75,6 +75,7 @@ export default function PaymentDialog({
     const finalAmountToRecord = Math.min(amountPaid, remainingAmount);
 
     const payment: Payment = {
+      id: `pay-${Date.now()}`,
       amount: finalAmountToRecord,
       date: new Date().toISOString(),
       method: paymentMethod,

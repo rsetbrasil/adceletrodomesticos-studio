@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare, History } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/AuthContext';
 import PaymentDialog from '@/components/PaymentDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 const formatCurrency = (value: number) => {
@@ -74,7 +75,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 };
 
 export default function CustomersAdminPage() {
-  const { orders, updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails } = useAdmin();
+  const { orders, updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment } = useAdmin();
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
@@ -542,6 +543,7 @@ export default function CustomersAdminPage() {
                                         <div className="p-4 pt-0 space-y-6">
                                             {(order.installmentDetails && order.installmentDetails.length > 0) ? (
                                                 <div className="border rounded-md">
+                                                    <Accordion type="multiple" className="w-full">
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow>
@@ -567,7 +569,8 @@ export default function CustomersAdminPage() {
                                                                 const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
                                                                 
                                                                 return (
-                                                                    <TableRow key={`${order.id}-${inst.installmentNumber}`}>
+                                                                <AccordionItem value={inst.id || `${order.id}-${inst.installmentNumber}`} key={inst.id || `${order.id}-${inst.installmentNumber}`} className="border-b-0">
+                                                                    <TableRow>
                                                                         <TableCell>{inst.installmentNumber} / {order.installments}</TableCell>
                                                                         <TableCell>
                                                                             <Popover open={openDueDatePopover === `${order.id}-${inst.installmentNumber}`} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? `${order.id}-${inst.installmentNumber}` : null)}>
@@ -596,31 +599,79 @@ export default function CustomersAdminPage() {
                                                                             <Badge variant={statusVariant}>{statusText}</Badge>
                                                                         </TableCell>
                                                                         <TableCell className="text-right">
-                                                                            {isCrediario && (
-                                                                                <div className="flex gap-2 justify-end">
-                                                                                    <Button
-                                                                                        variant="outline"
-                                                                                        size="sm"
-                                                                                        onClick={() => handleOpenPaymentDialog(order, inst)}
-                                                                                        disabled={inst.status === 'Pago'}
-                                                                                    >
-                                                                                        <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                                                                                        Pagar
-                                                                                    </Button>
-                                                                                    <Button variant="outline" size="sm" asChild>
-                                                                                        <Link href={`/carnet/${order.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
-                                                                                            <Printer className="mr-2 h-4 w-4" />
-                                                                                            Ver Parcela
-                                                                                        </Link>
-                                                                                    </Button>
-                                                                                </div>
-                                                                            )}
+                                                                            <div className="flex gap-2 justify-end">
+                                                                                {(inst.payments && inst.payments.length > 0) && (
+                                                                                    <AccordionTrigger asChild>
+                                                                                        <Button variant="ghost" size="sm"><History className="mr-2 h-4 w-4"/> Histórico</Button>
+                                                                                    </AccordionTrigger>
+                                                                                )}
+                                                                                <Button
+                                                                                    variant="outline"
+                                                                                    size="sm"
+                                                                                    onClick={() => handleOpenPaymentDialog(order, inst)}
+                                                                                    disabled={inst.status === 'Pago'}
+                                                                                >
+                                                                                    <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                                                                                    Pagar
+                                                                                </Button>
+                                                                                <Button variant="outline" size="sm" asChild>
+                                                                                    <Link href={`/carnet/${order.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
+                                                                                        <Printer className="mr-2 h-4 w-4" />
+                                                                                        Ver
+                                                                                    </Link>
+                                                                                </Button>
+                                                                            </div>
                                                                         </TableCell>
                                                                     </TableRow>
+                                                                    <AccordionContent asChild>
+                                                                        <tr>
+                                                                            <td colSpan={5} className="p-0">
+                                                                                <div className="bg-muted/50 p-3">
+                                                                                    <h4 className="font-semibold text-sm mb-2">Histórico de Pagamentos da Parcela</h4>
+                                                                                    <Table>
+                                                                                        <TableBody>
+                                                                                            {inst.payments?.map(p => (
+                                                                                                <TableRow key={p.id}>
+                                                                                                    <TableCell>{format(parseISO(p.date), "dd/MM/yyyy 'às' HH:mm")}</TableCell>
+                                                                                                    <TableCell>{p.method}</TableCell>
+                                                                                                    <TableCell>{formatCurrency(p.amount)}</TableCell>
+                                                                                                    <TableCell className="text-right">
+                                                                                                         <AlertDialog>
+                                                                                                            <AlertDialogTrigger asChild>
+                                                                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                                                                                                    <Undo2 className="h-4 w-4" />
+                                                                                                                </Button>
+                                                                                                            </AlertDialogTrigger>
+                                                                                                            <AlertDialogContent>
+                                                                                                                <AlertDialogHeader>
+                                                                                                                    <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
+                                                                                                                    <AlertDialogDescription>
+                                                                                                                        Esta ação irá reverter o pagamento de {formatCurrency(p.amount)} feito em {format(parseISO(p.date), 'dd/MM/yy')}. Isso não pode ser desfeito.
+                                                                                                                    </AlertDialogDescription>
+                                                                                                                </AlertDialogHeader>
+                                                                                                                <AlertDialogFooter>
+                                                                                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                                                                    <AlertDialogAction onClick={() => reversePayment(order.id, inst.installmentNumber, p.id)}>
+                                                                                                                        Sim, Estornar
+                                                                                                                    </AlertDialogAction>
+                                                                                                                </AlertDialogFooter>
+                                                                                                            </AlertDialogContent>
+                                                                                                        </AlertDialog>
+                                                                                                    </TableCell>
+                                                                                                </TableRow>
+                                                                                            ))}
+                                                                                        </TableBody>
+                                                                                    </Table>
+                                                                                </div>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </AccordionContent>
+                                                                </AccordionItem>
                                                                 );
                                                             })}
                                                         </TableBody>
                                                     </Table>
+                                                    </Accordion>
                                                 </div>
                                             ) : (
                                                 <p className="text-muted-foreground text-sm text-center py-4">Este pedido foi pago por {order.paymentMethod} e não possui parcelas.</p>

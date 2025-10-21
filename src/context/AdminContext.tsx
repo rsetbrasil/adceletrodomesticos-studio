@@ -43,6 +43,7 @@ interface AdminContextType {
   permanentlyDeleteOrder: (orderId: string) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
   recordInstallmentPayment: (orderId: string, installmentNumber: number, payment: Payment) => Promise<void>;
+  reversePayment: (orderId: string, installmentNumber: number, paymentId: string) => Promise<void>;
   updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date) => Promise<void>;
   updateCustomer: (customer: CustomerInfo) => Promise<void>;
   updateOrderDetails: (orderId: string, details: Partial<Order>) => Promise<void>;
@@ -651,7 +652,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const newPaidAmount = currentPaidAmount + paymentAmount;
         const newStatus = newPaidAmount >= inst.amount ? 'Pago' : 'Pendente';
         
-        const existingPayments = (Array.isArray(inst.payments) ? inst.payments : []).filter(p => typeof p.amount === 'number');
+        const existingPayments = (Array.isArray(inst.payments) ? inst.payments : []).filter(p => typeof p.amount === 'number' && p.amount > 0);
 
         return { 
           ...inst, 
@@ -665,7 +666,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
     const orderRef = doc(db, 'orders', orderId);
     updateDoc(orderRef, { installmentDetails: updatedInstallments }).then(() => {
-        logAction('Registro de Pagamento de Parcela', `Registrado pagamento de ${formatCurrency(payment.amount)} (${payment.method}) na parcela ${installmentNumber} do pedido #${orderId}.`, user);
+        logAction('Registro de Pagamento de Parcela', `Registrado pagamento de ${payment.amount} (${payment.method}) na parcela ${installmentNumber} do pedido #${orderId}.`, user);
         toast({ title: 'Pagamento Registrado!' });
     }).catch(async(e) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -675,6 +676,45 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         }));
     });
   };
+
+  const reversePayment = async (orderId: string, installmentNumber: number, paymentId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    let reversedPaymentAmount = 0;
+    const updatedInstallments = (order.installmentDetails || []).map(inst => {
+      if (inst.installmentNumber === installmentNumber) {
+        const paymentToReverse = inst.payments.find(p => p.id === paymentId);
+        if (!paymentToReverse) return inst;
+
+        reversedPaymentAmount = paymentToReverse.amount;
+        const newPayments = inst.payments.filter(p => p.id !== paymentId);
+        const newPaidAmount = (inst.paidAmount || 0) - reversedPaymentAmount;
+        const newStatus = newPaidAmount >= inst.amount ? 'Pago' : 'Pendente';
+        
+        return {
+          ...inst,
+          payments: newPayments,
+          paidAmount: newPaidAmount,
+          status: newStatus,
+        };
+      }
+      return inst;
+    });
+
+    const orderRef = doc(db, 'orders', orderId);
+    updateDoc(orderRef, { installmentDetails: updatedInstallments }).then(() => {
+        logAction('Estorno de Pagamento', `Estornado pagamento de ${reversedPaymentAmount} da parcela ${installmentNumber} do pedido #${orderId}.`, user);
+        toast({ title: 'Pagamento Estornado!', description: 'O valor foi retornado ao saldo devedor da parcela.' });
+    }).catch(async(e) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: orderRef.path,
+            operation: 'update',
+            requestResourceData: { installmentDetails: updatedInstallments },
+        }));
+    });
+  };
+
 
   const updateInstallmentDueDate = async (orderId: string, installmentNumber: number, newDueDate: Date) => {
      const order = orders.find(o => o.id === orderId);
@@ -817,7 +857,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AdminContext.Provider
       value={{
-        orders, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
+        orders, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
         products, addProduct, updateProduct, deleteProduct,
         categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         commissionPayments, payCommissions, reverseCommissionPayment,

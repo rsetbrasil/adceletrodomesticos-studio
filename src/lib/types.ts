@@ -53,6 +53,7 @@ export type CustomerInfo = {
 };
 
 export type Payment = {
+  id: string;
   amount: number;
   date: string;
   method: 'Dinheiro' | 'Pix' | 'Cartão';
@@ -60,6 +61,7 @@ export type Payment = {
 }
 
 export type Installment = {
+  id: string;
   installmentNumber: number;
   dueDate: string;
   amount: number;

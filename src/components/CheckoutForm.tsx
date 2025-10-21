@@ -267,6 +267,7 @@ export default function CheckoutForm() {
     const orderDate = new Date();
 
     const installmentDetails = Array.from({ length: finalInstallments }, (_, i) => ({
+        id: `inst-${orderId}-${i + 1}`,
         installmentNumber: i + 1,
         amount: finalInstallmentValue,
         dueDate: addMonths(orderDate, i + 1).toISOString(),
