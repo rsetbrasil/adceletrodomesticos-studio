@@ -5,6 +5,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import type { AuditLog, User, UserRole } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, setDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface AuditContextType {
   auditLogs: AuditLog[];
@@ -28,6 +30,10 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
     }, (error) => {
         console.error("Error fetching audit logs from Firestore:", error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'auditLogs',
+            operation: 'list',
+        }));
         setIsLoading(false);
     });
 
