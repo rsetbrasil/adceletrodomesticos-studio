@@ -219,8 +219,8 @@ export default function CarnetPage() {
   }
 
   return (
-    <div className={cn("bg-muted/30 print:bg-white", `print-layout-${printLayout}`)}>
-       <div className="container mx-auto max-w-none py-8 px-4 print:p-0 print:m-0 print:max-w-full">
+    <div className={cn("bg-background print:bg-white", `print-layout-${printLayout}`)}>
+       <div className="container mx-auto max-w-7xl py-8 px-4 print:p-0 print:m-0 print:max-w-full">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -242,7 +242,7 @@ export default function CarnetPage() {
           </div>
         </header>
         
-        <main className="w-full bg-background rounded-lg border shadow-sm print-default:grid print-default:grid-cols-2 print-default:gap-x-4 print-default:border-none print-default:shadow-none print-default:bg-transparent print-a4:block">
+        <main className="w-full print-default:grid print-default:grid-cols-2 print-default:gap-x-4 print-a4:block">
             <div className="print-default:border-r print-default:border-dashed print-default:border-black print-default:pr-4">
                 <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
