@@ -25,7 +25,7 @@ const formatCurrency = (value: number) => {
 };
 
 const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings: any, pixPayload: string | null }) => (
-    <div className="carnet-content-wrapper bg-background p-6 break-inside-avoid print:p-0 text-sm print:text-[9px]">
+    <div className="carnet-content-wrapper bg-white p-6 break-inside-avoid print:p-0 text-sm print:text-[9px]">
         <div className="flex justify-between items-start pb-2 print:pb-1 border-b">
              <div className="flex items-center gap-2 print:gap-1">
                 <div className="print:scale-75 print:-ml-2"><Logo /></div>
@@ -219,7 +219,7 @@ export default function CarnetPage() {
   }
 
   return (
-    <div className={cn("bg-background print:bg-white", `print-layout-${printLayout}`)}>
+    <div className={cn("bg-white print:bg-white", `print-layout-${printLayout}`)}>
        <div className="container mx-auto max-w-7xl py-8 px-4 print:p-0 print:m-0 print:max-w-full">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>
