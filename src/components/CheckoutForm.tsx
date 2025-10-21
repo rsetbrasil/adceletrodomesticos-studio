@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -29,12 +30,18 @@ import { db } from '@/lib/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
+function isValidCPF(cpf: string) {
+    if (typeof cpf !== 'string') return false;
+    cpf = cpf.replace(/[^\d]+/g, '');
+    if (cpf.length !== 11 || !!cpf.match(/(\d)\1{10}/)) return false;
+    const cpfDigits = cpf.split('').map(el => +el);
+    const rest = (count: number) => (cpfDigits.slice(0, count).reduce((soma, el, index) => soma + el * (count + 1 - index), 0) * 10) % 11 % 10;
+    return rest(9) === cpfDigits[9] && rest(10) === cpfDigits[10];
+}
+
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
-  cpf: z.string().refine((value) => {
-    const justDigits = value.replace(/\D/g, '');
-    return justDigits.length === 11;
-  }, 'CPF inválido. Deve conter 11 dígitos.'),
+  cpf: z.string().refine(isValidCPF, 'CPF inválido.'),
   phone: z.string().min(10, 'Telefone é obrigatório.'),
   email: z.string().email('E-mail inválido.'),
   zip: z.string().refine((value) => {
