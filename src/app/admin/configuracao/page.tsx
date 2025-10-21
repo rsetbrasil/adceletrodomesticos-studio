@@ -163,7 +163,11 @@ export default function ConfiguracaoPage() {
         if (role === 'vendedor') {
             const gerentePermissions = updatedPermissions['gerente'] ? [...updatedPermissions['gerente']] : [];
             if(checked && !gerentePermissions.includes(section)) gerentePermissions.push(section);
-            updatedPermissions['gerente'] = gerentePermissions;
+            if(!checked) {
+                updatedPermissions['gerente'] = gerentePermissions.filter(p => p !== section);
+            } else {
+                updatedPermissions['gerente'] = gerentePermissions;
+            }
         }
 
         return updatedPermissions;
@@ -273,94 +277,96 @@ export default function ConfiguracaoPage() {
         </CardContent>
       </Card>
       
-      <Card className="max-w-4xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="h-6 w-6" />
-            Permissões de Acesso
-          </CardTitle>
-          <CardDescription>
-            Defina quais seções cada perfil de usuário pode acessar no painel administrativo. A hierarquia é Vendedor {'<'} Gerente {'<'} Admin.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-            {localPermissions ? (
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div>
-                            <h3 className="font-semibold mb-4 capitalize">Vendedor</h3>
-                            <div className="space-y-3">
-                                {ALL_SECTIONS.map(section => (
-                                    <div key={`vendedor-${section.id}`} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={`vendedor-${section.id}`}
-                                            checked={localPermissions.vendedor?.includes(section.id)}
-                                            onCheckedChange={(checked) => handlePermissionChange('vendedor', section.id, !!checked)}
-                                        />
-                                        <label
-                                            htmlFor={`vendedor-${section.id}`}
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                        >
-                                            {section.label}
-                                        </label>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+      {user?.role === 'admin' && (
+        <Card className="max-w-4xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="h-6 w-6" />
+              Permissões de Acesso
+            </CardTitle>
+            <CardDescription>
+              Defina quais seções cada perfil de usuário pode acessar no painel administrativo. A hierarquia é Vendedor {'<'} Gerente {'<'} Admin.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+              {localPermissions ? (
+                  <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                          <div>
+                              <h3 className="font-semibold mb-4 capitalize">Vendedor</h3>
+                              <div className="space-y-3">
+                                  {ALL_SECTIONS.map(section => (
+                                      <div key={`vendedor-${section.id}`} className="flex items-center space-x-2">
+                                          <Checkbox
+                                              id={`vendedor-${section.id}`}
+                                              checked={localPermissions.vendedor?.includes(section.id)}
+                                              onCheckedChange={(checked) => handlePermissionChange('vendedor', section.id, !!checked)}
+                                          />
+                                          <label
+                                              htmlFor={`vendedor-${section.id}`}
+                                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                          >
+                                              {section.label}
+                                          </label>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
 
-                        <div>
-                            <h3 className="font-semibold mb-4 capitalize">Gerente</h3>
-                             <div className="space-y-3">
-                                {ALL_SECTIONS.map(section => (
-                                    <div key={`gerente-${section.id}`} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={`gerente-${section.id}`}
-                                            checked={localPermissions.gerente?.includes(section.id)}
-                                            onCheckedChange={(checked) => handlePermissionChange('gerente', section.id, !!checked)}
-                                            disabled={isVendedorPermission(section.id)}
-                                        />
-                                        <label
-                                            htmlFor={`gerente-${section.id}`}
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                        >
-                                            {section.label}
-                                        </label>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                          <div>
+                              <h3 className="font-semibold mb-4 capitalize">Gerente</h3>
+                               <div className="space-y-3">
+                                  {ALL_SECTIONS.map(section => (
+                                      <div key={`gerente-${section.id}`} className="flex items-center space-x-2">
+                                          <Checkbox
+                                              id={`gerente-${section.id}`}
+                                              checked={localPermissions.gerente?.includes(section.id)}
+                                              onCheckedChange={(checked) => handlePermissionChange('gerente', section.id, !!checked)}
+                                              disabled={isVendedorPermission(section.id)}
+                                          />
+                                          <label
+                                              htmlFor={`gerente-${section.id}`}
+                                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                          >
+                                              {section.label}
+                                          </label>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
 
-                        <div>
-                            <h3 className="font-semibold mb-4 capitalize">Admin</h3>
-                            <div className="space-y-3">
-                                {ALL_SECTIONS.map(section => (
-                                    <div key={`admin-${section.id}`} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={`admin-${section.id}`}
-                                            checked
-                                            disabled
-                                        />
-                                        <label
-                                            htmlFor={`admin-${section.id}`}
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                        >
-                                            {section.label}
-                                        </label>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                    <Button onClick={handleSavePermissions}>
-                        <Save className="mr-2 h-4 w-4" />
-                        Salvar Permissões
-                    </Button>
-                </div>
-            ) : (
-                <p>Carregando permissões...</p>
-            )}
-        </CardContent>
-      </Card>
+                          <div>
+                              <h3 className="font-semibold mb-4 capitalize">Admin</h3>
+                              <div className="space-y-3">
+                                  {ALL_SECTIONS.map(section => (
+                                      <div key={`admin-${section.id}`} className="flex items-center space-x-2">
+                                          <Checkbox
+                                              id={`admin-${section.id}`}
+                                              checked
+                                              disabled
+                                          />
+                                          <label
+                                              htmlFor={`admin-${section.id}`}
+                                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                          >
+                                              {section.label}
+                                          </label>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+                      </div>
+                      <Button onClick={handleSavePermissions}>
+                          <Save className="mr-2 h-4 w-4" />
+                          Salvar Permissões
+                      </Button>
+                  </div>
+              ) : (
+                  <p>Carregando permissões...</p>
+              )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="max-w-4xl">
           <CardHeader>
@@ -433,5 +439,7 @@ export default function ConfiguracaoPage() {
     </div>
   );
 }
+
+    
 
     
