@@ -14,6 +14,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 
 interface AuthContextType {
   user: User | null;
+  users: User[];
   initialUsers: User[];
   login: (user: string, pass: string) => void;
   logout: () => void;
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
@@ -36,6 +38,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   useEffect(() => {
     setIsLoading(true);
+
+    const usersUnsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+        setUsers(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as User)));
+    },
+    (error) => {
+      console.error("Error fetching users:", error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'users',
+        operation: 'list',
+      }));
+    });
+    
     try {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
@@ -47,6 +61,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
         setIsLoading(false);
     }
+    
+    return () => usersUnsubscribe();
   }, []);
 
   const login = async (username: string, pass: string) => {
@@ -233,7 +249,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, initialUsers, login, logout, addUser, updateUser, changeMyPassword, isLoading, isAuthenticated: !!user, restoreUsers }}>
+    <AuthContext.Provider value={{ user, users, initialUsers, login, logout, addUser, updateUser, changeMyPassword, isLoading, isAuthenticated: !!user, restoreUsers }}>
       {children}
     </AuthContext.Provider>
   );
