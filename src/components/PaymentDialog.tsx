@@ -86,7 +86,11 @@ export default function PaymentDialog({
     onSubmit(payment, isFullPayment);
   };
   
-  const quickValues = [10, 20, 50, 100, remainingAmount].filter(v => v > 0);
+  const quickValues = useMemo(() => {
+    const baseValues = [10, 20, 50, 100];
+    const uniqueValues = new Set([...baseValues, remainingAmount]);
+    return Array.from(uniqueValues).filter(v => v > 0).sort((a,b) => a - b);
+  }, [remainingAmount]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -140,8 +144,8 @@ export default function PaymentDialog({
           </div>
           
           <div className="flex flex-wrap gap-2">
-            {quickValues.map(val => (
-                <Button key={val} type="button" variant="outline" size="sm" onClick={() => handleQuickValue(val)}>
+            {quickValues.map((val, index) => (
+                <Button key={`${val}-${index}`} type="button" variant="outline" size="sm" onClick={() => handleQuickValue(val)}>
                     {formatCurrency(val)}
                 </Button>
             ))}
