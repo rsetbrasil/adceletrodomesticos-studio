@@ -75,8 +75,46 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  body.print-landscape {
-    /* Forcing landscape is not ideal as it hides browser options.
-       A well-structured grid layout for printing is better. */
+  
+  .print-layout-default .print-default\:grid {
+    display: grid;
+  }
+  .print-layout-default .print-default\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .print-layout-default .print-default\:gap-x-4 {
+    column-gap: 1rem;
+  }
+  .print-layout-default .print-default\:border-none {
+    border-style: none;
+  }
+  .print-layout-default .print-default\:shadow-none {
+    box-shadow: none;
+  }
+  .print-layout-default .print-default\:bg-transparent {
+    background-color: transparent;
+  }
+  .print-layout-default .print-default\:border-r {
+    border-right-width: 1px;
+  }
+  .print-layout-default .print-default\:border-dashed {
+    border-style: dashed;
+  }
+  .print-layout-default .print-default\:border-black {
+    --tw-border-opacity: 1;
+    border-color: rgb(0 0 0 / var(--tw-border-opacity));
+  }
+  .print-layout-default .print-default\:pr-4 {
+    padding-right: 1rem;
+  }
+  .print-layout-default .print-default\:block {
+    display: block;
+  }
+  .print-layout-default .print-default\:pl-4 {
+    padding-left: 1rem;
+  }
+
+  .print-layout-a4 .print-a4\:block {
+    display: block;
   }
 }

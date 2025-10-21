@@ -16,6 +16,8 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { generatePixPayload } from '@/lib/pix';
 import PixQRCode from '@/components/PixQRCode';
+import { cn } from '@/lib/utils';
+
 
 const formatCurrency = (value: number) => {
   if (typeof value !== 'number') return 'R$ 0,00';
@@ -123,6 +125,8 @@ export default function CarnetPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { settings } = useSettings();
+  const [printLayout, setPrintLayout] = useState<'default' | 'a4'>('default');
+
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -175,6 +179,14 @@ export default function CarnetPage() {
     );
   }, [nextPendingInstallment, order, settings]);
 
+  const handlePrint = (layout: 'default' | 'a4') => {
+    setPrintLayout(layout);
+    // Use a short timeout to allow state to update and classes to be applied
+    setTimeout(() => {
+        window.print();
+    }, 100);
+  };
+
 
   if (isLoading) {
     return <div className="p-8 text-center">Carregando carnê...</div>;
@@ -207,7 +219,7 @@ export default function CarnetPage() {
   }
 
   return (
-    <div className="bg-muted/30 print:bg-white">
+    <div className={cn("bg-muted/30 print:bg-white", `print-layout-${printLayout}`)}>
        <div className="container mx-auto max-w-none py-8 px-4 print:p-0 print:m-0 print:max-w-full">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>
@@ -218,17 +230,23 @@ export default function CarnetPage() {
              <h1 className="text-2xl font-bold">Carnê de Pagamento</h1>
              <p className="text-muted-foreground">Pedido: {order.id}</p>
           </div>
-          <Button onClick={() => window.print()}>
-            <Printer className="mr-2 h-4 w-4" />
-            Imprimir Carnê
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => handlePrint('default')}>
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimir Carnê
+            </Button>
+            <Button onClick={() => handlePrint('a4')}>
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimir A4
+            </Button>
+          </div>
         </header>
         
-        <main className="w-full bg-background rounded-lg border shadow-sm print:grid print:grid-cols-2 print:gap-x-4 print:border-none print:shadow-none print:bg-transparent">
-            <div className="print:border-r print:border-dashed print:border-black print:pr-4">
+        <main className="w-full bg-background rounded-lg border shadow-sm print-default:grid print-default:grid-cols-2 print-default:gap-x-4 print-default:border-none print-default:shadow-none print-default:bg-transparent print-a4:block">
+            <div className="print-default:border-r print-default:border-dashed print-default:border-black print-default:pr-4">
                 <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
-            <div className="hidden print:block print:pl-4">
+            <div className="hidden print-default:block print-default:pl-4">
                 <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
         </main>
