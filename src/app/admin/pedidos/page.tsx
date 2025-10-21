@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -102,7 +101,13 @@ export default function OrdersAdminPage() {
     let filtered = [...orders];
 
     if (user?.role === 'vendedor') {
+      // Vendedor só vê os seus pedidos
       filtered = filtered.filter(o => o.sellerId === user.id);
+    } else {
+      // Admin/Gerente podem filtrar por vendedor
+      if (filters.seller !== 'all') {
+        filtered = filtered.filter(o => o.sellerId === filters.seller);
+      }
     }
     
     if (filters.search) {
@@ -117,10 +122,6 @@ export default function OrdersAdminPage() {
       filtered = filtered.filter(o => o.status === filters.status);
     }
     
-    if (user?.role !== 'vendedor' && filters.seller !== 'all') {
-        filtered = filtered.filter(o => o.sellerId === filters.seller);
-    }
-
     filtered.forEach(order => {
       if (order.status === 'Excluído') {
         deleted.push(order);
@@ -781,3 +782,6 @@ export default function OrdersAdminPage() {
     </>
   );
 }
+
+
+    
