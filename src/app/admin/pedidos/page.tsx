@@ -705,46 +705,44 @@ export default function OrdersAdminPage() {
                                                   const uniqueKey = inst.id ? `${inst.id}-${instIndex}` : `${selectedOrder.id}-${inst.installmentNumber}`;
                                                   
                                                   return (
-                                                      <AccordionItem value={uniqueKey} key={uniqueKey}>
-                                                          <>
-                                                              <TableRow>
-                                                                  <TableCell className="font-medium">{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
-                                                                  <TableCell>
-                                                                      <Popover open={openDueDatePopover === uniqueKey} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? uniqueKey : null)}>
-                                                                          <PopoverTrigger asChild>
-                                                                              <Button variant={"outline"} className="justify-start text-left font-normal text-xs" disabled={inst.status === 'Pago'}>
-                                                                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                                  Venc: {format(new Date(inst.dueDate), 'dd/MM/yyyy')}
-                                                                              </Button>
-                                                                          </PopoverTrigger>
-                                                                          <PopoverContent className="w-auto p-0">
-                                                                              <Calendar mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)} initialFocus/>
-                                                                          </PopoverContent>
-                                                                      </Popover>
-                                                                  </TableCell>
-                                                                  <TableCell>{formatCurrency(inst.amount)}</TableCell>
-                                                                  <TableCell>
-                                                                      <Badge variant={statusVariant} className="w-full text-center justify-center">{statusText}</Badge>
-                                                                  </TableCell>
-                                                                  <TableCell className="text-right">
-                                                                      <div className="flex gap-1 justify-end">
-                                                                          {(inst.payments && inst.payments.length > 0) && (
-                                                                                <AccordionTrigger className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-8 w-8')}>
-                                                                                    <History className="h-4 w-4" />
-                                                                                </AccordionTrigger>
-                                                                            )}
-                                                                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenPaymentDialog(inst)} disabled={inst.status === 'Pago'}>
-                                                                              <CheckCircle className="h-4 w-4 text-green-600"/>
-                                                                          </Button>
-                                                                          <Button variant="outline" size="icon" className="h-8 w-8" asChild>
-                                                                              <Link href={`/carnet/${selectedOrder.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
-                                                                                  <Printer className="h-4 w-4" />
-                                                                              </Link>
-                                                                          </Button>
-                                                                      </div>
-                                                                  </TableCell>
-                                                              </TableRow>
-                                                              <TableRow>
+                                                    <AccordionItem value={uniqueKey} key={uniqueKey} asChild>
+                                                        <>
+                                                            <TableRow>
+                                                                <TableCell className="font-medium">{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
+                                                                <TableCell>
+                                                                    <Popover open={openDueDatePopover === uniqueKey} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? uniqueKey : null)}>
+                                                                        <PopoverTrigger asChild>
+                                                                            <Button variant={"outline"} className="justify-start text-left font-normal text-xs" disabled={inst.status === 'Pago'}>
+                                                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                                Venc: {format(new Date(inst.dueDate), 'dd/MM/yyyy')}
+                                                                            </Button>
+                                                                        </PopoverTrigger>
+                                                                        <PopoverContent className="w-auto p-0">
+                                                                            <Calendar mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)} initialFocus/>
+                                                                        </PopoverContent>
+                                                                    </Popover>
+                                                                </TableCell>
+                                                                <TableCell>{formatCurrency(inst.amount)}</TableCell>
+                                                                <TableCell>
+                                                                    <Badge variant={statusVariant} className="w-full text-center justify-center">{statusText}</Badge>
+                                                                </TableCell>
+                                                                <TableCell className="text-right">
+                                                                    <div className="flex gap-1 justify-end">
+                                                                        {(inst.payments && inst.payments.length > 0) && (
+                                                                            <AccordionTrigger className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-8 w-8')} />
+                                                                        )}
+                                                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenPaymentDialog(inst)} disabled={inst.status === 'Pago'}>
+                                                                            <CheckCircle className="h-4 w-4 text-green-600"/>
+                                                                        </Button>
+                                                                        <Button variant="outline" size="icon" className="h-8 w-8" asChild>
+                                                                            <Link href={`/carnet/${selectedOrder.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
+                                                                                <Printer className="h-4 w-4" />
+                                                                            </Link>
+                                                                        </Button>
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                            <TableRow>
                                                                 <TableCell colSpan={5} className="p-0 border-none">
                                                                     <AccordionContent>
                                                                         <div className="p-4 bg-muted/50">
@@ -788,11 +786,11 @@ export default function OrdersAdminPage() {
                                                                                 </Table>
                                                                             ) : <p className='text-xs text-muted-foreground'>Nenhum pagamento registrado para esta parcela.</p>}
                                                                         </div>
-                                                                  </AccordionContent>
+                                                                    </AccordionContent>
                                                                 </TableCell>
-                                                              </TableRow>
-                                                          </>
-                                                      </AccordionItem>
+                                                            </TableRow>
+                                                        </>
+                                                    </AccordionItem>
                                                   )
                                               })}
                                           </TableBody>
@@ -832,5 +830,3 @@ export default function OrdersAdminPage() {
     </>
   );
 }
-
-    
