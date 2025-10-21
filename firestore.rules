@@ -1,39 +1,42 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Regra geral de leitura: permite que o site leia dados publicos.
-    // As regras de escrita abaixo sao mais especificas e tem prioridade.
-    match /{document=**} {
-      allow read: if true;
-      allow write: if false; // Bloqueia a escrita por padrao
-    }
-
-    // Permite que usuarios autenticados escrevam (criem, editem, deletem)
-    // nos documentos das colecoes principais da aplicacao.
+    // Public read for website data
     match /products/{productId} {
-      allow write: if request.auth != null;
+      allow read: if true;
     }
     match /categories/{categoryId} {
-      allow write: if request.auth != null;
+      allow read: if true;
     }
-    match /orders/{orderId} {
-      allow write: if request.auth != null;
-    }
-    match /users/{userId} {
-      allow write: if request.auth != null;
-    }
-    match /auditLogs/{logId} {
-      allow write: if request.auth != null;
-    }
-    match /commissionPayments/{paymentId} {
-        allow write: if request.auth != null;
+    match /config/{configId} {
+      allow read: if true;
     }
 
-    // Permite a escrita na colecao de configuracoes para usuarios autenticados
-    match /config/{configId} {
-        allow write: if request.auth != null;
+    // Authenticated users can manage app data.
+    // This allows logged-in users (admins, managers, sellers) to perform their tasks.
+    match /orders/{orderId} {
+      allow read, write: if request.auth != null;
+    }
+    match /users/{userId} {
+       allow read, write: if request.auth != null;
+    }
+    match /auditLogs/{logId} {
+       allow read, write: if request.auth != null;
+    }
+    match /commissionPayments/{paymentId} {
+       allow read, write: if request.auth != null;
+    }
+    // Allow admins/managers to write to products and categories as well
+     match /products/{productId} {
+      allow write: if request.auth != null;
+    }
+     match /categories/{categoryId} {
+      allow write: if request.auth != null;
+    }
+     match /config/{configId} {
+      allow write: if request.auth != null;
     }
   }
 }
