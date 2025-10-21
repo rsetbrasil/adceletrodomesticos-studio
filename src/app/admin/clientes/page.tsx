@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent } from 'react';
@@ -24,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/AuthContext';
 import PaymentDialog from '@/components/PaymentDialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
 const formatCurrency = (value: number) => {
@@ -581,7 +580,7 @@ export default function CustomersAdminPage() {
                                                                     <div className="flex gap-2 justify-end ml-4">
                                                                         {(inst.payments && inst.payments.length > 0) && (
                                                                             <AccordionTrigger asChild>
-                                                                                <Button variant="ghost" size="sm"><History className="mr-2 h-4 w-4"/> Histórico</Button>
+                                                                                <Button variant="ghost" size="sm"><span><History className="mr-2 h-4 w-4"/> Histórico</span></Button>
                                                                             </AccordionTrigger>
                                                                         )}
                                                                         <Button variant="outline" size="sm" onClick={() => handleOpenPaymentDialog(order, inst)} disabled={inst.status === 'Pago'}>
@@ -890,10 +889,3 @@ export default function CustomersAdminPage() {
     </>
   );
 }
-
-    
-    
-
-    
-
-    
