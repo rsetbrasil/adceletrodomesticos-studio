@@ -1,22 +1,25 @@
-
 // This is a simple event emitter.
 // It's used to decouple the error source from the error handler.
 
 type Listener<T> = (data: T) => void;
 
-class EventEmitter<T> {
-  private listeners: Set<Listener<T>> = new Set();
+class EventEmitter<TEventData> {
+  private listener: Listener<TEventData> | null = null;
 
-  on(listener: Listener<T>) {
-    this.listeners.add(listener);
+  on(listener: Listener<TEventData>) {
+    this.listener = listener;
   }
 
-  off(listener: Listener<T>) {
-    this.listeners.delete(listener);
+  off(listener: Listener<TEventData>) {
+    if (this.listener === listener) {
+      this.listener = null;
+    }
   }
 
-  emit(data: T) {
-    this.listeners.forEach(listener => listener(data));
+  emit(channel: string, data: TEventData) {
+    if (this.listener) {
+      this.listener(data);
+    }
   }
 }
 
