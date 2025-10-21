@@ -25,7 +25,7 @@ const formatCurrency = (value: number) => {
 };
 
 const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings: any, pixPayload: string | null }) => (
-    <div className="bg-background p-6 break-inside-avoid print:p-0 text-sm print:text-[9px]">
+    <div className="carnet-content-wrapper bg-background p-6 break-inside-avoid print:p-0 text-sm print:text-[9px]">
         <div className="flex justify-between items-start pb-2 print:pb-1 border-b">
              <div className="flex items-center gap-2 print:gap-1">
                 <div className="print:scale-75 print:-ml-2"><Logo /></div>
@@ -33,7 +33,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                     <p className="font-bold print:text-[10px]">{settings.storeName}</p>
                     <p className="text-xs print:text-[8px] text-muted-foreground whitespace-pre-line">{settings.storeAddress}</p>
                      {settings.storePhone && (
-                        <p className="text-xs print:text-[8px] text-muted-foreground">WhatsApp: {settings.storePhone}</p>
+                        <p className="text-xs print:text-[8px] text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" /> WhatsApp: {settings.storePhone}</p>
                     )}
                 </div>
              </div>
