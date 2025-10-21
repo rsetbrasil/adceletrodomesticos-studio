@@ -7,7 +7,7 @@ import { useMemo, useRef, useState, useEffect }from 'react';
 import type { Order, Installment, StoreSettings, Payment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Printer, Send, ArrowLeft } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -20,7 +20,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 
 const formatCurrency = (value: number) => {
-  if (typeof value !== 'number') return 'R$ 0,00';
+  if (typeof value !== 'number' || isNaN(value)) return 'R$ 0,00';
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
@@ -77,15 +77,15 @@ function numeroParaExtenso(n: number): string {
 }
 
 
-const ReceiptContent = ({ order, installment, settings, via, paymentAmount }: { order: Order; installment: Installment; settings: StoreSettings; via: 'Empresa' | 'Cliente', paymentAmount: number }) => {
+const ReceiptContent = ({ order, installment, settings, via }: { order: Order; installment: Installment; settings: StoreSettings; via: 'Empresa' | 'Cliente' }) => {
     
-    const lastPayment = useMemo(() => {
-        if (!installment.payments || installment.payments.length === 0) return null;
-        // The payments are not guaranteed to be sorted, so we sort them by date.
-        return [...installment.payments].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+    const sortedPayments = useMemo(() => {
+        if (!installment.payments || installment.payments.length === 0) return [];
+        return [...installment.payments].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }, [installment.payments]);
-    
-    const valueToDisplay = lastPayment ? lastPayment.amount : paymentAmount;
+
+    const totalPaidOnInstallment = installment.paidAmount || 0;
+    const remainingBalance = installment.amount - totalPaidOnInstallment;
     
     return (
         <div className="bg-white p-6 break-inside-avoid-page text-black font-mono text-xs relative">
@@ -97,48 +97,76 @@ const ReceiptContent = ({ order, installment, settings, via, paymentAmount }: { 
                         <p className="whitespace-pre-line">{settings.storeAddress}</p>
                     </div>
                 </div>
-                <h1 className="font-bold text-lg tracking-wider">RECIBO</h1>
+                <h1 className="font-bold text-lg tracking-wider">EXTRATO DA PARCELA</h1>
             </div>
 
             <div className="grid grid-cols-2 gap-x-4 border-y border-black py-2">
                 <div className="space-y-1">
-                    <p>Referente a: {order.items.map(i => i.name).join(', ')}</p>
-                    <p>Documento: {order.id}</p>
-                    <p>Parcela: {installment.installmentNumber}/{order.installments}</p>
-                    <p>Vencimento: {format(new Date(installment.dueDate), 'dd/MM/yyyy')}</p>
-                    <p>Valor da Parcela: {formatCurrency(installment.amount)}</p>
+                    <p>CLIENTE: {order.customer.name.toUpperCase()}</p>
+                    <p>CPF: {order.customer.cpf}</p>
+                    <p>PEDIDO: {order.id}</p>
                 </div>
                 <div className="space-y-1 text-right">
-                    <p>VALOR PAGO NESTE RECIBO</p>
-                    <p className="font-bold text-lg">{formatCurrency(valueToDisplay)}</p>
-                    <p>Forma Pag.: {lastPayment?.method || 'N/A'}</p>
-                    {lastPayment?.change ? <p>Troco: {formatCurrency(lastPayment.change)}</p> : null}
+                    <p>PARCELA: {installment.installmentNumber}/{order.installments}</p>
+                    <p>VENCIMENTO: {format(new Date(installment.dueDate), 'dd/MM/yyyy')}</p>
+                    <p>VALOR ORIGINAL: {formatCurrency(installment.amount)}</p>
                 </div>
             </div>
 
-            <div className="py-4 text-justify">
-                <p>
-                    Recebemos de {order.customer.name.toUpperCase()}, CPF {order.customer.cpf},
-                    a importância de {formatCurrency(valueToDisplay)} ({numeroParaExtenso(valueToDisplay)}),
-                    referente ao pagamento da parcela citada acima.
-                </p>
-            </div>
-            
-            <div className="flex justify-center items-end flex-col mt-4">
-                <p>{settings.storeCity}, {format(new Date(lastPayment?.date || new Date()), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
-                {installment.status === 'Pago' && (
-                    <div className="relative mt-2">
-                        <div className="border-4 border-blue-500 rounded-md px-6 py-2 transform -rotate-12">
-                            <p className="text-2xl font-black text-blue-500 tracking-wider">PAGO</p>
-                        </div>
-                    </div>
+            <div className="py-4">
+                <h2 className="font-bold text-center mb-2">HISTÓRICO DE PAGAMENTOS</h2>
+                {sortedPayments.length > 0 ? (
+                    <table className="w-full">
+                        <thead className="border-b border-black">
+                            <tr>
+                                <th className="text-left py-1">Data</th>
+                                <th className="text-left py-1">Método</th>
+                                <th className="text-right py-1">Valor Pago</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sortedPayments.map((p, index) => (
+                                <tr key={p.id + index}>
+                                    <td className="py-1">{format(parseISO(p.date), 'dd/MM/yy HH:mm')}</td>
+                                    <td className="py-1">{p.method}</td>
+                                    <td className="py-1 text-right">{formatCurrency(p.amount)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    <p className="text-center text-gray-500">Nenhum pagamento registrado para esta parcela.</p>
                 )}
             </div>
 
-            <div className="flex justify-between items-center mt-12 border-t border-black pt-1">
+            <div className="grid grid-cols-3 gap-x-4 border-y border-black py-2 mt-2">
+                <div className="font-bold">
+                    <p>TOTAL PAGO:</p>
+                    <p>{formatCurrency(totalPaidOnInstallment)}</p>
+                </div>
+                <div className="font-bold text-red-600">
+                    <p>SALDO PENDENTE:</p>
+                    <p>{formatCurrency(remainingBalance)}</p>
+                </div>
+                <div className="text-right flex flex-col justify-center items-end">
+                    {installment.status === 'Pago' && (
+                        <div className="relative">
+                            <div className="border-4 border-blue-500 rounded-md px-4 py-1 transform -rotate-12">
+                                <p className="text-xl font-black text-blue-500 tracking-wider">PAGO</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+            
+            <div className="flex justify-center items-end flex-col mt-4">
+                <p>{settings.storeCity}, {format(new Date(), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+            </div>
+
+            <div className="flex justify-between items-center mt-8 border-t border-black pt-1">
                 <p>{settings.storeCity}/{order.customer.state}</p>
                 <p className="font-bold">Via {via}</p>
-                <p>Cadastrado em {format(new Date(order.date), "dd/MM/yyyy 'às' HH:mm")}</p>
+                <p>Data da Compra: {format(new Date(order.date), "dd/MM/yyyy 'às' HH:mm")}</p>
             </div>
         </div>
     );
@@ -244,7 +272,7 @@ export default function SingleInstallmentPage() {
 
     const customerName = order.customer.name.split(' ')[0];
     const phone = order.customer.phone.replace(/\D/g, '');
-    const message = `Olá ${customerName}, segue o comprovante de pagamento da sua parcela nº ${installment.installmentNumber} (pedido ${order.id}), no valor de ${formatCurrency(installment.amount)}.\n\nObrigado!\n*${settings.storeName}*`;
+    const message = `Olá ${customerName}, segue o extrato atualizado da sua parcela nº ${installment.installmentNumber} (pedido ${order.id}).\n\nObrigado!\n*${settings.storeName}*`;
     
     const webUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
     window.open(webUrl, '_blank');
@@ -267,8 +295,6 @@ export default function SingleInstallmentPage() {
       </div>
     );
   }
-  
-  const latestPaymentAmount = installment.payments?.slice(-1)[0]?.amount || installment.paidAmount;
 
   return (
     <div className="bg-muted/30 print:bg-white">
@@ -279,8 +305,8 @@ export default function SingleInstallmentPage() {
                 Voltar
             </Button>
           <div className="text-center">
-             <h1 className="text-2xl font-bold">Comprovante de Pagamento</h1>
-             <p className="text-muted-foreground">Pedido: {order.id}</p>
+             <h1 className="text-2xl font-bold">Extrato da Parcela</h1>
+             <p className="text-muted-foreground">Pedido: {order.id} / Parcela: {installment.installmentNumber}</p>
           </div>
            <div className="flex gap-2">
             <Button onClick={handleGeneratePdfAndSend} className="pdf-hidden">
@@ -296,10 +322,10 @@ export default function SingleInstallmentPage() {
 
         <main ref={receiptRef} className="bg-white print:grid print:grid-cols-2 print:gap-8">
             <div className="print:border-r print:border-dashed print:border-black print:pr-4">
-                <ReceiptContent order={order} installment={installment} settings={settings} via="Empresa" paymentAmount={latestPaymentAmount} />
+                <ReceiptContent order={order} installment={installment} settings={settings} via="Empresa" />
             </div>
             <div className="hidden print:block print:pl-4">
-                <ReceiptContent order={order} installment={installment} settings={settings} via="Cliente" paymentAmount={latestPaymentAmount} />
+                <ReceiptContent order={order} installment={installment} settings={settings} via="Cliente" />
             </div>
         </main>
       </div>
