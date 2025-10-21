@@ -555,9 +555,10 @@ export default function CustomersAdminPage() {
                                                          }
                                                          
                                                          const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
+                                                         const uniqueKey = `${order.id}-${inst.installmentNumber}`;
                                                          
                                                         return (
-                                                            <AccordionItem value={inst.id} key={inst.id} className="border rounded-md">
+                                                            <AccordionItem value={uniqueKey} key={uniqueKey} className="border rounded-md">
                                                                 <div className='flex items-center justify-between p-3'>
                                                                     <div className='grid grid-cols-4 gap-4 text-sm items-center flex-grow'>
                                                                         <div><span className="font-medium">Parcela:</span> {inst.installmentNumber}/{order.installments}</div>
@@ -891,6 +892,8 @@ export default function CustomersAdminPage() {
 }
 
     
+    
+
     
 
     
