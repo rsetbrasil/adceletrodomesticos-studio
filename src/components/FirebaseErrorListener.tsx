@@ -13,10 +13,10 @@ export default function FirebaseErrorListener() {
       throw error;
     };
 
-    errorEmitter.on('permission-error', handleError);
+    errorEmitter.on(handleError);
 
     return () => {
-      errorEmitter.off('permission-error', handleError);
+      errorEmitter.off(handleError);
     };
   }, []);
 

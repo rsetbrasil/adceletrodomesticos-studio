@@ -4,22 +4,20 @@
 type Listener<T> = (data: T) => void;
 
 class EventEmitter<TEventData> {
-  private listener: Listener<TEventData> | null = null;
+  private listeners: Set<Listener<TEventData>> = new Set();
 
   on(listener: Listener<TEventData>) {
-    this.listener = listener;
+    this.listeners.add(listener);
   }
 
   off(listener: Listener<TEventData>) {
-    if (this.listener === listener) {
-      this.listener = null;
-    }
+    this.listeners.delete(listener);
   }
 
   emit(channel: string, data: TEventData) {
-    if (this.listener) {
-      this.listener(data);
-    }
+    // Note: The 'channel' argument is kept for API consistency,
+    // even though this simple emitter doesn't use it.
+    this.listeners.forEach(listener => listener(data));
   }
 }
 
