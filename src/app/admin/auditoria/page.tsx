@@ -47,80 +47,82 @@ function StockAuditTab() {
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between items-center print-hidden">
-                    <div>
-                        <CardTitle className="flex items-center gap-2">
-                            <Boxes className="h-6 w-6" />
-                            Auditoria de Estoque
-                        </CardTitle>
-                        <CardDescription>
-                            Realize a contagem física dos produtos e compare com o estoque do sistema.
-                        </CardDescription>
+        <div className="print-container">
+            <Card className="print-card">
+                <CardHeader>
+                    <div className="flex justify-between items-center print-hidden">
+                        <div>
+                            <CardTitle className="flex items-center gap-2">
+                                <Boxes className="h-6 w-6" />
+                                Auditoria de Estoque
+                            </CardTitle>
+                            <CardDescription>
+                                Realize a contagem física dos produtos e compare com o estoque do sistema.
+                            </CardDescription>
+                        </div>
+                        <Button onClick={() => window.print()}>
+                            <Printer className="mr-2 h-4 w-4" />
+                            Imprimir Relatório
+                        </Button>
                     </div>
-                    <Button onClick={() => window.print()}>
-                        <Printer className="mr-2 h-4 w-4" />
-                        Imprimir Relatório
-                    </Button>
-                </div>
-                 <div className="hidden print:block">
-                    <CardTitle>Relatório de Auditoria de Estoque</CardTitle>
-                    <CardDescription>Data: {format(new Date(), 'dd/MM/yyyy')}</CardDescription>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div className="rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[80px]">Imagem</TableHead>
-                                <TableHead>Produto</TableHead>
-                                <TableHead className="text-center">Estoque Sistema</TableHead>
-                                <TableHead className="w-[150px] text-center">Estoque Físico</TableHead>
-                                <TableHead className="w-[150px] text-center">Diferença</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {auditedProducts.map(product => (
-                                <TableRow key={product.id}>
-                                     <TableCell>
-                                        <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
-                                            <Image 
-                                                src={(product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/100x100.png'} 
-                                                alt={product.name} 
-                                                fill 
-                                                className="object-contain" 
-                                            />
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="font-medium">{product.name}</TableCell>
-                                    <TableCell className="text-center font-semibold text-lg">{product.stock}</TableCell>
-                                    <TableCell className="text-center">
-                                        <Input
-                                            type="number"
-                                            className="w-24 mx-auto text-center print-hidden"
-                                            value={product.physicalCount}
-                                            onChange={(e) => handleCountChange(product.id, e.target.value)}
-                                        />
-                                        <span className="hidden print:inline-block font-semibold text-lg">{product.physicalCount}</span>
-                                    </TableCell>
-                                    <TableCell 
-                                        className={cn(
-                                            "text-center font-bold text-lg",
-                                            product.difference === 0 && "text-green-600",
-                                            product.difference !== 0 && "text-destructive",
-                                        )}
-                                    >
-                                        {product.difference !== null ? (product.difference > 0 ? `+${product.difference}`: product.difference) : '-'}
-                                    </TableCell>
+                    <div className="hidden print:block">
+                        <CardTitle>Relatório de Auditoria de Estoque</CardTitle>
+                        <CardDescription>Data: {format(new Date(), 'dd/MM/yyyy')}</CardDescription>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[80px]">Imagem</TableHead>
+                                    <TableHead>Produto</TableHead>
+                                    <TableHead className="text-center">Estoque Sistema</TableHead>
+                                    <TableHead className="w-[150px] text-center">Estoque Físico</TableHead>
+                                    <TableHead className="w-[150px] text-center">Diferença</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </CardContent>
-        </Card>
+                            </TableHeader>
+                            <TableBody>
+                                {auditedProducts.map(product => (
+                                    <TableRow key={product.id}>
+                                        <TableCell>
+                                            <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
+                                                <Image 
+                                                    src={(product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/100x100.png'} 
+                                                    alt={product.name} 
+                                                    fill 
+                                                    className="object-contain" 
+                                                />
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="font-medium">{product.name}</TableCell>
+                                        <TableCell className="text-center font-semibold text-lg">{product.stock}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Input
+                                                type="number"
+                                                className="w-24 mx-auto text-center print-hidden"
+                                                value={product.physicalCount}
+                                                onChange={(e) => handleCountChange(product.id, e.target.value)}
+                                            />
+                                            <span className="hidden print:inline-block font-semibold text-lg">{product.physicalCount}</span>
+                                        </TableCell>
+                                        <TableCell 
+                                            className={cn(
+                                                "text-center font-bold text-lg",
+                                                product.difference === 0 && "text-green-600",
+                                                product.difference !== 0 && "text-destructive",
+                                            )}
+                                        >
+                                            {product.difference !== null ? (product.difference > 0 ? `+${product.difference}`: product.difference) : '-'}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
     )
 }
 
