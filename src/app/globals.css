@@ -74,11 +74,12 @@
     print-color-adjust: exact !important;
   }
   
-  .print-hidden {
+  .print-hidden,
+  .print-container > .space-y-8 > .print-hidden {
     display: none !important;
   }
 
-  .print\:block {
+  .print-container .print\:block {
     display: block !important;
   }
   
@@ -89,24 +90,41 @@
   .print\:inline-block {
     display: inline-block !important;
   }
-
-  .print\:border-none {
+  
+  .print\:border-none,
+  .print-container .border,
+  .print-container .rounded-lg,
+  .print-container .shadow-sm {
     border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
   
-  .print-card {
-    box-shadow: none !important;
-    border: none !important;
+  /* Reset card styles for printing */
+  .print-container .print-section {
+    background-color: transparent !important;
+    padding: 0 !important;
+  }
+  .print-container .print-section .p-6,
+  .print-container .print-section .pl-2,
+  .print-container .print-section .pb-2 {
+    padding: 0 !important;
   }
 
-  /* Hide elements for specific print modes */
+  /* Specific print layout rules */
   .print-layout-sales .print-profits,
-  .print-layout-sales .print-commissions,
+  .print-layout-sales .print-commissions {
+    display: none;
+  }
+
   .print-layout-profits .print-sales,
-  .print-layout-profits .print-commissions,
+  .print-layout-profits .print-commissions {
+    display: none;
+  }
+
   .print-layout-commissions .print-sales,
   .print-layout-commissions .print-profits {
-      display: none;
+    display: none;
   }
 }
 
