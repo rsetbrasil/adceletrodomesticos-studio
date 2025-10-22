@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import Logo from '@/components/Logo';
+import { useSettings } from '@/context/SettingsContext';
 
 
 type StockCount = {
@@ -38,6 +40,7 @@ const getAnos = () => {
 
 function StockAuditTab() {
     const { products, saveStockAudit, stockAudits } = useAdmin();
+    const { settings } = useSettings();
     const { user } = useAuth();
     const router = useRouter();
     const [stockCounts, setStockCounts] = useState<StockCount>({});
@@ -175,17 +178,32 @@ function StockAuditTab() {
                             </div>
                         </div>
                     </div>
-                    <div className="hidden print:block text-center mb-4">
-                        <CardTitle>Relatório de Auditoria de Estoque</CardTitle>
-                        <CardDescription className="text-lg font-semibold capitalize">{mesLabel} / {ano}</CardDescription>
+                     <div className="hidden print:block mb-8">
+                        <div className="flex justify-between items-start pb-4 border-b">
+                            <div>
+                                <Logo />
+                                <div className="mt-2 text-xs">
+                                    <p className="font-bold">{settings.storeName}</p>
+                                    <p className="whitespace-pre-line">{settings.storeAddress}</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString('pt-BR')}</p>
+                                <p className="text-lg font-bold">Auditoria de Estoque</p>
+                            </div>
+                        </div>
+                        <div className="text-center mt-4">
+                            <h2 className="text-xl font-semibold">Relatório de Posição de Estoque</h2>
+                            <p className="text-md capitalize">Referente a: {mesLabel} / {ano}</p>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="rounded-md border">
+                    <div className="rounded-md border print:border-none">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[80px]">Imagem</TableHead>
+                                    <TableHead className="w-[80px] print:hidden">Imagem</TableHead>
                                     <TableHead>Produto</TableHead>
                                     <TableHead className="text-center">Estoque Sistema</TableHead>
                                     <TableHead className="w-[150px] text-center">Estoque Físico</TableHead>
@@ -195,7 +213,7 @@ function StockAuditTab() {
                             <TableBody>
                                 {auditedProducts.map(product => (
                                     <TableRow key={product.id}>
-                                        <TableCell>
+                                        <TableCell className="print:hidden">
                                             <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
                                                 <Image 
                                                     src={(product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/100x100.png'} 
@@ -220,7 +238,7 @@ function StockAuditTab() {
                                             className={cn(
                                                 "text-center font-bold text-lg",
                                                 product.difference === 0 && "text-green-600",
-                                                product.difference !== 0 && "text-destructive",
+                                                product.difference !== null && product.difference !== 0 && "text-destructive",
                                             )}
                                         >
                                             {product.difference !== null ? (product.difference > 0 ? `+${product.difference}`: product.difference) : '-'}

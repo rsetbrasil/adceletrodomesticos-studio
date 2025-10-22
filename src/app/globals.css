@@ -67,87 +67,84 @@
 }
 
 @media print {
-  .print-hidden {
-    display: none !important;
-  }
-  body, .print-mode {
+  body, .print-container {
     background: white !important;
+    color: black !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-
+  
   .print-container {
     max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
-    space-y: 0 !important;
+  }
+
+  .print-hidden {
+    display: none !important;
+  }
+
+  .print\:block {
+    display: block !important;
+  }
+  
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:inline-block {
+    display: inline-block !important;
+  }
+
+  .print\:border-none {
+    border: none !important;
   }
 
   .print-card {
-    border: none !important;
     box-shadow: none !important;
-    background-color: transparent !important;
-  }
-  
-  .print\:col-span-2 {
-    grid-column: span 2 / span 2;
-  }
-  
-  .print-layout-default .print-default\:grid {
-    display: grid;
-  }
-  .print-layout-default .print-default\:grid-cols-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .print-layout-default .print-default\:gap-x-4 {
-    column-gap: 1rem;
-  }
-  .print-layout-default .print-default\:border-none {
-    border-style: none;
-  }
-  .print-layout-default .print-default\:shadow-none {
-    box-shadow: none;
-  }
-  .print-layout-default .print-default\:bg-transparent {
-    background-color: transparent;
-  }
-  .print-layout-default .print-default\:border-r {
-    border-right-width: 1px;
-  }
-  .print-layout-default .print-default\:border-dashed {
-    border-style: dashed;
-  }
-  .print-layout-default .print-default\:border-black {
-    --tw-border-opacity: 1;
-    border-color: rgb(0 0 0 / var(--tw-border-opacity));
-  }
-  .print-layout-default .print-default\:pr-4 {
-    padding-right: 1rem;
-  }
-  .print-layout-default .print-default\:block {
-    display: block;
-  }
-  .print-layout-default .print-default\:pl-4 {
-    padding-left: 1rem;
+    border: none !important;
   }
 
-  .print-layout-a4 .print-a4\:block {
-    display: block;
-  }
-  
   .print-mode .print-section {
     display: none;
   }
   
-  .print-sales-only .print-sales {
-    display: block !important;
-  }
-  
-  .print-profits-only .print-profits {
-    display: block !important;
-  }
-
+  .print-sales-only .print-sales,
+  .print-profits-only .print-profits,
   .print-commissions-only .print-commissions {
     display: block !important;
   }
+}
+
+/* Specific layout styles for printing */
+.print-layout-default .print-default\:grid {
+  display: grid;
+}
+.print-layout-default .print-default\:grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.print-layout-default .print-default\:gap-x-4 {
+  column-gap: 1rem;
+}
+.print-layout-default .print-default\:border-r {
+  border-right-width: 1px;
+}
+.print-layout-default .print-default\:border-dashed {
+  border-style: dashed;
+}
+.print-layout-default .print-default\:border-black {
+  --tw-border-opacity: 1;
+  border-color: rgb(0 0 0 / var(--tw-border-opacity));
+}
+.print-layout-default .print-default\:pr-4 {
+  padding-right: 1rem;
+}
+.print-layout-default .print-default\:block {
+  display: block;
+}
+.print-layout-default .print-default\:pl-4 {
+  padding-left: 1rem;
+}
+.print-layout-a4 .print-a4\:block {
+  display: block;
 }
