@@ -70,7 +70,7 @@ export default function MyAccountPage() {
     const allInstallments = customerOrders.flatMap(order => (order.installmentDetails || []));
     
     const totalComprado = customerOrders.reduce((acc, order) => acc + order.total, 0);
-    const totalPago = allInstallments.filter(inst => inst.status === 'Pago').reduce((acc, inst) => acc + inst.amount, 0);
+    const totalPago = allInstallments.reduce((sum, inst) => sum + (inst.paidAmount || 0), 0);
     const saldoDevedor = totalComprado - totalPago;
 
     return { totalComprado, totalPago, saldoDevedor };
@@ -203,12 +203,17 @@ export default function MyAccountPage() {
                                                             <h4 className="font-semibold mb-2">Parcelas</h4>
                                                             <div className="space-y-2">
                                                                 {order.installmentDetails.map(inst => {
+                                                                    const remainingAmount = inst.amount - (inst.paidAmount || 0);
                                                                     const isPaid = inst.status === 'Pago';
+                                                                    const isPartiallyPaid = inst.status === 'Pendente' && (inst.paidAmount || 0) > 0;
                                                                     return (
                                                                         <div key={inst.installmentNumber} className="flex justify-between items-center text-sm p-2 rounded-md bg-muted/50">
                                                                             <div>
-                                                                                <span className="font-medium">Parcela {inst.installmentNumber}</span>
-                                                                                <span className="text-muted-foreground"> - Venc. {format(parseISO(inst.dueDate), "dd/MM/yy")}</span>
+                                                                                <p className="font-medium">Parcela {inst.installmentNumber}</p>
+                                                                                <p className="text-xs text-muted-foreground">Venc. {format(parseISO(inst.dueDate), "dd/MM/yy")}</p>
+                                                                                {isPartiallyPaid && (
+                                                                                     <p className="text-xs text-amber-600 font-semibold">{formatCurrency(remainingAmount)} pendente</p>
+                                                                                )}
                                                                             </div>
                                                                             <div className="flex items-center gap-2">
                                                                                 <span className="font-semibold">{formatCurrency(inst.amount)}</span>
