@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -332,6 +333,7 @@ export default function OrdersAdminPage() {
   }
 
   const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'gerente';
+  const isAdmin = user?.role === 'admin';
 
 
   if (!isClient) {
@@ -597,7 +599,7 @@ export default function OrdersAdminPage() {
 
                                    <div className="flex justify-between text-base items-center">
                                       <span className="font-semibold text-green-600 flex items-center gap-2"><Percent />Comissão:</span>
-                                      {isManagerOrAdmin ? (
+                                      {isAdmin ? (
                                         <div className="flex gap-2 items-center">
                                           <span className="text-sm">R$</span>
                                            <Input

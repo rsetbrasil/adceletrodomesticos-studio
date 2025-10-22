@@ -171,7 +171,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   const maxInstallments = form.watch('maxInstallments');
   const selectedCategoryName = form.watch('category');
   const commissionType = form.watch('commissionType');
-  const canEditCommission = user?.role === 'admin' || user?.role === 'gerente';
+  const canEditCommission = user?.role === 'admin';
 
   const installmentValue = (price || 0) > 0 && (maxInstallments || 0) > 0 ? (price || 0) / (maxInstallments || 1) : 0;
   
