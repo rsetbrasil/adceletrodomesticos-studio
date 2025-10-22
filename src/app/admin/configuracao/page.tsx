@@ -12,7 +12,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
-import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock, Phone } from 'lucide-react';
+import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock } from 'lucide-react';
 import type { StoreSettings } from '@/context/SettingsContext';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -22,6 +22,7 @@ import type { RolePermissions, UserRole, AppSection } from '@/lib/types';
 import { ALL_SECTIONS } from '@/lib/permissions';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 
 
 const settingsSchema = z.object({
@@ -248,9 +249,12 @@ export default function ConfiguracaoPage() {
                     name="storePhone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Telefone da Loja (WhatsApp)</FormLabel>
+                        <FormLabel className="flex items-center gap-2">
+                            <div className="text-green-600"><WhatsAppIcon /></div>
+                            Telefone da Loja (WhatsApp)
+                        </FormLabel>
                         <FormControl>
-                          <Input placeholder="5511999999999" {...field} />
+                          <Input placeholder="11999999999" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
