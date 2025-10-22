@@ -43,7 +43,7 @@ interface AdminContextType {
   deleteOrder: (orderId: string) => Promise<void>;
   permanentlyDeleteOrder: (orderId: string) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
-  recordInstallmentPayment: (orderId: string, installmentNumber: number, payment: Payment) => Promise<void>;
+  recordInstallmentPayment: (orderId: string, installmentNumber: number, payment: Omit<Payment, 'receivedBy'>) => Promise<void>;
   reversePayment: (orderId: string, installmentNumber: number, paymentId: string) => Promise<void>;
   updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date) => Promise<void>;
   updateCustomer: (customer: CustomerInfo) => Promise<void>;
@@ -655,14 +655,19 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const recordInstallmentPayment = async (orderId: string, installmentNumber: number, payment: Payment) => {
+  const recordInstallmentPayment = async (orderId: string, installmentNumber: number, paymentData: Omit<Payment, 'receivedBy'>) => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
+    
+    const paymentWithUser = {
+      ...paymentData,
+      receivedBy: user?.name || 'Sistema'
+    };
     
     const updatedInstallments = (order.installmentDetails || []).map((inst) => {
       if (inst.installmentNumber === installmentNumber) {
         const currentPaidAmount = Number(inst.paidAmount) || 0;
-        const paymentAmount = Number(payment.amount) || 0;
+        const paymentAmount = Number(paymentWithUser.amount) || 0;
         const newPaidAmount = currentPaidAmount + paymentAmount;
         // Check if paid amount is effectively equal to installment amount, handling floating point inaccuracies
         const isPaid = Math.abs(newPaidAmount - inst.amount) < 0.01;
@@ -674,7 +679,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
           ...inst, 
           status: newStatus, 
           paidAmount: newPaidAmount, 
-          payments: [...existingPayments, payment]
+          payments: [...existingPayments, paymentWithUser]
         };
       }
       return inst;
@@ -682,7 +687,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
     const orderRef = doc(db, 'orders', orderId);
     updateDoc(orderRef, { installmentDetails: updatedInstallments }).then(() => {
-        logAction('Registro de Pagamento de Parcela', `Registrado pagamento de ${payment.amount} (${payment.method}) na parcela ${installmentNumber} do pedido #${orderId}.`, user);
+        logAction('Registro de Pagamento de Parcela', `Registrado pagamento de ${paymentWithUser.amount} (${paymentWithUser.method}) na parcela ${installmentNumber} do pedido #${orderId}.`, user);
         toast({ title: 'Pagamento Registrado!' });
     }).catch(async(e) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({

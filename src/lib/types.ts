@@ -58,6 +58,7 @@ export type Payment = {
   date: string;
   method: 'Dinheiro' | 'Pix' | 'Cartão (Crédito)' | 'Cartão (Débito)';
   change?: number;
+  receivedBy?: string; // User name
 }
 
 export type Installment = {

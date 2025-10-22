@@ -175,7 +175,7 @@ export default function CustomersAdminPage() {
     setPaymentDialogOpen(true);
   };
   
-  const handlePaymentSubmit = (payment: Payment) => {
+  const handlePaymentSubmit = (payment: Omit<Payment, 'receivedBy'>) => {
     if (orderForPayment && installmentToPay) {
       recordInstallmentPayment(orderForPayment.id, installmentToPay.installmentNumber, payment);
       window.open(`/carnet/${orderForPayment.id}/${installmentToPay.installmentNumber}`, '_blank');
@@ -614,6 +614,7 @@ export default function CustomersAdminPage() {
                                                                                         <TableHeader>
                                                                                             <TableRow>
                                                                                                 <TableHead>Data</TableHead>
+                                                                                                <TableHead>Recebido por</TableHead>
                                                                                                 <TableHead>Método</TableHead>
                                                                                                 <TableHead>Valor</TableHead>
                                                                                                 <TableHead className='text-right'>Ação</TableHead>
@@ -623,6 +624,7 @@ export default function CustomersAdminPage() {
                                                                                             {inst.payments.map((p, index) => (
                                                                                                 <TableRow key={`${p.id}-${index}`}>
                                                                                                     <TableCell>{format(parseISO(p.date), "dd/MM/yyyy 'às' HH:mm")}</TableCell>
+                                                                                                    <TableCell>{p.receivedBy}</TableCell>
                                                                                                     <TableCell>{p.method}</TableCell>
                                                                                                     <TableCell>{formatCurrency(p.amount)}</TableCell>
                                                                                                     <TableCell className="text-right">
