@@ -1,9 +1,7 @@
-
 'use client';
 
 import { useSettings } from '@/context/SettingsContext';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 
 const WhatsAppIcon = () => (
     <svg
@@ -33,7 +31,7 @@ export default function WhatsAppButton() {
 
   return (
     <div className="fixed bottom-6 right-6 z-50 print-hidden">
-        <Link href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
             <Button
                 className="h-14 w-auto rounded-full bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg transition-transform hover:scale-105 flex items-center justify-center text-base font-bold px-6"
                 aria-label="Falar com um vendedor pelo WhatsApp"
@@ -41,7 +39,7 @@ export default function WhatsAppButton() {
                 <WhatsAppIcon />
                 <span className="ml-2">Falar com vendedor</span>
             </Button>
-        </Link>
+        </a>
     </div>
   );
 }
