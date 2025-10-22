@@ -39,7 +39,6 @@ export default function FinanceiroPage() {
   const router = useRouter();
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<SellerCommissionDetails | null>(null);
-  const [printMode, setPrintMode] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -155,24 +154,14 @@ export default function FinanceiroPage() {
     return orders.filter(o => selectedSeller.orderIds.includes(o.id));
   }, [selectedSeller, orders]);
 
-  useEffect(() => {
-    if (printMode === null) return;
-    
-    const print = () => {
-        window.print();
-        setPrintMode(null);
-    }
-    
-    // Use a timeout to allow the DOM to update with the new printMode class
-    const timer = setTimeout(print, 100);
-
-    return () => clearTimeout(timer);
-  }, [printMode]);
-
   const handlePrint = (type: 'sales' | 'profits' | 'commissions') => {
-    document.body.classList.add(`print-${type}-only`);
-    window.print();
-    document.body.classList.remove(`print-${type}-only`);
+    document.body.classList.remove('print-layout-sales', 'print-layout-profits', 'print-layout-commissions');
+    document.body.classList.add(`print-layout-${type}`);
+
+    // Use a timeout to allow the DOM to update with the new printMode class
+    setTimeout(() => {
+        window.print();
+    }, 100);
   };
 
   if (!isClient) {
@@ -192,7 +181,7 @@ export default function FinanceiroPage() {
 
   return (
     <>
-    <div className="print-container space-y-8">
+    <div className="space-y-8">
         <div className="hidden print:block mb-8">
             <div className="flex justify-between items-start pb-4 border-b">
                 <div>

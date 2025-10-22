@@ -67,19 +67,13 @@
 }
 
 @media print {
-  body, .print-container {
+  body {
     background: white !important;
     color: black !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
   
-  .print-container {
-    max-width: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
   .print-hidden {
     display: none !important;
   }
@@ -99,24 +93,19 @@
   .print\:border-none {
     border: none !important;
   }
-
+  
   .print-card {
     box-shadow: none !important;
     border: none !important;
   }
-  
-  body.print-sales-only .print-section:not(.print-sales),
-  body.print-profits-only .print-section:not(.print-profits),
-  body.print-commissions-only .print-section:not(.print-commissions) {
-    display: none;
-  }
 
-  body.print-sales-only .print-profits,
-  body.print-sales-only .print-commissions,
-  body.print-profits-only .print-sales,
-  body.print-profits-only .print-commissions,
-  body.print-commissions-only .print-sales,
-  body.print-commissions-only .print-profits {
+  /* Hide elements for specific print modes */
+  .print-layout-sales .print-profits,
+  .print-layout-sales .print-commissions,
+  .print-layout-profits .print-sales,
+  .print-layout-profits .print-commissions,
+  .print-layout-commissions .print-sales,
+  .print-layout-commissions .print-profits {
       display: none;
   }
 }

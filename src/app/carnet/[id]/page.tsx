@@ -185,7 +185,9 @@ export default function CarnetPage() {
   }, [nextPendingInstallment, order, settings]);
 
   const handlePrint = (layout: 'default' | 'a4') => {
-    setPrintLayout(layout);
+    document.body.classList.remove('print-layout-default', 'print-layout-a4');
+    document.body.classList.add(`print-layout-${layout}`);
+    
     // Use a short timeout to allow state to update and classes to be applied
     setTimeout(() => {
         window.print();
@@ -224,7 +226,7 @@ export default function CarnetPage() {
   }
 
   return (
-    <div className={cn("bg-white print:bg-white", `print-layout-${printLayout}`)}>
+    <div className={cn("bg-muted/30 print:bg-white")}>
        <div className="container mx-auto max-w-7xl py-8 px-4 print:p-0 print:m-0 print:max-w-full">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>
