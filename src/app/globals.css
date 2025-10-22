@@ -82,13 +82,24 @@
       display: block !important;
   }
 
-  .print-container .print-section {
+  .print-only .border, 
+  .print-only .border-b,
+  .print-only .border-t,
+  .print-only .border-b-2 {
+      border-color: #000 !important;
+  }
+
+  /* Default state: hide all print sections */
+  .print-only .print-section-sales,
+  .print-only .print-section-profits,
+  .print-only .print-section-commissions {
     display: none;
   }
   
-  body.print-layout-sales .print-sales,
-  body.print-layout-profits .print-profits,
-  body.print-layout-commissions .print-commissions {
+  /* When a specific print mode is active, show the relevant section(s) */
+  body.print-sales-only .print-section-sales,
+  body.print-profits-only .print-section-profits,
+  body.print-commissions-only .print-section-commissions {
     display: block !important;
   }
 

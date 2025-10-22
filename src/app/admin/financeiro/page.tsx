@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
-import { DollarSign, CheckCircle, Clock, Percent, Award, FileText, TrendingUp, Eye, Printer } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, Percent, Award, FileText, TrendingUp, Eye, Printer, TrendingDown } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -161,19 +161,30 @@ export default function FinanceiroPage() {
 
   const handlePrint = (type: 'sales' | 'profits' | 'commissions') => {
     let title = 'Relatório Financeiro';
-    if(type === 'sales') title = 'Relatório de Vendas';
-    if(type === 'profits') title = 'Relatório de Lucros';
-    if(type === 'commissions') title = 'Relatório de Comissões';
+    let bodyClass = '';
+
+    if (type === 'sales') {
+        title = 'Relatório de Vendas';
+        bodyClass = 'print-sales-only';
+    } else if (type === 'profits') {
+        title = 'Relatório de Lucros';
+        bodyClass = 'print-profits-only';
+    } else if (type === 'commissions') {
+        title = 'Relatório de Comissões';
+        bodyClass = 'print-commissions-only';
+    }
+    
     setPrintTitle(title);
 
-    const body = document.body;
-    body.classList.remove('print-layout-sales', 'print-layout-profits', 'print-layout-commissions');
-    body.classList.add(`print-layout-${type}`);
-
+    // Add class to body to control print styles
+    document.body.classList.add(bodyClass);
+    
     setTimeout(() => {
-      window.print();
+        window.print();
+        // Remove class after printing
+        document.body.classList.remove(bodyClass);
     }, 100);
-  };
+};
 
   if (!isClient) {
     return (
@@ -192,8 +203,167 @@ export default function FinanceiroPage() {
 
   return (
     <>
-      <div className="print-container">
-        <div className="hidden print:block mb-8">
+      <div className="print-hidden">
+        <div className="space-y-8">
+          <Card>
+            <CardHeader>
+                <CardTitle>Relatório Financeiro</CardTitle>
+                <CardDescription>Resumo de vendas, lucros e comissões. Use os botões para imprimir seções específicas.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+                <Button onClick={() => handlePrint('sales')}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Imprimir Vendas
+                </Button>
+                <Button onClick={() => handlePrint('profits')}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Imprimir Lucros
+                </Button>
+                <Button onClick={() => handlePrint('commissions')}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Imprimir Comissões
+                </Button>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Vendido</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(financialSummary.totalVendido)}</div>
+                <p className="text-xs text-muted-foreground">Soma de todos os pedidos</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Lucro Bruto</CardTitle>
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(financialSummary.lucroBruto)}</div>
+                <p className="text-xs text-muted-foreground">Receita total - Custo dos produtos</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Contas a Receber</CardTitle>
+                <Clock className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(financialSummary.totalPendente)}</div>
+                <p className="text-xs text-muted-foreground">Soma de todas as parcelas pendentes</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Comissões a Pagar</CardTitle>
+                <Percent className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(commissionSummary.totalPendingCommission)}</div>
+                <p className="text-xs text-muted-foreground">Soma das comissões pendentes</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Vendas Mensais</CardTitle>
+                </CardHeader>
+                <CardContent className="pl-2">
+                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                    <ResponsiveContainer>
+                      <BarChart data={financialSummary.monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="name"
+                          tickLine={false}
+                          tickMargin={10}
+                          axisLine={false}
+                          className="capitalize"
+                        />
+                        <YAxis
+                          tickFormatter={(value) => formatCurrency(value as number)}
+                          tickLine={false}
+                          axisLine={false}
+                          width={100}
+                        />
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent
+                              formatter={(value) => formatCurrency(value as number)}
+                              />}
+                          />
+                        <Legend />
+                        <Bar dataKey="total" fill="var(--color-total)" radius={4} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                  <div>
+                    <CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" /> Comissões a Pagar</CardTitle>
+                    <CardDescription>Total de comissões pendentes para cada vendedor (apenas de pedidos entregues).</CardDescription>
+                  </div>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Vendedor</TableHead>
+                        <TableHead className="text-center">Nº de Vendas</TableHead>
+                        <TableHead className="text-right">Comissão Total</TableHead>
+                        <TableHead className="text-right">Ação</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {commissionSummary.commissionsBySeller.length > 0 ? (
+                        commissionSummary.commissionsBySeller.map(seller => (
+                          <TableRow key={seller.id}>
+                            <TableCell className="font-medium">{seller.name}</TableCell>
+                            <TableCell className="text-center">{seller.count}</TableCell>
+                            <TableCell className="text-right font-semibold">{formatCurrency(seller.total)}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(seller)}>
+                                        <Eye className="h-4 w-4" />
+                                        <span className="sr-only">Ver detalhes</span>
+                                    </Button>
+                                    <Button size="sm" onClick={() => handlePayCommission(seller)}>
+                                        <DollarSign className="mr-2 h-4 w-4" />
+                                        Pagar
+                                    </Button>
+                                </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                            <TableCell colSpan={4} className="h-24 text-center">
+                              Nenhuma comissão pendente de pagamento.
+                            </TableCell>
+                          </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+       {/* Print-only view */}
+      <div className="print-only">
+        <div className="mb-8">
             <div className="flex justify-between items-start pb-4 border-b">
                 <div>
                     <Logo />
@@ -203,167 +373,77 @@ export default function FinanceiroPage() {
                     </div>
                 </div>
                 <div className="text-right">
-                    <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString('pt-BR')}</p>
+                    <p className="text-sm text-gray-500">{new Date().toLocaleDateString('pt-BR')}</p>
                     <p className="text-lg font-bold">{printTitle}</p>
                 </div>
             </div>
         </div>
-
-      <div className="space-y-8">
-        <Card className="print-hidden">
-          <CardHeader>
-              <CardTitle>Relatório Financeiro</CardTitle>
-              <CardDescription>Resumo de vendas, lucros e comissões. Use os botões para imprimir seções específicas.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-              <Button onClick={() => handlePrint('sales')}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  Imprimir Vendas
-              </Button>
-              <Button onClick={() => handlePrint('profits')}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  Imprimir Lucros
-              </Button>
-              <Button onClick={() => handlePrint('commissions')}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  Imprimir Comissões
-              </Button>
-          </CardContent>
-        </Card>
-
-        <div className="print-section print-sales print-profits grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Vendido</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(financialSummary.totalVendido)}</div>
-              <p className="text-xs text-muted-foreground">Soma de todos os pedidos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Lucro Bruto</CardTitle>
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(financialSummary.lucroBruto)}</div>
-              <p className="text-xs text-muted-foreground">Receita total - Custo dos produtos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Contas a Receber</CardTitle>
-              <Clock className="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(financialSummary.totalPendente)}</div>
-              <p className="text-xs text-muted-foreground">Soma de todas as parcelas pendentes</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Comissões a Pagar</CardTitle>
-              <Percent className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(commissionSummary.totalPendingCommission)}</div>
-              <p className="text-xs text-muted-foreground">Soma das comissões pendentes</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-8 md:grid-cols-2">
-          <Card className="print-section print-sales">
-              <CardHeader>
-                  <CardTitle>Vendas Mensais</CardTitle>
-              </CardHeader>
-              <CardContent className="pl-2">
-                <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                  <ResponsiveContainer>
-                    <BarChart data={financialSummary.monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                      <CartesianGrid vertical={false} />
-                      <XAxis
-                        dataKey="name"
-                        tickLine={false}
-                        tickMargin={10}
-                        axisLine={false}
-                        className="capitalize"
-                      />
-                      <YAxis
-                        tickFormatter={(value) => formatCurrency(value as number)}
-                        tickLine={false}
-                        axisLine={false}
-                        width={100}
-                      />
-                      <ChartTooltip
-                        cursor={false}
-                        content={<ChartTooltipContent
-                            formatter={(value) => formatCurrency(value as number)}
-                            />}
-                        />
-                      <Legend />
-                      <Bar dataKey="total" fill="var(--color-total)" radius={4} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
-          </Card>
-
-          <Card className="print-section print-commissions">
-            <CardHeader>
-                <div>
-                  <CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" /> Comissões a Pagar</CardTitle>
-                  <CardDescription>Total de comissões pendentes para cada vendedor (apenas de pedidos entregues).</CardDescription>
+        
+        <div className="print-section-profits print-section-sales space-y-6">
+            <h2 className="text-xl font-semibold text-center">Resumo Financeiro</h2>
+            <div className="flex flex-col gap-4 border-y py-4">
+                <div className="flex justify-between items-center text-lg">
+                    <span className="font-medium">Total Vendido</span>
+                    <span className="font-bold">{formatCurrency(financialSummary.totalVendido)}</span>
                 </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border print:border-none">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Vendedor</TableHead>
-                      <TableHead className="text-center">Nº de Vendas</TableHead>
-                      <TableHead className="text-right">Comissão Total</TableHead>
-                      <TableHead className="text-right print-hidden">Ação</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {commissionSummary.commissionsBySeller.length > 0 ? (
-                      commissionSummary.commissionsBySeller.map(seller => (
-                        <TableRow key={seller.id}>
-                          <TableCell className="font-medium">{seller.name}</TableCell>
-                          <TableCell className="text-center">{seller.count}</TableCell>
-                          <TableCell className="text-right font-semibold">{formatCurrency(seller.total)}</TableCell>
-                          <TableCell className="text-right print-hidden">
-                            <div className="flex items-center justify-end gap-2">
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(seller)}>
-                                      <Eye className="h-4 w-4" />
-                                      <span className="sr-only">Ver detalhes</span>
-                                  </Button>
-                                  <Button size="sm" onClick={() => handlePayCommission(seller)}>
-                                      <DollarSign className="mr-2 h-4 w-4" />
-                                      Pagar
-                                  </Button>
-                              </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                          <TableCell colSpan={4} className="h-24 text-center">
-                            Nenhuma comissão pendente de pagamento.
-                          </TableCell>
-                        </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+                 <div className="flex justify-between items-center text-lg">
+                    <span className="font-medium">Lucro Bruto</span>
+                    <span className="font-bold">{formatCurrency(financialSummary.lucroBruto)}</span>
+                </div>
+                <div className="flex justify-between items-center text-lg">
+                    <span className="font-medium">Contas a Receber</span>
+                    <span className="font-bold">{formatCurrency(financialSummary.totalPendente)}</span>
+                </div>
+                <div className="flex justify-between items-center text-lg">
+                    <span className="font-medium">Comissões a Pagar</span>
+                    <span className="font-bold">{formatCurrency(commissionSummary.totalPendingCommission)}</span>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <div className="print-section-sales mt-8">
+            <h2 className="text-xl font-semibold text-center mb-4">Vendas Mensais</h2>
+            <ChartContainer config={chartConfig} className="h-[350px] w-full">
+              <ResponsiveContainer>
+                <BarChart data={financialSummary.monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} className="capitalize" />
+                  <YAxis tickFormatter={(value) => formatCurrency(value as number)} tickLine={false} axisLine={false} width={100} />
+                  <Bar dataKey="total" fill="var(--color-total)" radius={4} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+        </div>
+
+        <div className="print-section-commissions mt-8">
+            <h2 className="text-xl font-semibold text-center mb-4">Comissões a Pagar</h2>
+            <table className="w-full text-sm border-collapse">
+                <thead>
+                    <tr className="border-b-2">
+                        <th className="text-left p-2 font-bold">Vendedor</th>
+                        <th className="text-center p-2 font-bold">Nº de Vendas</th>
+                        <th className="text-right p-2 font-bold">Comissão Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {commissionSummary.commissionsBySeller.length > 0 ? (
+                        commissionSummary.commissionsBySeller.map(seller => (
+                        <tr key={seller.id} className="border-b last:border-none">
+                            <td className="p-2">{seller.name}</td>
+                            <td className="text-center p-2">{seller.count}</td>
+                            <td className="text-right p-2 font-semibold">{formatCurrency(seller.total)}</td>
+                        </tr>
+                        ))
+                    ) : (
+                        <tr>
+                            <td colSpan={3} className="h-24 text-center text-gray-500">
+                            Nenhuma comissão pendente de pagamento.
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
+        </div>
       </div>
     
     <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
