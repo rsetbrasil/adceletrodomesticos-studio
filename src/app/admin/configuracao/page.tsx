@@ -57,7 +57,7 @@ export default function ConfiguracaoPage() {
   });
 
   useEffect(() => {
-    if (!settingsLoading) {
+    if (!settingsLoading && settings) {
       form.reset(settings);
     }
   }, [settingsLoading, settings, form]);
@@ -254,7 +254,7 @@ export default function ConfiguracaoPage() {
                             Telefone da Loja (WhatsApp)
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="11999999999" {...field} />
+                          <Input placeholder="5511999999999" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

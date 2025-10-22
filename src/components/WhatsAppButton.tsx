@@ -12,7 +12,7 @@ export default function WhatsAppButton() {
 
   const phoneNumber = settings.storePhone.replace(/\D/g, '');
   const message = encodeURIComponent(`Olá! Gostaria de mais informações sobre os produtos.`);
-  const whatsappUrl = `https://wa.me/55${phoneNumber}?text=${message}`;
+  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 print-hidden">
