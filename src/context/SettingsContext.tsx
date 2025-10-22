@@ -23,7 +23,7 @@ const initialSettings: StoreSettings = {
     storeCity: 'SAO PAULO',
     storeAddress: 'Rua da Loja, 123 - Centro, São Paulo/SP - CEP 01000-000',
     pixKey: 'fb43228c-4740-4c16-a217-21706a782496', // Example key
-    storePhone: '5511999999999', // Example phone
+    storePhone: '11999999999', // Example phone
 };
 
 interface SettingsContextType {
