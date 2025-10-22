@@ -73,58 +73,37 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  
-  .print-hidden,
-  .print-container > .space-y-8 > .print-hidden {
+
+  .print-hidden {
     display: none !important;
   }
 
-  .print-container .print\:block {
+  .print-only {
+      display: block !important;
+  }
+
+  .print-container .print-section {
+    display: none;
+  }
+  
+  body.print-layout-sales .print-sales,
+  body.print-layout-profits .print-profits,
+  body.print-layout-commissions .print-commissions {
     display: block !important;
   }
-  
-  .print\:hidden {
-    display: none !important;
-  }
 
-  .print\:inline-block {
-    display: inline-block !important;
+  /* Hide print-only section by default on screen */
+  .print-only {
+    display: none;
   }
   
-  .print\:border-none,
+  .print-container > .print-section,
   .print-container .border,
   .print-container .rounded-lg,
   .print-container .shadow-sm {
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-  }
-  
-  /* Reset card styles for printing */
-  .print-container .print-section {
-    background-color: transparent !important;
-    padding: 0 !important;
-  }
-  .print-container .print-section .p-6,
-  .print-container .print-section .pl-2,
-  .print-container .print-section .pb-2 {
-    padding: 0 !important;
-  }
-
-  /* Specific print layout rules */
-  .print-layout-sales .print-profits,
-  .print-layout-sales .print-commissions {
-    display: none;
-  }
-
-  .print-layout-profits .print-sales,
-  .print-layout-profits .print-commissions {
-    display: none;
-  }
-
-  .print-layout-commissions .print-sales,
-  .print-layout-commissions .print-profits {
-    display: none;
+      border: none !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
   }
 }
 

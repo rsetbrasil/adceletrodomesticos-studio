@@ -127,12 +127,13 @@ function StockAuditTab() {
     }
 
     return (
-        <div className="print-container">
-            <Card className="print-card">
-                <CardHeader>
-                    <div className="print-hidden">
+        <div>
+            {/* Screen-only view */}
+            <div className="print-hidden">
+                <Card>
+                    <CardHeader>
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                             <div>
+                            <div>
                                 <CardTitle className="flex items-center gap-2">
                                     <Boxes className="h-6 w-6" />
                                     Auditoria de Estoque
@@ -165,10 +166,10 @@ function StockAuditTab() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                             <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
                                 <label htmlFor="ano-auditoria" className="text-sm font-medium">Ano:</label>
                                 <Select value={ano} onValueChange={handleYearChange}>
-                                     <SelectTrigger id="ano-auditoria" className="w-[120px]">
+                                    <SelectTrigger id="ano-auditoria" className="w-[120px]">
                                         <SelectValue placeholder="Selecione o Ano" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -177,79 +178,105 @@ function StockAuditTab() {
                                 </Select>
                             </div>
                         </div>
-                    </div>
-                     <div className="hidden print:block mb-8">
-                        <div className="flex justify-between items-start pb-4 border-b">
-                            <div>
-                                <Logo />
-                                <div className="mt-2 text-xs">
-                                    <p className="font-bold">{settings.storeName}</p>
-                                    <p className="whitespace-pre-line">{settings.storeAddress}</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString('pt-BR')}</p>
-                                <p className="text-lg font-bold">Auditoria de Estoque</p>
-                            </div>
-                        </div>
-                        <div className="text-center mt-4">
-                            <h2 className="text-xl font-semibold">Relatório de Posição de Estoque</h2>
-                            <p className="text-md capitalize">Referente a: {mesLabel} / {ano}</p>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border print:border-none">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[80px] print:hidden">Imagem</TableHead>
-                                    <TableHead>Produto</TableHead>
-                                    <TableHead className="text-center">Estoque Sistema</TableHead>
-                                    <TableHead className="w-[150px] text-center">Estoque Físico</TableHead>
-                                    <TableHead className="w-[150px] text-center">Diferença</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {auditedProducts.map(product => (
-                                    <TableRow key={product.id}>
-                                        <TableCell className="print:hidden">
-                                            <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
-                                                <Image 
-                                                    src={(product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/100x100.png'} 
-                                                    alt={product.name} 
-                                                    fill 
-                                                    className="object-contain" 
-                                                />
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-medium">{product.name}</TableCell>
-                                        <TableCell className="text-center font-semibold text-lg">{product.stock}</TableCell>
-                                        <TableCell className="text-center">
-                                            <Input
-                                                type="number"
-                                                className="w-24 mx-auto text-center print-hidden"
-                                                value={product.physicalCount}
-                                                onChange={(e) => handleCountChange(product.id, e.target.value)}
-                                            />
-                                            <span className="hidden print:inline-block font-semibold text-lg">{product.physicalCount}</span>
-                                        </TableCell>
-                                        <TableCell 
-                                            className={cn(
-                                                "text-center font-bold text-lg",
-                                                product.difference === 0 && "text-green-600",
-                                                product.difference !== null && product.difference !== 0 && "text-destructive",
-                                            )}
-                                        >
-                                            {product.difference !== null ? (product.difference > 0 ? `+${product.difference}`: product.difference) : '-'}
-                                        </TableCell>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[80px]">Imagem</TableHead>
+                                        <TableHead>Produto</TableHead>
+                                        <TableHead className="text-center">Estoque Sistema</TableHead>
+                                        <TableHead className="w-[150px] text-center">Estoque Físico</TableHead>
+                                        <TableHead className="w-[150px] text-center">Diferença</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {auditedProducts.map(product => (
+                                        <TableRow key={product.id}>
+                                            <TableCell>
+                                                <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
+                                                    <Image 
+                                                        src={(product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/100x100.png'} 
+                                                        alt={product.name} 
+                                                        fill 
+                                                        className="object-contain" 
+                                                    />
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="font-medium">{product.name}</TableCell>
+                                            <TableCell className="text-center font-semibold text-lg">{product.stock}</TableCell>
+                                            <TableCell className="text-center">
+                                                <Input
+                                                    type="number"
+                                                    className="w-24 mx-auto text-center"
+                                                    value={product.physicalCount}
+                                                    onChange={(e) => handleCountChange(product.id, e.target.value)}
+                                                />
+                                            </TableCell>
+                                            <TableCell 
+                                                className={cn(
+                                                    "text-center font-bold text-lg",
+                                                    product.difference === 0 && "text-green-600",
+                                                    product.difference !== null && product.difference !== 0 && "text-destructive",
+                                                )}
+                                            >
+                                                {product.difference !== null ? (product.difference > 0 ? `+${product.difference}`: product.difference) : '-'}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Print-only view */}
+            <div className="print-only">
+                <div className="mb-8">
+                    <div className="flex justify-between items-start pb-4 border-b">
+                        <div>
+                            <Logo />
+                            <div className="mt-2 text-xs">
+                                <p className="font-bold">{settings.storeName}</p>
+                                <p className="whitespace-pre-line">{settings.storeAddress}</p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-sm text-gray-500">{new Date().toLocaleDateString('pt-BR')}</p>
+                            <p className="text-lg font-bold">Auditoria de Estoque</p>
+                        </div>
                     </div>
-                </CardContent>
-            </Card>
+                    <div className="text-center mt-4">
+                        <h2 className="text-xl font-semibold">Relatório de Posição de Estoque</h2>
+                        <p className="text-md capitalize">Referente a: {mesLabel} / {ano}</p>
+                    </div>
+                </div>
+
+                <table className="w-full text-sm border-collapse">
+                    <thead>
+                        <tr className="border-b-2">
+                            <th className="text-left p-2 font-bold">Produto</th>
+                            <th className="text-center p-2 font-bold">Estoque Sistema</th>
+                            <th className="text-center p-2 font-bold">Estoque Físico</th>
+                            <th className="text-center p-2 font-bold">Diferença</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {auditedProducts.map(product => (
+                            <tr key={product.id} className="border-b last:border-none">
+                                <td className="p-2">{product.name}</td>
+                                <td className="text-center p-2">{product.stock}</td>
+                                <td className="text-center p-2">{product.physicalCount}</td>
+                                <td className="text-center p-2 font-bold">
+                                    {product.difference !== null ? (product.difference > 0 ? `+${product.difference}`: product.difference) : '-'}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     )
 }
