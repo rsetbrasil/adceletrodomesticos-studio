@@ -107,15 +107,6 @@
   .print-only {
     display: none;
   }
-  
-  .print-container > .print-section,
-  .print-container .border,
-  .print-container .rounded-lg,
-  .print-container .shadow-sm {
-      border: none !important;
-      box-shadow: none !important;
-      border-radius: 0 !important;
-  }
 }
 
 /* Specific layout styles for printing */

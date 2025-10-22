@@ -203,8 +203,7 @@ export default function FinanceiroPage() {
 
   return (
     <>
-      <div className="print-hidden">
-        <div className="space-y-8">
+      <div className="print-hidden space-y-8">
           <Card>
             <CardHeader>
                 <CardTitle>Relatório Financeiro</CardTitle>
@@ -358,7 +357,6 @@ export default function FinanceiroPage() {
               </CardContent>
             </Card>
           </div>
-        </div>
       </div>
 
        {/* Print-only view */}
