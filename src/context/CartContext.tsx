@@ -7,10 +7,12 @@ import type { CartItem, Order, Product, CustomerInfo, Installment } from '@/lib/
 import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, writeBatch, onSnapshot } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 import { useAudit } from './AuditContext';
 import { useRouter } from 'next/navigation';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const saveDataToLocalStorage = (key: string, data: any) => {
     if (typeof window === 'undefined') return;
@@ -34,9 +36,9 @@ const loadDataFromLocalStorage = (key: string) => {
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (product: Product) => void;
+  addToCart: (product: Product, selectedVariant?: Product['variants'][0]) => void;
   removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  updateQuantity: (productId: string, quantity: number, variant?: Product['variants'][0]) => void;
   clearCart: () => void;
   getCartTotal: () => number;
   cartCount: number;
@@ -62,42 +64,96 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { logAction } = useAudit();
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+
 
   useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+        setAllProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+    },
+    (error) => {
+        console.error("Error fetching products in CartContext:", error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'products',
+            operation: 'list',
+        }));
+    });
+
     const storedCart = loadDataFromLocalStorage('cartItems');
     if (storedCart) setCartItems(storedCart);
 
     const storedLastOrder = loadDataFromLocalStorage('lastOrder');
     if(storedLastOrder) setLastOrderState(storedLastOrder);
-
+    
+    return () => unsubscribe();
   }, []);
 
-  const addToCart = (product: Product) => {
-    const imageUrl = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : 'https://placehold.co/600x600.png';
-    const updatedCart = [...cartItems];
-    const existingItem = updatedCart.find((item) => item.id === product.id);
-    if (existingItem) {
-      existingItem.quantity += 1;
-    } else {
-      updatedCart.push({ id: product.id, name: product.name, price: product.price, imageUrl, quantity: 1 });
+  const addToCart = (product: Product, selectedVariant?: Product['variants'][0]) => {
+    const variantToAdd = selectedVariant || (product.variants && product.variants[0]);
+    if (!variantToAdd) {
+        toast({ title: "Erro", description: "Selecione uma variação para este produto.", variant: "destructive"});
+        return;
     }
+
+    if (variantToAdd.stock < 1) {
+        toast({ title: "Produto Esgotado", description: "Esta variação do produto está fora de estoque.", variant: "destructive"});
+        return;
+    }
+
+    const updatedCart = [...cartItems];
+    const existingItemIndex = updatedCart.findIndex(item => item.id === product.id && item.variant.color === variantToAdd.color);
+
+    if (existingItemIndex > -1) {
+        const existingItem = updatedCart[existingItemIndex];
+        if (existingItem.quantity < variantToAdd.stock) {
+            existingItem.quantity += 1;
+        } else {
+            toast({ title: "Limite de Estoque Atingido", description: `Você já tem a quantidade máxima (${variantToAdd.stock}) deste item no carrinho.` });
+            return;
+        }
+    } else {
+        updatedCart.push({ 
+            id: product.id, 
+            name: product.name, 
+            price: product.price, 
+            variant: variantToAdd,
+            quantity: 1 
+        });
+    }
+
     setCartItems(updatedCart);
     saveDataToLocalStorage('cartItems', updatedCart);
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (productId: string) => {
-    const newCartItems = cartItems.filter((item) => item.id !== productId);
+  const removeFromCart = (productId: string, variantColor?: string) => {
+    const newCartItems = cartItems.filter(item => !(item.id === productId && (!variantColor || item.variant.color === variantColor)));
     setCartItems(newCartItems);
     saveDataToLocalStorage('cartItems', newCartItems);
   };
+  
+  const updateQuantity = (productId: string, quantity: number, variant?: Product['variants'][0]) => {
+    if (!variant) return;
 
-  const updateQuantity = (productId: string, quantity: number) => {
     if (quantity < 1) {
-      removeFromCart(productId);
+      removeFromCart(productId, variant.color);
       return;
     }
-    const newCartItems = cartItems.map((item) => item.id === productId ? { ...item, quantity } : item );
+
+    const productInCatalog = allProducts.find(p => p.id === productId);
+    const variantInCatalog = productInCatalog?.variants.find(v => v.color === variant.color);
+    const stockLimit = variantInCatalog?.stock ?? 0;
+
+    if (quantity > stockLimit) {
+        toast({ title: "Limite de Estoque Atingido", description: `A quantidade máxima para este item é ${stockLimit}.` });
+        quantity = stockLimit;
+    }
+
+    const newCartItems = cartItems.map(item => 
+        (item.id === productId && item.variant.color === variant.color) 
+        ? { ...item, quantity } 
+        : item
+    );
     setCartItems(newCartItems);
     saveDataToLocalStorage('cartItems', newCartItems);
   };
@@ -123,20 +179,26 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     for (const orderItem of order.items) {
         const product = allProducts.find(p => p.id === orderItem.id);
         if (product) {
-            const stockChange = orderItem.quantity;
-            const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
-            
-            if (newStock < 0) {
-              hasEnoughStock = false;
-              toast({
-                  title: 'Estoque Insuficiente',
-                  description: `Não há estoque suficiente para ${product.name}. Disponível: ${product.stock}, Pedido: ${stockChange}.`,
-                  variant: 'destructive'
-              });
-              break; // Stop processing if any item is out of stock
+            const variantIndex = product.variants.findIndex(v => v.color === orderItem.variant.color);
+            if (variantIndex > -1) {
+                const stockChange = orderItem.quantity;
+                const currentStock = product.variants[variantIndex].stock;
+                const newStock = operation === 'add' ? currentStock + stockChange : currentStock - stockChange;
+                
+                if (operation === 'subtract' && newStock < 0) {
+                  hasEnoughStock = false;
+                  toast({
+                      title: 'Estoque Insuficiente',
+                      description: `Não há estoque suficiente para ${product.name} (Cor: ${orderItem.variant.color}). Disponível: ${currentStock}, Pedido: ${stockChange}.`,
+                      variant: 'destructive'
+                  });
+                  break; 
+                }
+                
+                const newVariants = [...product.variants];
+                newVariants[variantIndex] = { ...newVariants[variantIndex], stock: newStock };
+                batch.update(doc(db, 'products', product.id), { variants: newVariants });
             }
-            
-            batch.update(doc(db, 'products', product.id), { stock: newStock });
         }
     }
     

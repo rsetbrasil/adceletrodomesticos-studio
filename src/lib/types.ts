@@ -1,5 +1,11 @@
 
 
+export type ProductVariant = {
+  color: string;
+  stock: number;
+  imageUrls: string[];
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -8,10 +14,9 @@ export type Product = {
   price: number;
   cost?: number;
   onSale?: boolean;
-  imageUrls: string[];
   category: string;
   subcategory?: string;
-  stock: number;
+  variants: ProductVariant[];
   maxInstallments?: number;
   paymentCondition?: string; 
   commissionType?: 'percentage' | 'fixed';
@@ -24,8 +29,8 @@ export type CartItem = {
   id: string;
   name: string;
   price: number;
-  imageUrl: string;
   quantity: number;
+  variant: ProductVariant;
 };
 
 export type Attachment = {
@@ -147,6 +152,7 @@ export type StockAuditProduct = {
     systemStock: number;
     physicalCount: number | null;
     difference: number | null;
+    variantColor?: string;
 };
 
 export type StockAudit = {

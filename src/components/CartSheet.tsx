@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Image from 'next/image';
@@ -53,15 +54,28 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
   const cartItemsWithStock = useMemo(() => {
     return cartItems.map(item => {
       const productInfo = products.find(p => p.id === item.id);
+      if (!productInfo) {
+        return {
+          ...item,
+          stock: 0,
+          hasEnoughStock: false,
+          imageUrl: 'https://placehold.co/100x100.png',
+        };
+      }
+      
+      const variantInfo = productInfo.variants.find(v => v.color === item.variant.color);
+      const stock = variantInfo?.stock ?? 0;
+
       return {
         ...item,
-        stock: productInfo?.stock ?? 0,
-        hasEnoughStock: (productInfo?.stock ?? 0) >= item.quantity,
+        stock: stock,
+        hasEnoughStock: stock >= item.quantity,
+        imageUrl: variantInfo?.imageUrls?.[0] || productInfo.variants[0].imageUrls[0] || 'https://placehold.co/100x100.png',
       };
     });
   }, [cartItems, products]);
 
-  const isCartValid = cartItemsWithStock.every(item => item.hasEnoughStock);
+  const isCartValid = cartItemsWithStock.every(item => item.hasEnoughStock && item.quantity > 0);
 
 
   return (
@@ -76,7 +90,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
             <ScrollArea className="flex-grow pr-4 -mr-6 my-4">
               <div className="flex flex-col gap-6">
                 {cartItemsWithStock.map((item) => (
-                  <div key={item.id} className="flex items-start gap-4">
+                  <div key={`${item.id}-${item.variant.color}`} className="flex items-start gap-4">
                     <div className="relative h-20 w-20 rounded-md overflow-hidden flex-shrink-0">
                       <Image
                         src={item.imageUrl}
@@ -87,13 +101,14 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                     </div>
                     <div className="flex-grow">
                       <p className="font-semibold text-md">{item.name}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{item.variant.color}</p>
                       <p className="text-sm text-muted-foreground">{formatCurrency(item.price)}</p>
                       <div className="flex items-center gap-2 mt-2">
                         <Button
                           variant="outline"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity - 1, item.variant)}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -102,7 +117,8 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                           variant="outline"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity + 1, item.variant)}
+                          disabled={item.quantity >= item.stock}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -118,7 +134,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                       variant="ghost"
                       size="icon"
                       className="text-muted-foreground hover:text-destructive"
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => removeFromCart(item.id, item.variant.color)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
