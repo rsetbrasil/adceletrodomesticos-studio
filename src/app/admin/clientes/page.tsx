@@ -579,15 +579,19 @@ export default function CustomersAdminPage() {
                                                                             <div className="min-w-[150px] text-right"><Badge variant={statusVariant}>{statusText}</Badge></div>
                                                                             
                                                                             <div className="flex gap-2 justify-end ml-4">
-                                                                                {(inst.payments && inst.payments.length > 0) && (
-                                                                                    <Button variant="ghost" size="sm" onClick={() => setExpandedHistory(isExpanded ? null : uniqueKey)}>
-                                                                                        <History className="mr-2 h-4 w-4" />Histórico
-                                                                                    </Button>
+                                                                                {user && (
+                                                                                    <>
+                                                                                        {(inst.payments && inst.payments.length > 0) && (
+                                                                                            <Button variant="ghost" size="sm" onClick={() => setExpandedHistory(isExpanded ? null : uniqueKey)}>
+                                                                                                <History className="mr-2 h-4 w-4" />Histórico
+                                                                                            </Button>
+                                                                                        )}
+                                                                                        <Button variant="outline" size="sm" onClick={() => handleOpenPaymentDialog(order, inst)} disabled={inst.status === 'Pago'}>
+                                                                                            <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                                                                                            Pagar
+                                                                                        </Button>
+                                                                                    </>
                                                                                 )}
-                                                                                <Button variant="outline" size="sm" onClick={() => handleOpenPaymentDialog(order, inst)} disabled={inst.status === 'Pago'}>
-                                                                                    <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                                                                                    Pagar
-                                                                                </Button>
                                                                                 <Button variant="outline" size="sm" asChild>
                                                                                     <Link href={`/carnet/${order.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
                                                                                         <Printer className="mr-2 h-4 w-4" />
@@ -620,27 +624,29 @@ export default function CustomersAdminPage() {
                                                                                                     <TableCell>{p.method}</TableCell>
                                                                                                     <TableCell>{formatCurrency(p.amount)}</TableCell>
                                                                                                     <TableCell className="text-right">
-                                                                                                        <AlertDialog>
-                                                                                                            <AlertDialogTrigger asChild>
-                                                                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                                                                                                    <Undo2 className="h-4 w-4" />
-                                                                                                                </Button>
-                                                                                                            </AlertDialogTrigger>
-                                                                                                            <AlertDialogContent>
-                                                                                                                <AlertDialogHeader>
-                                                                                                                    <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
-                                                                                                                    <AlertDialogDescription>
-                                                                                                                        Esta ação irá reverter o pagamento de {formatCurrency(p.amount)} feito em {format(parseISO(p.date), 'dd/MM/yy')}. Isso não pode ser desfeito.
-                                                                                                                    </AlertDialogDescription>
-                                                                                                                </AlertDialogHeader>
-                                                                                                                <AlertDialogFooter>
-                                                                                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                                                                    <AlertDialogAction onClick={() => reversePayment(order.id, inst.installmentNumber, p.id)}>
-                                                                                                                        Sim, Estornar
-                                                                                                                    </AlertDialogAction>
-                                                                                                                </AlertDialogFooter>
-                                                                                                            </AlertDialogContent>
-                                                                                                        </AlertDialog>
+                                                                                                        {user && (
+                                                                                                            <AlertDialog>
+                                                                                                                <AlertDialogTrigger asChild>
+                                                                                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                                                                                                        <Undo2 className="h-4 w-4" />
+                                                                                                                    </Button>
+                                                                                                                </AlertDialogTrigger>
+                                                                                                                <AlertDialogContent>
+                                                                                                                    <AlertDialogHeader>
+                                                                                                                        <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
+                                                                                                                        <AlertDialogDescription>
+                                                                                                                            Esta ação irá reverter o pagamento de {formatCurrency(p.amount)} feito em {format(parseISO(p.date), 'dd/MM/yy')}. Isso não pode ser desfeito.
+                                                                                                                        </AlertDialogDescription>
+                                                                                                                    </AlertDialogHeader>
+                                                                                                                    <AlertDialogFooter>
+                                                                                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                                                                        <AlertDialogAction onClick={() => reversePayment(order.id, inst.installmentNumber, p.id)}>
+                                                                                                                            Sim, Estornar
+                                                                                                                        </AlertDialogAction>
+                                                                                                                    </AlertDialogFooter>
+                                                                                                                </AlertDialogContent>
+                                                                                                            </AlertDialog>
+                                                                                                        )}
                                                                                                     </TableCell>
                                                                                                 </TableRow>
                                                                                             ))}
