@@ -45,13 +45,10 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (cpf: string, pass: string): Promise<boolean> => {
     const normalizedCpf = cpf.replace(/\D/g, '');
     
-    // Find the latest order for this CPF to get the latest customer data
-    const q = query(collection(db, 'orders'), where("customer.cpf", "==", normalizedCpf));
+    // Find all orders that might match the CPF, even with formatting differences.
+    // This is less efficient, but necessary as we don't have a clean customers collection.
+    const q = collection(db, 'orders');
 
-    // Use onSnapshot to get data and handle login logic.
-    // This is not ideal as it might fire multiple times, but for now it's the simplest way
-    // without a dedicated 'customers' collection. A better approach would be
-    // to query once with getDocs.
     const unsubscribe = onSnapshot(q, (snapshot) => {
         if (snapshot.empty) {
             toast({ title: 'Falha no Login', description: 'CPF não encontrado.', variant: 'destructive' });
@@ -59,15 +56,23 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
 
-        const customerOrders = snapshot.docs.map(doc => doc.data() as Order)
+        const customerOrders = snapshot.docs
+            .map(doc => doc.data() as Order)
+            .filter(o => o.customer.cpf.replace(/\D/g, '') === normalizedCpf)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        if (customerOrders.length === 0) {
+             toast({ title: 'Falha no Login', description: 'CPF não encontrado.', variant: 'destructive' });
+             unsubscribe();
+             return;
+        }
 
         const latestCustomerData = customerOrders.find(o => o.customer.password)?.customer;
 
         if (!latestCustomerData || !latestCustomerData.password) {
             toast({ title: 'Falha no Login', description: 'Esta conta ainda não possui uma senha cadastrada. Por favor, complete uma nova compra para criar uma.', variant: 'destructive' });
             unsubscribe();
-return;
+            return;
         }
 
         if (latestCustomerData.password === pass) {
