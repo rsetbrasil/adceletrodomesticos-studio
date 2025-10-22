@@ -48,6 +48,16 @@ function StockAuditTab() {
         return <p>Acesso negado. Redirecionando...</p>;
     }
 
+    const handleMonthChange = (newMonth: string) => {
+        setMes(newMonth);
+        setStockCounts({});
+    };
+
+    const handleYearChange = (newYear: string) => {
+        setAno(newYear);
+        setStockCounts({});
+    };
+
     const handleCountChange = (productId: string, value: string) => {
         const count = value === '' ? null : parseInt(value, 10);
         setStockCounts(prev => ({
@@ -126,7 +136,7 @@ function StockAuditTab() {
                             <h3 className="font-semibold">Período da Auditoria:</h3>
                             <div className="flex items-center gap-2">
                                 <label htmlFor="mes-auditoria" className="text-sm font-medium">Mês:</label>
-                                <Select value={mes} onValueChange={setMes}>
+                                <Select value={mes} onValueChange={handleMonthChange}>
                                     <SelectTrigger id="mes-auditoria" className="w-[180px]">
                                         <SelectValue placeholder="Selecione o Mês" />
                                     </SelectTrigger>
@@ -137,7 +147,7 @@ function StockAuditTab() {
                             </div>
                              <div className="flex items-center gap-2">
                                 <label htmlFor="ano-auditoria" className="text-sm font-medium">Ano:</label>
-                                <Select value={ano} onValueChange={setAno}>
+                                <Select value={ano} onValueChange={handleYearChange}>
                                      <SelectTrigger id="ano-auditoria" className="w-[120px]">
                                         <SelectValue placeholder="Selecione o Ano" />
                                     </SelectTrigger>
