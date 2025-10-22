@@ -36,9 +36,9 @@ const loadDataFromLocalStorage = (key: string) => {
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (product: Product, selectedVariant?: Product['variants'][0]) => void;
+  addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number, variant?: Product['variants'][0]) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   getCartTotal: () => number;
   cartCount: number;
@@ -88,37 +88,31 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  const addToCart = (product: Product, selectedVariant?: Product['variants'][0]) => {
-    const variantToAdd = selectedVariant || (product.variants && product.variants[0]);
-    if (!variantToAdd) {
-        toast({ title: "Erro", description: "Selecione uma variação para este produto.", variant: "destructive"});
-        return;
-    }
-
-    if (variantToAdd.stock < 1) {
-        toast({ title: "Produto Esgotado", description: "Esta variação do produto está fora de estoque.", variant: "destructive"});
-        return;
+  const addToCart = (product: Product) => {
+    if (product.stock < 1) {
+      toast({ title: "Produto Esgotado", description: "Este produto está fora de estoque.", variant: "destructive" });
+      return;
     }
 
     const updatedCart = [...cartItems];
-    const existingItemIndex = updatedCart.findIndex(item => item.id === product.id && item.variant.color === variantToAdd.color);
+    const existingItemIndex = updatedCart.findIndex(item => item.id === product.id);
 
     if (existingItemIndex > -1) {
-        const existingItem = updatedCart[existingItemIndex];
-        if (existingItem.quantity < variantToAdd.stock) {
-            existingItem.quantity += 1;
-        } else {
-            toast({ title: "Limite de Estoque Atingido", description: `Você já tem a quantidade máxima (${variantToAdd.stock}) deste item no carrinho.` });
-            return;
-        }
+      const existingItem = updatedCart[existingItemIndex];
+      if (existingItem.quantity < product.stock) {
+        existingItem.quantity += 1;
+      } else {
+        toast({ title: "Limite de Estoque Atingido", description: `Você já tem a quantidade máxima (${product.stock}) deste item no carrinho.` });
+        return;
+      }
     } else {
-        updatedCart.push({ 
-            id: product.id, 
-            name: product.name, 
-            price: product.price, 
-            variant: variantToAdd,
-            quantity: 1 
-        });
+      updatedCart.push({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        imageUrl: product.imageUrls[0] || '',
+      });
     }
 
     setCartItems(updatedCart);
@@ -126,32 +120,29 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (productId: string, variantColor?: string) => {
-    const newCartItems = cartItems.filter(item => !(item.id === productId && (!variantColor || item.variant.color === variantColor)));
+  const removeFromCart = (productId: string) => {
+    const newCartItems = cartItems.filter(item => item.id !== productId);
     setCartItems(newCartItems);
     saveDataToLocalStorage('cartItems', newCartItems);
   };
   
-  const updateQuantity = (productId: string, quantity: number, variant?: Product['variants'][0]) => {
-    if (!variant) return;
-
+  const updateQuantity = (productId: string, quantity: number) => {
     if (quantity < 1) {
-      removeFromCart(productId, variant.color);
+      removeFromCart(productId);
       return;
     }
 
     const productInCatalog = allProducts.find(p => p.id === productId);
-    const variantInCatalog = productInCatalog?.variants.find(v => v.color === variant.color);
-    const stockLimit = variantInCatalog?.stock ?? 0;
+    const stockLimit = productInCatalog?.stock ?? 0;
 
     if (quantity > stockLimit) {
-        toast({ title: "Limite de Estoque Atingido", description: `A quantidade máxima para este item é ${stockLimit}.` });
-        quantity = stockLimit;
+      toast({ title: "Limite de Estoque Atingido", description: `A quantidade máxima para este item é ${stockLimit}.` });
+      quantity = stockLimit;
     }
 
-    const newCartItems = cartItems.map(item => 
-        (item.id === productId && item.variant.color === variant.color) 
-        ? { ...item, quantity } 
+    const newCartItems = cartItems.map(item =>
+      (item.id === productId)
+        ? { ...item, quantity }
         : item
     );
     setCartItems(newCartItems);
@@ -179,26 +170,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     for (const orderItem of order.items) {
         const product = allProducts.find(p => p.id === orderItem.id);
         if (product) {
-            const variantIndex = product.variants.findIndex(v => v.color === orderItem.variant.color);
-            if (variantIndex > -1) {
-                const stockChange = orderItem.quantity;
-                const currentStock = product.variants[variantIndex].stock;
-                const newStock = operation === 'add' ? currentStock + stockChange : currentStock - stockChange;
-                
-                if (operation === 'subtract' && newStock < 0) {
-                  hasEnoughStock = false;
-                  toast({
-                      title: 'Estoque Insuficiente',
-                      description: `Não há estoque suficiente para ${product.name} (Cor: ${orderItem.variant.color}). Disponível: ${currentStock}, Pedido: ${stockChange}.`,
-                      variant: 'destructive'
-                  });
-                  break; 
-                }
-                
-                const newVariants = [...product.variants];
-                newVariants[variantIndex] = { ...newVariants[variantIndex], stock: newStock };
-                batch.update(doc(db, 'products', product.id), { variants: newVariants });
+            const stockChange = orderItem.quantity;
+            const currentStock = product.stock;
+            const newStock = operation === 'add' ? currentStock + stockChange : currentStock - stockChange;
+            
+            if (operation === 'subtract' && newStock < 0) {
+              hasEnoughStock = false;
+              toast({
+                  title: 'Estoque Insuficiente',
+                  description: `Não há estoque suficiente para ${product.name}. Disponível: ${currentStock}, Pedido: ${stockChange}.`,
+                  variant: 'destructive'
+              });
+              break; 
             }
+            
+            batch.update(doc(db, 'products', product.id), { stock: newStock });
         }
     }
     
