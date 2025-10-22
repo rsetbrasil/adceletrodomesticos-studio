@@ -134,6 +134,12 @@
     display: block;
   }
   
+  body.print-sales-only .print-section:not(.print-sales) {
+    display: none;
+  }
+  body.print-profits-only .print-section:not(.print-profits) {
+    display: none;
+  }
   body.print-commissions-only .print-section:not(.print-commissions) {
     display: none;
   }

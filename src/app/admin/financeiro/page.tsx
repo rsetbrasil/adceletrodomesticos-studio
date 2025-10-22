@@ -153,14 +153,10 @@ export default function FinanceiroPage() {
     return orders.filter(o => selectedSeller.orderIds.includes(o.id));
   }, [selectedSeller, orders]);
 
-  const handlePrint = (type: 'full' | 'commissions') => {
-    if (type === 'commissions') {
-      document.body.classList.add('print-commissions-only');
-    }
+  const handlePrint = (type: 'sales' | 'profits' | 'commissions') => {
+    document.body.classList.add(`print-${type}-only`);
     window.print();
-    if (type === 'commissions') {
-      document.body.classList.remove('print-commissions-only');
-    }
+    document.body.classList.remove(`print-${type}-only`);
   };
 
 
@@ -183,16 +179,24 @@ export default function FinanceiroPage() {
     <>
     <div className="space-y-8 print-container">
        <Card className="print-hidden">
-        <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-                <CardTitle>Relatório Financeiro</CardTitle>
-                <CardDescription>Resumo de vendas, lucros e comissões.</CardDescription>
-            </div>
-            <Button onClick={() => handlePrint('full')}>
-                <Printer className="mr-2 h-4 w-4" />
-                Imprimir Relatório
-            </Button>
+        <CardHeader>
+            <CardTitle>Relatório Financeiro</CardTitle>
+            <CardDescription>Resumo de vendas, lucros e comissões. Use os botões para imprimir seções específicas.</CardDescription>
         </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+            <Button onClick={() => handlePrint('sales')}>
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimir Vendas
+            </Button>
+             <Button onClick={() => handlePrint('profits')}>
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimir Lucros
+            </Button>
+             <Button onClick={() => handlePrint('commissions')}>
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimir Comissões
+            </Button>
+        </CardContent>
        </Card>
 
       <div className="hidden print:block text-center mb-4">
@@ -200,7 +204,7 @@ export default function FinanceiroPage() {
         <CardDescription>{format(new Date(), "'Gerado em' dd/MM/yyyy 'às' HH:mm")}</CardDescription>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 print-section">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 print-section print-sales print-profits">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Vendido</CardTitle>
@@ -244,7 +248,7 @@ export default function FinanceiroPage() {
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
-        <Card className="print:col-span-2 print-section">
+        <Card className="print-section print-sales">
             <CardHeader>
                 <CardTitle>Vendas Mensais</CardTitle>
             </CardHeader>
@@ -280,16 +284,12 @@ export default function FinanceiroPage() {
             </CardContent>
         </Card>
 
-        <Card className="print:col-span-2 print-section print-commissions">
-          <CardHeader className="flex flex-row justify-between items-start">
+        <Card className="print-section print-commissions">
+          <CardHeader>
               <div>
                 <CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" /> Comissões a Pagar</CardTitle>
                 <CardDescription>Total de comissões pendentes para cada vendedor (apenas de pedidos entregues).</CardDescription>
               </div>
-               <Button variant="outline" className="print-hidden" onClick={() => handlePrint('commissions')}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  Imprimir
-              </Button>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
