@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -39,6 +38,8 @@ export default function FinanceiroPage() {
   const router = useRouter();
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<SellerCommissionDetails | null>(null);
+  const [printMode, setPrintMode] = useState<string | null>(null);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -153,10 +154,22 @@ export default function FinanceiroPage() {
     return orders.filter(o => selectedSeller.orderIds.includes(o.id));
   }, [selectedSeller, orders]);
 
+  useEffect(() => {
+    if (printMode === null) return;
+    
+    const print = () => {
+        window.print();
+        setPrintMode(null);
+    }
+    
+    // Use a timeout to allow the DOM to update with the new printMode class
+    const timer = setTimeout(print, 100);
+
+    return () => clearTimeout(timer);
+  }, [printMode]);
+
   const handlePrint = (type: 'sales' | 'profits' | 'commissions') => {
-    document.body.classList.add(`print-${type}-only`);
-    window.print();
-    document.body.classList.remove(`print-${type}-only`);
+    setPrintMode(type);
   };
 
 
@@ -177,7 +190,7 @@ export default function FinanceiroPage() {
 
   return (
     <>
-    <div className="space-y-8 print-container">
+    <div className={`space-y-8 print-container ${printMode ? `print-mode print-${printMode}-only` : ''}`}>
        <Card className="print-hidden">
         <CardHeader>
             <CardTitle>Relatório Financeiro</CardTitle>
@@ -204,7 +217,7 @@ export default function FinanceiroPage() {
         <CardDescription>{format(new Date(), "'Gerado em' dd/MM/yyyy 'às' HH:mm")}</CardDescription>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 print-section print-sales print-profits">
+      <div className="print-section print-sales print-profits grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Vendido</CardTitle>

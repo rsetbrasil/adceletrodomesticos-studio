@@ -70,7 +70,7 @@
   .print-hidden {
     display: none !important;
   }
-  body {
+  body, .print-mode {
     background: white !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -80,6 +80,7 @@
     max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
+    space-y: 0 !important;
   }
 
   .print-card {
@@ -134,14 +135,19 @@
     display: block;
   }
   
-  body.print-sales-only .print-section:not(.print-sales) {
+  .print-mode .print-section {
     display: none;
   }
-  body.print-profits-only .print-section:not(.print-profits) {
-    display: none;
+  
+  .print-sales-only .print-sales {
+    display: block !important;
   }
-  body.print-commissions-only .print-section:not(.print-commissions) {
-    display: none;
+  
+  .print-profits-only .print-profits {
+    display: block !important;
   }
 
+  .print-commissions-only .print-commissions {
+    display: block !important;
+  }
 }
