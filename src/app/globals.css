@@ -104,15 +104,20 @@
     box-shadow: none !important;
     border: none !important;
   }
-
-  .print-mode .print-section {
+  
+  body.print-sales-only .print-section:not(.print-sales),
+  body.print-profits-only .print-section:not(.print-profits),
+  body.print-commissions-only .print-section:not(.print-commissions) {
     display: none;
   }
-  
-  .print-sales-only .print-sales,
-  .print-profits-only .print-profits,
-  .print-commissions-only .print-commissions {
-    display: block !important;
+
+  body.print-sales-only .print-profits,
+  body.print-sales-only .print-commissions,
+  body.print-profits-only .print-sales,
+  body.print-profits-only .print-commissions,
+  body.print-commissions-only .print-sales,
+  body.print-commissions-only .print-profits {
+      display: none;
   }
 }
 

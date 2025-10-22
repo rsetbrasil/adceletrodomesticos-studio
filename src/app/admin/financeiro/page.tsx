@@ -18,6 +18,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Logo from '@/components/Logo';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -169,9 +170,10 @@ export default function FinanceiroPage() {
   }, [printMode]);
 
   const handlePrint = (type: 'sales' | 'profits' | 'commissions') => {
-    setPrintMode(type);
+    document.body.classList.add(`print-${type}-only`);
+    window.print();
+    document.body.classList.remove(`print-${type}-only`);
   };
-
 
   if (!isClient) {
     return (
@@ -190,7 +192,20 @@ export default function FinanceiroPage() {
 
   return (
     <>
-    <div className={`space-y-8 print-container ${printMode ? `print-mode print-${printMode}-only` : ''}`}>
+    <div className="print-container space-y-8">
+        <div className="hidden print:block mb-8">
+            <div className="flex justify-between items-start pb-4 border-b">
+                <div>
+                    <Logo />
+                </div>
+                <div className="text-right">
+                    <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString('pt-BR')}</p>
+                    <p className="text-lg font-bold">Relatório Financeiro</p>
+                </div>
+            </div>
+        </div>
+
+
        <Card className="print-hidden">
         <CardHeader>
             <CardTitle>Relatório Financeiro</CardTitle>
@@ -211,11 +226,6 @@ export default function FinanceiroPage() {
             </Button>
         </CardContent>
        </Card>
-
-      <div className="hidden print:block text-center mb-4">
-        <CardTitle>Relatório Financeiro</CardTitle>
-        <CardDescription>{format(new Date(), "'Gerado em' dd/MM/yyyy 'às' HH:mm")}</CardDescription>
-      </div>
 
       <div className="print-section print-sales print-profits grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -305,7 +315,7 @@ export default function FinanceiroPage() {
               </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
+            <div className="rounded-md border print:border-none">
               <Table>
                 <TableHeader>
                   <TableRow>
