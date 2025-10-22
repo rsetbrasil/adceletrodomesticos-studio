@@ -133,5 +133,9 @@
   .print-layout-a4 .print-a4\:block {
     display: block;
   }
+  
+  body.print-commissions-only .print-section:not(.print-commissions) {
+    display: none;
+  }
 
 }

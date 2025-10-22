@@ -153,6 +153,16 @@ export default function FinanceiroPage() {
     return orders.filter(o => selectedSeller.orderIds.includes(o.id));
   }, [selectedSeller, orders]);
 
+  const handlePrint = (type: 'full' | 'commissions') => {
+    if (type === 'commissions') {
+      document.body.classList.add('print-commissions-only');
+    }
+    window.print();
+    if (type === 'commissions') {
+      document.body.classList.remove('print-commissions-only');
+    }
+  };
+
 
   if (!isClient) {
     return (
@@ -178,7 +188,7 @@ export default function FinanceiroPage() {
                 <CardTitle>Relatório Financeiro</CardTitle>
                 <CardDescription>Resumo de vendas, lucros e comissões.</CardDescription>
             </div>
-            <Button onClick={() => window.print()}>
+            <Button onClick={() => handlePrint('full')}>
                 <Printer className="mr-2 h-4 w-4" />
                 Imprimir Relatório
             </Button>
@@ -190,7 +200,7 @@ export default function FinanceiroPage() {
         <CardDescription>{format(new Date(), "'Gerado em' dd/MM/yyyy 'às' HH:mm")}</CardDescription>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 print-section">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Vendido</CardTitle>
@@ -234,7 +244,7 @@ export default function FinanceiroPage() {
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
-        <Card className="print:col-span-2">
+        <Card className="print:col-span-2 print-section">
             <CardHeader>
                 <CardTitle>Vendas Mensais</CardTitle>
             </CardHeader>
@@ -270,10 +280,16 @@ export default function FinanceiroPage() {
             </CardContent>
         </Card>
 
-        <Card className="print:col-span-2">
-          <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" /> Comissões a Pagar</CardTitle>
-              <CardDescription>Total de comissões pendentes para cada vendedor (apenas de pedidos entregues).</CardDescription>
+        <Card className="print:col-span-2 print-section print-commissions">
+          <CardHeader className="flex flex-row justify-between items-start">
+              <div>
+                <CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" /> Comissões a Pagar</CardTitle>
+                <CardDescription>Total de comissões pendentes para cada vendedor (apenas de pedidos entregues).</CardDescription>
+              </div>
+               <Button variant="outline" className="print-hidden" onClick={() => handlePrint('commissions')}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  Imprimir
+              </Button>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
