@@ -73,11 +73,14 @@ export default function CommissionReceiptPage() {
           </Button>
         </header>
 
-        <main ref={receiptRef} id="receipt-content" className="bg-background rounded-lg border shadow-sm p-8 break-inside-avoid">
+        <main ref={receiptRef} id="receipt-content" className="bg-background rounded-lg border shadow-sm p-8 break-inside-avoid print:shadow-none print:border-none print:p-0">
            <div className="flex justify-between items-start pb-4 border-b">
              <div>
                 <Logo />
-                <p className="text-sm mt-2">{settings.storeName}</p>
+                <div className="mt-2 text-xs">
+                    <p className="font-bold">{settings.storeName}</p>
+                    <p className="whitespace-pre-line">{settings.storeAddress}</p>
+                </div>
              </div>
              <div className="text-right">
                 <p className="font-bold text-lg">Recibo de Comissão</p>
@@ -102,9 +105,9 @@ export default function CommissionReceiptPage() {
            
             <div className="mt-6">
                 <h3 className="font-semibold mb-2">Pedidos Incluídos neste Pagamento:</h3>
-                <div className="border rounded-md">
+                <div className="border rounded-md print:border-none">
                     <table className="w-full text-sm">
-                        <thead className="bg-muted/50">
+                        <thead className="bg-muted/50 print:bg-gray-100">
                             <tr className="border-b">
                                 <th className="p-2 text-left font-medium">Data do Pedido</th>
                                 <th className="p-2 text-left font-medium">ID do Pedido</th>
