@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Image from 'next/image';
@@ -36,10 +35,12 @@ const formatCurrency = (value: number) => {
 export function CartSheet({ children }: { children: React.ReactNode }) {
   const { cartItems, updateQuantity, removeFromCart, getCartTotal, cartCount, isCartOpen, setIsCartOpen } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
         setProducts(snapshot.docs.map(d => ({...d.data(), id: d.id } as Product)));
+        setIsLoading(false);
     },
     (error) => {
       console.error("Error fetching products for cart:", error);
@@ -47,11 +48,13 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
           path: 'products',
           operation: 'list',
       }));
+      setIsLoading(false);
     });
     return () => unsubscribe();
   }, []);
   
   const cartItemsWithStock = useMemo(() => {
+    if (isLoading) return [];
     return cartItems.map(item => {
       const productInfo = products.find(p => p.id === item.id);
       const stock = productInfo?.stock ?? 0;
@@ -63,7 +66,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         imageUrl: item.imageUrl || 'https://placehold.co/100x100.png',
       };
     });
-  }, [cartItems, products]);
+  }, [cartItems, products, isLoading]);
 
   const isCartValid = cartItemsWithStock.every(item => item.hasEnoughStock && item.quantity > 0);
 
@@ -78,6 +81,9 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         {cartItems.length > 0 ? (
           <>
             <ScrollArea className="flex-grow pr-4 -mr-6 my-4">
+            {isLoading ? (
+              <p>Carregando itens...</p>
+            ) : (
               <div className="flex flex-col gap-6">
                 {cartItemsWithStock.map((item) => (
                   <div key={item.id} className="flex items-start gap-4">
@@ -130,6 +136,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                   </div>
                 ))}
               </div>
+            )}
             </ScrollArea>
             <SheetFooter className="mt-auto">
                 <div className="w-full space-y-4">
@@ -141,7 +148,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                      <div className="space-y-2">
                         <SheetClose asChild>
                           <Link href="/checkout" className="w-full">
-                            <Button size="lg" className="w-full bg-accent hover:bg-accent/90" disabled={!isCartValid}>
+                            <Button size="lg" className="w-full bg-accent hover:bg-accent/90" disabled={!isCartValid || isLoading}>
                                 Finalizar Compra
                             </Button>
                           </Link>
