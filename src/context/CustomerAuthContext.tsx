@@ -46,7 +46,7 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
     const normalizedCpf = cpf.replace(/\D/g, '');
     
     // Find the latest order for this CPF to get the latest customer data
-    const q = query(collection(db, 'orders'), where("customer.cpf", "==", cpf));
+    const q = query(collection(db, 'orders'), where("customer.cpf", "==", normalizedCpf));
 
     // Use onSnapshot to get data and handle login logic.
     // This is not ideal as it might fire multiple times, but for now it's the simplest way
@@ -62,12 +62,12 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
         const customerOrders = snapshot.docs.map(doc => doc.data() as Order)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        const latestCustomerData = customerOrders[0].customer;
+        const latestCustomerData = customerOrders.find(o => o.customer.password)?.customer;
 
-        if (!latestCustomerData.password) {
+        if (!latestCustomerData || !latestCustomerData.password) {
             toast({ title: 'Falha no Login', description: 'Esta conta ainda não possui uma senha cadastrada. Por favor, complete uma nova compra para criar uma.', variant: 'destructive' });
             unsubscribe();
-            return;
+return;
         }
 
         if (latestCustomerData.password === pass) {

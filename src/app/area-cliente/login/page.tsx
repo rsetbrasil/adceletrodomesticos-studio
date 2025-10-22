@@ -17,7 +17,8 @@ export default function CustomerLoginPage() {
 
   const handleLogin = (e: FormEvent) => {
     e.preventDefault();
-    login(cpf, password);
+    const normalizedCpf = cpf.replace(/\D/g, ''); // Remove non-digit characters
+    login(normalizedCpf, password);
   };
 
   return (
@@ -35,7 +36,7 @@ export default function CustomerLoginPage() {
                 <Input
                     id="cpf"
                     type="text"
-                    placeholder="000.000.000-00"
+                    placeholder="Apenas números"
                     value={cpf}
                     onChange={(e) => setCpf(e.target.value)}
                     required
