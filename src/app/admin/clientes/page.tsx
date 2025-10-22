@@ -520,13 +520,15 @@ export default function CustomersAdminPage() {
                                 order.installmentDetails.every(inst => inst.status === 'Pago');
                             
                             const isPaidOff = allInstallmentsPaid || (order.paymentMethod && ['Pix', 'Dinheiro'].includes(order.paymentMethod));
+                            const productNames = order.items.map(item => item.name).join(', ');
 
                             return (
                                 <AccordionItem value={order.id} key={order.id} className="border-b-0 rounded-lg border bg-background">
                                     <AccordionTrigger className="p-4 hover:no-underline rounded-t-lg data-[state=open]:bg-muted/50 data-[state=open]:rounded-b-none">
                                         <div className="flex justify-between items-center w-full">
-                                            <div className="text-left">
+                                            <div className="text-left space-y-1">
                                                 <p className="font-bold">Pedido: <span className="font-mono">{order.id}</span></p>
+                                                <p className="text-xs text-muted-foreground italic truncate max-w-xs">{productNames}</p>
                                                 <p className="text-sm text-muted-foreground">{format(new Date(order.date), "dd/MM/yyyy", { locale: ptBR })}</p>
                                             </div>
                                             <div className="text-right">
@@ -903,3 +905,7 @@ export default function CustomersAdminPage() {
     </>
   );
 }
+
+    
+
+    
