@@ -6,21 +6,38 @@ import { useAdmin } from '@/context/AdminContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Boxes, Printer } from 'lucide-react';
-import { format } from 'date-fns';
 import type { Product } from '@/lib/types';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 type StockCount = {
     [productId: string]: number | null;
 };
 
+const meses = [
+    { value: '01', label: 'Janeiro' }, { value: '02', label: 'Fevereiro' },
+    { value: '03', label: 'Março' }, { value: '04', label: 'Abril' },
+    { value: '05', label: 'Maio' }, { value: '06', label: 'Junho' },
+    { value: '07', label: 'Julho' }, { value: '08', label: 'Agosto' },
+    { value: '09', label: 'Setembro' }, { value: '10', label: 'Outubro' },
+    { value: '11', label: 'Novembro' }, { value: '12', label: 'Dezembro' }
+];
+
+const getAnos = () => {
+    const anoAtual = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => (anoAtual - i).toString());
+};
+
+
 function StockAuditTab() {
     const { products } = useAdmin();
     const [stockCounts, setStockCounts] = useState<StockCount>({});
+    const [mes, setMes] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
+    const [ano, setAno] = useState(new Date().getFullYear().toString());
 
     const handleCountChange = (productId: string, value: string) => {
         const count = value === '' ? null : parseInt(value, 10);
@@ -41,6 +58,9 @@ function StockAuditTab() {
             };
         }).sort((a, b) => a.name.localeCompare(b.name));
     }, [products, stockCounts]);
+
+    const anos = getAnos();
+    const mesLabel = meses.find(m => m.value === mes)?.label;
     
      if (!products) {
         return <p>Carregando produtos...</p>
@@ -50,24 +70,51 @@ function StockAuditTab() {
         <div className="print-container">
             <Card className="print-card">
                 <CardHeader>
-                    <div className="flex justify-between items-center print-hidden">
-                        <div>
-                            <CardTitle className="flex items-center gap-2">
-                                <Boxes className="h-6 w-6" />
-                                Auditoria de Estoque
-                            </CardTitle>
-                            <CardDescription>
-                                Realize a contagem física dos produtos e compare com o estoque do sistema.
-                            </CardDescription>
+                    <div className="print-hidden">
+                        <div className="flex justify-between items-start mb-4">
+                             <div>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Boxes className="h-6 w-6" />
+                                    Auditoria de Estoque
+                                </CardTitle>
+                                <CardDescription>
+                                    Realize a contagem física dos produtos e compare com o estoque do sistema.
+                                </CardDescription>
+                            </div>
+                            <Button onClick={() => window.print()}>
+                                <Printer className="mr-2 h-4 w-4" />
+                                Imprimir Relatório
+                            </Button>
                         </div>
-                        <Button onClick={() => window.print()}>
-                            <Printer className="mr-2 h-4 w-4" />
-                            Imprimir Relatório
-                        </Button>
+                        <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
+                            <h3 className="font-semibold">Período da Auditoria:</h3>
+                            <div className="flex items-center gap-2">
+                                <label htmlFor="mes-auditoria" className="text-sm font-medium">Mês:</label>
+                                <Select value={mes} onValueChange={setMes}>
+                                    <SelectTrigger id="mes-auditoria" className="w-[180px]">
+                                        <SelectValue placeholder="Selecione o Mês" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {meses.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                             <div className="flex items-center gap-2">
+                                <label htmlFor="ano-auditoria" className="text-sm font-medium">Ano:</label>
+                                <Select value={ano} onValueChange={setAno}>
+                                     <SelectTrigger id="ano-auditoria" className="w-[120px]">
+                                        <SelectValue placeholder="Selecione o Ano" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {anos.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
                     </div>
-                    <div className="hidden print:block">
+                    <div className="hidden print:block text-center mb-4">
                         <CardTitle>Relatório de Auditoria de Estoque</CardTitle>
-                        <CardDescription>Data: {format(new Date(), 'dd/MM/yyyy')}</CardDescription>
+                        <CardDescription className="text-lg font-semibold capitalize">{mesLabel} / {ano}</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent>
