@@ -161,28 +161,27 @@ export default function FinanceiroPage() {
 
   const handlePrint = (type: 'sales' | 'profits' | 'commissions') => {
     let title = 'Relatório Financeiro';
-    let bodyClass = '';
+    
+    // Remove any existing print classes from the body
+    document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only');
 
     if (type === 'sales') {
         title = 'Relatório de Vendas';
-        bodyClass = 'print-sales-only';
+        document.body.classList.add('print-sales-only');
     } else if (type === 'profits') {
         title = 'Relatório de Lucros';
-        bodyClass = 'print-profits-only';
+        document.body.classList.add('print-profits-only');
     } else if (type === 'commissions') {
         title = 'Relatório de Comissões';
-        bodyClass = 'print-commissions-only';
+        document.body.classList.add('print-commissions-only');
     }
     
     setPrintTitle(title);
 
-    // Add class to body to control print styles
-    document.body.classList.add(bodyClass);
-    
     setTimeout(() => {
         window.print();
-        // Remove class after printing
-        document.body.classList.remove(bodyClass);
+        // Clean up class from body after printing
+        document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only');
     }, 100);
 };
 
@@ -379,38 +378,47 @@ export default function FinanceiroPage() {
         
         <div className="print-section-profits print-section-sales space-y-6">
             <h2 className="text-xl font-semibold text-center">Resumo Financeiro</h2>
-            <div className="flex flex-col gap-4 border-y py-4">
-                <div className="flex justify-between items-center text-lg">
-                    <span className="font-medium">Total Vendido</span>
-                    <span className="font-bold">{formatCurrency(financialSummary.totalVendido)}</span>
-                </div>
-                 <div className="flex justify-between items-center text-lg">
-                    <span className="font-medium">Lucro Bruto</span>
-                    <span className="font-bold">{formatCurrency(financialSummary.lucroBruto)}</span>
-                </div>
-                <div className="flex justify-between items-center text-lg">
-                    <span className="font-medium">Contas a Receber</span>
-                    <span className="font-bold">{formatCurrency(financialSummary.totalPendente)}</span>
-                </div>
-                <div className="flex justify-between items-center text-lg">
-                    <span className="font-medium">Comissões a Pagar</span>
-                    <span className="font-bold">{formatCurrency(commissionSummary.totalPendingCommission)}</span>
-                </div>
-            </div>
+            <table className="w-full text-base border-collapse">
+                 <tbody>
+                    <tr className="border-b">
+                        <td className="p-2 font-medium">Total Vendido</td>
+                        <td className="p-2 text-right font-bold">{formatCurrency(financialSummary.totalVendido)}</td>
+                    </tr>
+                     <tr className="border-b">
+                        <td className="p-2 font-medium">Lucro Bruto</td>
+                        <td className="p-2 text-right font-bold">{formatCurrency(financialSummary.lucroBruto)}</td>
+                    </tr>
+                    <tr className="border-b">
+                        <td className="p-2 font-medium">Contas a Receber</td>
+                        <td className="p-2 text-right font-bold">{formatCurrency(financialSummary.totalPendente)}</td>
+                    </tr>
+                    <tr className="border-b">
+                        <td className="p-2 font-medium">Comissões a Pagar</td>
+                        <td className="p-2 text-right font-bold">{formatCurrency(commissionSummary.totalPendingCommission)}</td>
+                    </tr>
+                 </tbody>
+            </table>
         </div>
 
         <div className="print-section-sales mt-8">
             <h2 className="text-xl font-semibold text-center mb-4">Vendas Mensais</h2>
-            <ChartContainer config={chartConfig} className="h-[350px] w-full">
-              <ResponsiveContainer>
-                <BarChart data={financialSummary.monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} className="capitalize" />
-                  <YAxis tickFormatter={(value) => formatCurrency(value as number)} tickLine={false} axisLine={false} width={100} />
-                  <Bar dataKey="total" fill="var(--color-total)" radius={4} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            {/* The chart won't be printed as it's complex to render in print. A table is better */}
+            <table className="w-full text-sm border-collapse">
+                <thead>
+                    <tr className="border-b-2">
+                        <th className="text-left p-2 font-bold">Mês/Ano</th>
+                        <th className="text-right p-2 font-bold">Total Vendido</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {financialSummary.monthlyData.map(item => (
+                        <tr key={item.name} className="border-b last:border-none">
+                            <td className="p-2 capitalize">{item.name}</td>
+                            <td className="p-2 text-right font-semibold">{formatCurrency(item.total)}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
 
         <div className="print-section-commissions mt-8">
