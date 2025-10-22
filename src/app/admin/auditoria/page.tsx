@@ -5,13 +5,15 @@ import { useState, useMemo } from 'react';
 import { useAdmin } from '@/context/AdminContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Boxes, Printer } from 'lucide-react';
-import type { Product } from '@/lib/types';
+import { Boxes, Printer, Save } from 'lucide-react';
+import type { Product, StockAudit } from '@/lib/types';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 
 type StockCount = {
@@ -34,10 +36,17 @@ const getAnos = () => {
 
 
 function StockAuditTab() {
-    const { products } = useAdmin();
+    const { products, saveStockAudit } = useAdmin();
+    const { user } = useAuth();
+    const router = useRouter();
     const [stockCounts, setStockCounts] = useState<StockCount>({});
     const [mes, setMes] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
     const [ano, setAno] = useState(new Date().getFullYear().toString());
+
+     if (user?.role !== 'admin' && user?.role !== 'gerente') {
+        router.push('/admin/pedidos');
+        return <p>Acesso negado. Redirecionando...</p>;
+    }
 
     const handleCountChange = (productId: string, value: string) => {
         const count = value === '' ? null : parseInt(value, 10);
@@ -58,6 +67,27 @@ function StockAuditTab() {
             };
         }).sort((a, b) => a.name.localeCompare(b.name));
     }, [products, stockCounts]);
+    
+    const handleSaveAudit = () => {
+        if (!user) return;
+        const auditData: StockAudit = {
+            id: `audit-${ano}-${mes}`,
+            month: mes,
+            year: ano,
+            createdAt: new Date().toISOString(),
+            auditedBy: user.id,
+            auditedByName: user.name,
+            products: auditedProducts.map(p => ({
+                productId: p.id,
+                productName: p.name,
+                systemStock: p.stock,
+                physicalCount: typeof p.physicalCount === 'number' ? p.physicalCount : null,
+                difference: typeof p.difference === 'number' ? p.difference : null,
+            })).filter(p => p.physicalCount !== null), // Only save products that were counted
+        };
+        saveStockAudit(auditData);
+    };
+
 
     const anos = getAnos();
     const mesLabel = meses.find(m => m.value === mes)?.label;
@@ -71,7 +101,7 @@ function StockAuditTab() {
             <Card className="print-card">
                 <CardHeader>
                     <div className="print-hidden">
-                        <div className="flex justify-between items-start mb-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                              <div>
                                 <CardTitle className="flex items-center gap-2">
                                     <Boxes className="h-6 w-6" />
@@ -81,12 +111,18 @@ function StockAuditTab() {
                                     Realize a contagem física dos produtos e compare com o estoque do sistema.
                                 </CardDescription>
                             </div>
-                            <Button onClick={() => window.print()}>
-                                <Printer className="mr-2 h-4 w-4" />
-                                Imprimir Relatório
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button variant="outline" onClick={handleSaveAudit} disabled={Object.keys(stockCounts).length === 0}>
+                                    <Save className="mr-2 h-4 w-4" />
+                                    Salvar Auditoria
+                                </Button>
+                                <Button onClick={() => window.print()}>
+                                    <Printer className="mr-2 h-4 w-4" />
+                                    Imprimir Relatório
+                                </Button>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
+                        <div className="flex flex-wrap items-center gap-4 p-4 border rounded-lg bg-muted/50">
                             <h3 className="font-semibold">Período da Auditoria:</h3>
                             <div className="flex items-center gap-2">
                                 <label htmlFor="mes-auditoria" className="text-sm font-medium">Mês:</label>

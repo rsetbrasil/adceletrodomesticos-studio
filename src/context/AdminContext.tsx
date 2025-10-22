@@ -3,7 +3,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment } from '@/lib/types';
+import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment, StockAudit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { products as initialProducts } from '@/lib/products';
 import { db } from '@/lib/firebase';
@@ -64,6 +64,7 @@ interface AdminContextType {
   restoreAdminData: (data: { products: Product[], orders: Order[], categories: Category[] }) => Promise<void>;
   resetOrders: () => Promise<void>;
   resetAllAdminData: () => Promise<void>;
+  saveStockAudit: (audit: StockAudit) => Promise<void>;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -856,6 +857,20 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const saveStockAudit = async (audit: StockAudit) => {
+    const auditRef = doc(db, 'stockAudits', audit.id);
+    setDoc(auditRef, audit).then(() => {
+        logAction('Auditoria de Estoque', `Auditoria de estoque para ${audit.month}/${audit.year} foi salva.`, user);
+        toast({ title: "Auditoria Salva!", description: "O relatório de auditoria foi salvo com sucesso." });
+    }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: auditRef.path,
+            operation: 'create',
+            requestResourceData: audit,
+        }));
+    });
+  };
+
   return (
     <AdminContext.Provider
       value={{
@@ -865,6 +880,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         commissionPayments, payCommissions, reverseCommissionPayment,
         isLoading,
         restoreAdminData, resetOrders, resetAllAdminData,
+        saveStockAudit,
       }}
     >
       {children}

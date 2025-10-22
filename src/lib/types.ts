@@ -141,4 +141,21 @@ export type AppSection =
 
 export type RolePermissions = Record<UserRole, AppSection[]>;
 
+export type StockAuditProduct = {
+    productId: string;
+    productName: string;
+    systemStock: number;
+    physicalCount: number | null;
+    difference: number | null;
+};
+
+export type StockAudit = {
+    id: string; // e.g., "audit-2023-12"
+    month: string;
+    year: string;
+    createdAt: string; // ISO String
+    auditedBy: string; // User ID
+    auditedByName: string;
+    products: StockAuditProduct[];
+};
     
