@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
-import { DollarSign, CheckCircle, Clock, Percent, Award, FileText, TrendingUp, Eye } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, Percent, Award, FileText, TrendingUp, Eye, Printer } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -171,7 +171,25 @@ export default function FinanceiroPage() {
 
   return (
     <>
-    <div className="space-y-8">
+    <div className="space-y-8 print-container">
+       <Card className="print-hidden">
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+                <CardTitle>Relatório Financeiro</CardTitle>
+                <CardDescription>Resumo de vendas, lucros e comissões.</CardDescription>
+            </div>
+            <Button onClick={() => window.print()}>
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimir Relatório
+            </Button>
+        </CardHeader>
+       </Card>
+
+      <div className="hidden print:block text-center mb-4">
+        <CardTitle>Relatório Financeiro</CardTitle>
+        <CardDescription>{format(new Date(), "'Gerado em' dd/MM/yyyy 'às' HH:mm")}</CardDescription>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -216,7 +234,7 @@ export default function FinanceiroPage() {
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
-        <Card>
+        <Card className="print:col-span-2">
             <CardHeader>
                 <CardTitle>Vendas Mensais</CardTitle>
             </CardHeader>
@@ -252,7 +270,7 @@ export default function FinanceiroPage() {
             </CardContent>
         </Card>
 
-        <Card>
+        <Card className="print:col-span-2">
           <CardHeader>
               <CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" /> Comissões a Pagar</CardTitle>
               <CardDescription>Total de comissões pendentes para cada vendedor (apenas de pedidos entregues).</CardDescription>
@@ -265,7 +283,7 @@ export default function FinanceiroPage() {
                     <TableHead>Vendedor</TableHead>
                     <TableHead className="text-center">Nº de Vendas</TableHead>
                     <TableHead className="text-right">Comissão Total</TableHead>
-                    <TableHead className="text-right">Ação</TableHead>
+                    <TableHead className="text-right print-hidden">Ação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -275,7 +293,7 @@ export default function FinanceiroPage() {
                         <TableCell className="font-medium">{seller.name}</TableCell>
                         <TableCell className="text-center">{seller.count}</TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(seller.total)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right print-hidden">
                            <div className="flex items-center justify-end gap-2">
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(seller)}>
                                     <Eye className="h-4 w-4" />

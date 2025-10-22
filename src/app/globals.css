@@ -88,6 +88,10 @@
     background-color: transparent !important;
   }
   
+  .print\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+  
   .print-layout-default .print-default\:grid {
     display: grid;
   }
