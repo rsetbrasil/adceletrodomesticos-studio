@@ -38,6 +38,7 @@ interface AdminContextType {
   products: Product[];
   categories: Category[];
   commissionPayments: CommissionPayment[];
+  stockAudits: StockAudit[];
   isLoading: boolean;
   deleteOrder: (orderId: string) => Promise<void>;
   permanentlyDeleteOrder: (orderId: string) => Promise<void>;
@@ -75,6 +76,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
+  const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   const { logAction } = useAudit();
@@ -122,6 +124,16 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         operation: 'list',
       }));
     });
+     const stockAuditsUnsubscribe = onSnapshot(collection(db, 'stockAudits'), (snapshot) => {
+      setStockAudits(snapshot.docs.map(d => d.data() as StockAudit));
+    }, (error) => {
+      console.error("Error fetching stock audits:", error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'stockAudits',
+        operation: 'list',
+      }));
+    });
+
 
     setIsLoading(false);
 
@@ -130,6 +142,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       categoriesUnsubscribe();
       ordersUnsubscribe();
       commissionPaymentsUnsubscribe();
+      stockAuditsUnsubscribe();
     }
   }, []);
   
@@ -878,6 +891,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         products, addProduct, updateProduct, deleteProduct,
         categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         commissionPayments, payCommissions, reverseCommissionPayment,
+        stockAudits,
         isLoading,
         restoreAdminData, resetOrders, resetAllAdminData,
         saveStockAudit,

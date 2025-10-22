@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAdmin } from '@/context/AdminContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -36,12 +37,30 @@ const getAnos = () => {
 
 
 function StockAuditTab() {
-    const { products, saveStockAudit } = useAdmin();
+    const { products, saveStockAudit, stockAudits } = useAdmin();
     const { user } = useAuth();
     const router = useRouter();
     const [stockCounts, setStockCounts] = useState<StockCount>({});
     const [mes, setMes] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
     const [ano, setAno] = useState(new Date().getFullYear().toString());
+
+    useEffect(() => {
+        const auditId = `audit-${ano}-${mes}`;
+        const existingAudit = stockAudits.find(a => a.id === auditId);
+        
+        if (existingAudit) {
+            const loadedCounts: StockCount = {};
+            existingAudit.products.forEach(p => {
+                if(p.physicalCount !== null) {
+                    loadedCounts[p.productId] = p.physicalCount;
+                }
+            });
+            setStockCounts(loadedCounts);
+        } else {
+            setStockCounts({});
+        }
+    }, [mes, ano, stockAudits]);
+
 
      if (user?.role !== 'admin' && user?.role !== 'gerente') {
         router.push('/admin/pedidos');
@@ -50,12 +69,10 @@ function StockAuditTab() {
 
     const handleMonthChange = (newMonth: string) => {
         setMes(newMonth);
-        setStockCounts({});
     };
 
     const handleYearChange = (newYear: string) => {
         setAno(newYear);
-        setStockCounts({});
     };
 
     const handleCountChange = (productId: string, value: string) => {
