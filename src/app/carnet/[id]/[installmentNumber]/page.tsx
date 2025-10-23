@@ -39,7 +39,7 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
     return (
         <div className="bg-white break-inside-avoid-page text-black font-mono text-xs relative print:p-0">
              <div className="flex justify-between items-start mb-4">
-                <div className="text-left">
+                 <div>
                     <div className="mb-4">
                         <Logo />
                     </div>
@@ -253,7 +253,7 @@ export default function SingleInstallmentPage() {
 
   return (
     <div className="bg-muted/30 print:bg-white">
-      <div className="container mx-auto py-8 px-4 print:max-w-none print:px-0">
+      <div className="container mx-auto py-8 px-4 print:max-w-none print:px-0 print:py-0">
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8 print-hidden gap-4">
            <Button variant="ghost" onClick={() => router.back()}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
