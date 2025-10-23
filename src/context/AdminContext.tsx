@@ -783,23 +783,32 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
   
     const importCustomers = async (csvData: string) => {
-        const lines = csvData.split('\n').filter(line => line.trim() !== '');
-        if (lines.length < 2) {
-            toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV está vazio ou contém apenas o cabeçalho.', variant: 'destructive' });
+        // Remove BOM and clean up line endings
+        const cleanedCsvData = csvData.trim().replace(/^\uFEFF/, '');
+        const lines = cleanedCsvData.split(/\r?\n/).filter(line => line.trim() !== '');
+
+        if (lines.length < 1) {
+            toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV está vazio.', variant: 'destructive' });
             return;
         }
 
-        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const firstLine = lines[0];
+        // Detect delimiter
+        const delimiter = firstLine.includes(';') ? ';' : ',';
+
+        // Clean up the header - remove quotes and BOM character if present
+        const header = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+        
         if (!header.includes('cpf')) {
             toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV deve conter uma coluna "cpf".', variant: 'destructive' });
             return;
         }
         
         const customersToImport: CustomerInfo[] = lines.slice(1).map(line => {
-            const data = line.split(',');
+            const data = line.split(delimiter);
             const customer: any = {};
             header.forEach((key, index) => {
-                customer[key] = data[index]?.trim() || '';
+                customer[key] = data[index]?.trim().replace(/"/g, '') || '';
             });
             return customer as CustomerInfo;
         });
@@ -809,7 +818,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         let createdCount = 0;
 
         customersToImport.forEach(importedCustomer => {
-            if (!importedCustomer.cpf) return; // Skip if CPF is missing
+            if (!importedCustomer || !importedCustomer.cpf) return; // Skip if CPF is missing
 
             const cpf = importedCustomer.cpf.replace(/\D/g, '');
             const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
