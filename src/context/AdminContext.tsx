@@ -790,6 +790,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+        if (!header.includes('cpf')) {
+            toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV deve conter uma coluna "cpf".', variant: 'destructive' });
+            return;
+        }
+        
         const customersToImport: CustomerInfo[] = lines.slice(1).map(line => {
             const data = line.split(',');
             const customer: any = {};
@@ -804,6 +809,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         let createdCount = 0;
 
         customersToImport.forEach(importedCustomer => {
+            if (!importedCustomer.cpf) return; // Skip if CPF is missing
+
             const cpf = importedCustomer.cpf.replace(/\D/g, '');
             const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
 
@@ -815,8 +822,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
                 updatedCount++;
             } else {
                 // This is a new customer. We can't create them without an order,
-                // so we will just log this for now. A better approach would be to have a separate 'customers' collection.
-                // For now, we will create a dummy order to store the customer.
+                // so we will create a dummy order to store the customer.
                 const orderId = `IMP-${cpf}-${Date.now()}`;
                 const dummyOrder: Order = {
                     id: orderId,
