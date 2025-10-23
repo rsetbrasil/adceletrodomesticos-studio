@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAdmin } from '@/context/AdminContext';
@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare, History } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare, History, Import } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -76,7 +76,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 };
 
 export default function CustomersAdminPage() {
-  const { orders, updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment } = useAdmin();
+  const { orders, updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers } = useAdmin();
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,6 +91,7 @@ export default function CustomersAdminPage() {
   const [installmentToPay, setInstallmentToPay] = useState<Installment | null>(null);
   const [orderForPayment, setOrderForPayment] = useState<Order | null>(null);
   const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [commentDialog, setCommentDialog] = useState<{
     open: boolean;
@@ -367,6 +368,23 @@ export default function CustomersAdminPage() {
     onSave?.(currentComment || '');
   };
 
+  const handleImportCustomers = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target?.result as string;
+            await importCustomers(text);
+        };
+        reader.readAsText(file);
+        
+        // Reset file input
+        if(fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
 
   if (!isClient) {
     return (
@@ -381,11 +399,24 @@ export default function CustomersAdminPage() {
         <div className="grid lg:grid-cols-3 gap-8 items-start">
         <Card className="lg:col-span-1">
             <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Clientes Cadastrados
-            </CardTitle>
-            <CardDescription>Selecione um cliente para ver os detalhes.</CardDescription>
+                <div className='flex justify-between items-center'>
+                    <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5" />
+                        Clientes
+                    </CardTitle>
+                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                        <Import className="h-4 w-4 mr-2" />
+                        Importar Clientes
+                    </Button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept=".csv"
+                        onChange={handleImportCustomers}
+                    />
+                </div>
+                <CardDescription>Selecione um cliente para ver os detalhes ou importe uma lista.</CardDescription>
             </CardHeader>
             <CardContent>
             <div className="relative mb-4">
@@ -854,8 +885,7 @@ export default function CustomersAdminPage() {
                             <Input id="city" name="city" value={editedInfo.city || ''} onChange={handleInputChange} />
                         </div>
                          <div className="md:col-span-2">
-                            <Label htmlFor="state">Estado</Label>
-                            <Input id="state" name="state" value={editedInfo.state || ''} onChange={handleInputChange} />
+                            <Label htmlFor="state">Estado</Label>                            <Input id="state" name="state" value={editedInfo.state || ''} onChange={handleInputChange} />
                         </div>
                     </div>
                     <div className="pt-4 border-t">
@@ -911,3 +941,4 @@ export default function CustomersAdminPage() {
     
 
     
+

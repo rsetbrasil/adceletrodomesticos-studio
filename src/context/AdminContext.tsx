@@ -47,6 +47,7 @@ interface AdminContextType {
   reversePayment: (orderId: string, installmentNumber: number, paymentId: string) => Promise<void>;
   updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date) => Promise<void>;
   updateCustomer: (customer: CustomerInfo) => Promise<void>;
+  importCustomers: (csvData: string) => Promise<void>;
   updateOrderDetails: (orderId: string, details: Partial<Order>) => Promise<void>;
   addProduct: (product: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
@@ -780,6 +781,75 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         }));
     });
   };
+  
+    const importCustomers = async (csvData: string) => {
+        const lines = csvData.split('\n').filter(line => line.trim() !== '');
+        if (lines.length < 2) {
+            toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV está vazio ou contém apenas o cabeçalho.', variant: 'destructive' });
+            return;
+        }
+
+        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const customersToImport: CustomerInfo[] = lines.slice(1).map(line => {
+            const data = line.split(',');
+            const customer: any = {};
+            header.forEach((key, index) => {
+                customer[key] = data[index]?.trim() || '';
+            });
+            return customer as CustomerInfo;
+        });
+
+        const batch = writeBatch(db);
+        let updatedCount = 0;
+        let createdCount = 0;
+
+        customersToImport.forEach(importedCustomer => {
+            const cpf = importedCustomer.cpf.replace(/\D/g, '');
+            const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
+
+            if (existingOrders.length > 0) {
+                // Update existing customer in all their orders
+                existingOrders.forEach(order => {
+                    batch.update(doc(db, 'orders', order.id), { customer: { ...order.customer, ...importedCustomer } });
+                });
+                updatedCount++;
+            } else {
+                // This is a new customer. We can't create them without an order,
+                // so we will just log this for now. A better approach would be to have a separate 'customers' collection.
+                // For now, we will create a dummy order to store the customer.
+                const orderId = `IMP-${cpf}-${Date.now()}`;
+                const dummyOrder: Order = {
+                    id: orderId,
+                    customer: { ...importedCustomer, password: cpf.substring(0,6) },
+                    items: [],
+                    total: 0,
+                    installments: 0,
+                    installmentValue: 0,
+                    date: new Date().toISOString(),
+                    status: 'Excluído',
+                    paymentMethod: 'Dinheiro',
+                    installmentDetails: [],
+                };
+                batch.set(doc(db, 'orders', orderId), dummyOrder);
+                createdCount++;
+            }
+        });
+
+        try {
+            await batch.commit();
+            logAction('Importação de Clientes', `${createdCount} clientes criados e ${updatedCount} atualizados via CSV.`, user);
+            toast({
+                title: 'Importação Concluída!',
+                description: `${createdCount} novos clientes foram criados e ${updatedCount} clientes existentes foram atualizados.`
+            });
+        } catch (e) {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: 'orders',
+                operation: 'write',
+            }));
+        }
+    };
+
 
   const updateOrderDetails = async (orderId: string, details: Partial<Order>) => {
     const order = orders.find((o) => o.id === orderId);
@@ -892,7 +962,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AdminContext.Provider
       value={{
-        orders, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateCustomer, updateOrderDetails,
+        orders, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateCustomer, importCustomers, updateOrderDetails,
         products, addProduct, updateProduct, deleteProduct,
         categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         commissionPayments, payCommissions, reverseCommissionPayment,
