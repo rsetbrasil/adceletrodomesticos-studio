@@ -80,7 +80,9 @@ export default function CommissionReceiptPage() {
                     <p className="font-bold">{settings.storeName}</p>
                     <p className="whitespace-pre-line">{settings.storeAddress}</p>
                 </div>
-                <Logo />
+                <div className="mt-4">
+                    <Logo />
+                </div>
              </div>
              <div className="text-right">
                 <p className="font-bold text-lg">Recibo de Comissão</p>

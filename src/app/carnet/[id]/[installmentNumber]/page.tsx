@@ -44,7 +44,9 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
                         <p className="font-bold">{settings.storeName}</p>
                         <p className="whitespace-pre-line">{settings.storeAddress}</p>
                     </div>
-                    <Logo />
+                    <div className="mt-4">
+                        <Logo />
+                    </div>
                 </div>
                 <h1 className="font-bold text-lg tracking-wider">EXTRATO DA PARCELA</h1>
             </div>

@@ -31,14 +31,18 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
             <div style={{ display: 'table', width: '100%' }}>
                 <div style={{ display: 'table-row' }}>
                     <div style={{ display: 'table-cell', width: '70%', verticalAlign: 'middle' }} className="text-sm print:text-[10px]">
-                        <p className="font-bold print:text-base">{settings.storeName}</p>
-                        <p className="text-muted-foreground whitespace-pre-line">{settings.storeAddress}</p>
-                        {settings.storePhone && (
-                            <p className="text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" /> WhatsApp: {settings.storePhone}</p>
-                        )}
+                        <div className="text-xs mb-2">
+                            <p className="font-bold">{settings.storeName}</p>
+                            <p className="whitespace-pre-line">{settings.storeAddress}</p>
+                        </div>
+                        <div className="mt-4">
+                           <Logo />
+                        </div>
                     </div>
                      <div style={{ display: 'table-cell', width: '30%', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <Logo />
+                        {settings.storePhone && (
+                            <p className="text-muted-foreground flex items-center gap-1 justify-end"><Phone className="h-3 w-3" /> WhatsApp: {settings.storePhone}</p>
+                        )}
                     </div>
                 </div>
             </div>

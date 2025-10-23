@@ -371,7 +371,9 @@ export default function FinanceiroPage() {
                         <p className="font-bold">{settings.storeName}</p>
                         <p className="whitespace-pre-line">{settings.storeAddress}</p>
                     </div>
-                    <Logo />
+                    <div className="mt-4">
+                        <Logo />
+                    </div>
                 </div>
                 <div className="text-right">
                     <p className="text-sm text-gray-500">{new Date().toLocaleDateString('pt-BR')}</p>
