@@ -30,10 +30,10 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
         <div className="pb-2 print:pb-1 border-b">
             <div style={{ display: 'table', width: '100%' }}>
                 <div style={{ display: 'table-row' }}>
-                    <div style={{ display: 'table-cell', width: '70%', verticalAlign: 'middle' }} className="text-sm print:text-[10px]">
-                        <div className="mb-4">
-                           <Logo />
-                        </div>
+                    <div style={{ display: 'table-cell', verticalAlign: 'middle', paddingRight: '1rem' }}>
+                        <Logo />
+                    </div>
+                    <div style={{ display: 'table-cell', verticalAlign: 'middle' }}>
                         <div className="text-xs">
                             <p className="font-bold">{settings.storeName}</p>
                             <p className="whitespace-pre-line">{settings.storeAddress}</p>
@@ -231,7 +231,7 @@ export default function CarnetPage() {
 
   return (
     <div className={cn("bg-muted/30 print:bg-white")}>
-       <div className="container mx-auto max-w-7xl py-8 px-4 print:p-0 print:m-0 print:max-w-full">
+       <div className="container mx-auto max-w-7xl py-8 print:p-0 print:m-0 print:max-w-full">
         <header className="flex justify-between items-center mb-8 print-hidden">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />

@@ -39,13 +39,17 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
     return (
         <div className="bg-white break-inside-avoid-page text-black font-mono text-xs relative print:p-0">
              <div className="flex justify-between items-start mb-4">
-                 <div>
-                    <div className="mb-4">
-                        <Logo />
-                    </div>
-                    <div className="text-[10px] mb-2">
-                        <p className="font-bold">{settings.storeName}</p>
-                        <p className="whitespace-pre-line">{settings.storeAddress}</p>
+                <div style={{ display: 'table' }}>
+                    <div style={{ display: 'table-row' }}>
+                        <div style={{ display: 'table-cell', verticalAlign: 'middle', paddingRight: '1rem' }}>
+                            <Logo />
+                        </div>
+                        <div style={{ display: 'table-cell', verticalAlign: 'middle' }}>
+                            <div className="text-[10px]">
+                                <p className="font-bold">{settings.storeName}</p>
+                                <p className="whitespace-pre-line">{settings.storeAddress}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <h1 className="font-bold text-lg tracking-wider">EXTRATO DA PARCELA</h1>
@@ -253,7 +257,7 @@ export default function SingleInstallmentPage() {
 
   return (
     <div className="bg-muted/30 print:bg-white">
-      <div className="container mx-auto py-8 px-4 print:p-0">
+      <div className="container mx-auto py-8 print:p-0">
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8 print-hidden gap-4">
            <Button variant="ghost" onClick={() => router.back()}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
