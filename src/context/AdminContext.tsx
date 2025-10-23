@@ -783,7 +783,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
   
     const importCustomers = async (csvData: string) => {
-        // Remove BOM and clean up line endings
         const cleanedCsvData = csvData.trim().replace(/^\uFEFF/, '');
         const lines = cleanedCsvData.split(/\r?\n/).filter(line => line.trim() !== '');
 
@@ -793,12 +792,10 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const firstLine = lines[0];
-        // Detect delimiter
         const delimiter = firstLine.includes(';') ? ';' : ',';
 
-        // Clean up the header - remove quotes and BOM character if present
-        const header = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''));
-        
+        const header = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, '').replace(/[^a-zA-Z0-9]/g, ''));
+
         if (!header.includes('cpf')) {
             toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV deve conter uma coluna "cpf".', variant: 'destructive' });
             return;
@@ -818,20 +815,17 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         let createdCount = 0;
 
         customersToImport.forEach(importedCustomer => {
-            if (!importedCustomer || !importedCustomer.cpf) return; // Skip if CPF is missing
+            if (!importedCustomer || !importedCustomer.cpf) return;
 
             const cpf = importedCustomer.cpf.replace(/\D/g, '');
             const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
 
             if (existingOrders.length > 0) {
-                // Update existing customer in all their orders
                 existingOrders.forEach(order => {
                     batch.update(doc(db, 'orders', order.id), { customer: { ...order.customer, ...importedCustomer } });
                 });
                 updatedCount++;
             } else {
-                // This is a new customer. We can't create them without an order,
-                // so we will create a dummy order to store the customer.
                 const orderId = `IMP-${cpf}-${Date.now()}`;
                 const dummyOrder: Order = {
                     id: orderId,
