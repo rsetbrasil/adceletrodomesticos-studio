@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
-import { DollarSign, CheckCircle, Clock, Percent, Award, FileText, TrendingUp, Eye, Printer, TrendingDown } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, Percent, Award, FileText, TrendingUp, Eye, Printer, TrendingDown, ShoppingCart } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -141,6 +141,12 @@ export default function FinanceiroPage() {
     return { totalPendingCommission, commissionsBySeller };
   }, [orders, users, isClient]);
 
+  const deliveredOrders = useMemo(() => {
+    if (!isClient || !orders) return [];
+    return orders.filter(o => o.status === 'Entregue').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [orders, isClient]);
+
+
   const handlePayCommission = async (seller: SellerCommissionDetails) => {
       const period = format(new Date(), 'MMMM/yyyy', { locale: ptBR });
       const paymentId = await payCommissions(seller.id, seller.name, seller.total, seller.orderIds, period);
@@ -162,7 +168,6 @@ export default function FinanceiroPage() {
   const handlePrint = (type: 'sales' | 'profits' | 'commissions') => {
     let title = 'Relatório Financeiro';
     
-    // Remove any existing print classes from the body
     document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only');
 
     if (type === 'sales') {
@@ -180,7 +185,6 @@ export default function FinanceiroPage() {
 
     setTimeout(() => {
         window.print();
-        // Clean up class from body after printing
         document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only');
     }, 100);
 };
@@ -419,6 +423,42 @@ export default function FinanceiroPage() {
                     ))}
                 </tbody>
             </table>
+
+            <div className="mt-8">
+                <h2 className="text-xl font-semibold text-center mb-4">Relatório de Vendas Entregues</h2>
+                {deliveredOrders.length > 0 ? (
+                    <table className="w-full text-sm border-collapse">
+                        <thead>
+                            <tr className="border-b-2">
+                                <th className="text-left p-2 font-bold">Data</th>
+                                <th className="text-left p-2 font-bold">Pedido</th>
+                                <th className="text-left p-2 font-bold">Cliente</th>
+                                <th className="text-left p-2 font-bold">Vendedor</th>
+                                <th className="text-right p-2 font-bold">Valor</th>
+                                <th className="text-right p-2 font-bold">Comissão</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {deliveredOrders.map(order => (
+                                <tr key={order.id} className="border-b last:border-none">
+                                    <td className="p-2">{format(parseISO(order.date), 'dd/MM/yy')}</td>
+                                    <td className="p-2 font-mono">{order.id}</td>
+                                    <td className="p-2">{order.customer.name}</td>
+                                    <td className="p-2">{order.sellerName}</td>
+                                    <td className="p-2 text-right">{formatCurrency(order.total)}</td>
+                                    <td className="p-2 text-right font-semibold">{formatCurrency(order.commission || 0)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className="text-center text-gray-500 py-8">
+                        <ShoppingCart className="mx-auto h-8 w-8" />
+                        <p className="mt-2">Nenhuma venda entregue no período.</p>
+                    </div>
+                )}
+            </div>
+
         </div>
 
         <div className="print-section-commissions mt-8">
