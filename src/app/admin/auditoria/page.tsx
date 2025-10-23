@@ -258,9 +258,9 @@ function StockAuditTab() {
                     <thead>
                         <tr className="border-b-2">
                             <th className="text-left p-2 font-bold">Produto</th>
-                            <th className="text-center p-2 font-bold">Estoque Sistema</th>
-                            <th className="text-center p-2 font-bold">Estoque Físico</th>
-                            <th className="text-center p-2 font-bold">Diferença</th>
+                            <th className="text-left p-2 font-bold">Estoque Sistema</th>
+                            <th className="text-left p-2 font-bold">Estoque Físico</th>
+                            <th className="text-left p-2 font-bold">Diferença</th>
                         </tr>
                     </thead>
                     <tbody>

@@ -112,8 +112,8 @@ export default function CommissionReceiptPage() {
                                 <th className="p-2 text-left font-medium">Data do Pedido</th>
                                 <th className="p-2 text-left font-medium">ID do Pedido</th>
                                 <th className="p-2 text-left font-medium">Cliente</th>
-                                <th className="p-2 text-right font-medium">Valor do Pedido</th>
-                                <th className="p-2 text-right font-medium">Valor da Comissão</th>
+                                <th className="p-2 text-left font-medium">Valor do Pedido</th>
+                                <th className="p-2 text-left font-medium">Valor da Comissão</th>
                             </tr>
                         </thead>
                         <tbody>
