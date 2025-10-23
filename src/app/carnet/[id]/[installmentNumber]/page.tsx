@@ -37,7 +37,7 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
     const remainingBalance = isPaid ? 0 : installment.amount - totalPaidOnInstallment;
     
     return (
-        <div className="bg-white p-6 break-inside-avoid-page text-black font-mono text-xs relative">
+        <div className="bg-white break-inside-avoid-page text-black font-mono text-xs relative print:p-0">
              <div className="flex justify-between items-start mb-4">
                 <div className="text-left">
                     <div className="mb-4">
@@ -275,7 +275,7 @@ export default function SingleInstallmentPage() {
           </div>
         </header>
 
-        <main ref={receiptRef} className="bg-white print:grid print:grid-cols-2 print:gap-8">
+        <main ref={receiptRef} className="bg-white p-6 print:grid print:grid-cols-2 print:gap-8 print:p-0">
             <div className="print:border-r print:border-dashed print:border-black print:pr-4">
                 <ReceiptContent order={order} installment={installment} settings={settings} via="Empresa" />
             </div>

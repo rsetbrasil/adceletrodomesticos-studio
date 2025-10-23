@@ -26,7 +26,7 @@ const formatCurrency = (value: number) => {
 };
 
 const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings: any, pixPayload: string | null }) => (
-    <div className="carnet-content-wrapper bg-white p-6 break-inside-avoid print:p-0 text-sm print:text-[9px]">
+    <div className="carnet-content-wrapper bg-white break-inside-avoid print:p-0 text-sm print:text-[9px]">
         <div className="pb-2 print:pb-1 border-b">
             <div style={{ display: 'table', width: '100%' }}>
                 <div style={{ display: 'table-row' }}>
@@ -253,7 +253,7 @@ export default function CarnetPage() {
           </div>
         </header>
         
-        <main className="w-full print-default:grid print-default:grid-cols-2 print-default:gap-x-4 print-a4:block">
+        <main className="w-full bg-white p-6 print:p-0 print:shadow-none print-default:grid print-default:grid-cols-2 print-default:gap-x-4 print-a4:block">
             <div className="print-default:border-r print-default:border-dashed print-default:border-black print-default:pr-4">
                 <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
