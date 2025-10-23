@@ -57,7 +57,7 @@ export default function CommissionReceiptPage() {
 
   return (
     <div className="bg-muted/30 print:bg-white py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
+      <div className="container mx-auto px-4 max-w-4xl print:p-0">
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8 print-hidden gap-4">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -75,7 +75,7 @@ export default function CommissionReceiptPage() {
 
         <main ref={receiptRef} id="receipt-content" className="bg-background rounded-lg border shadow-sm p-8 break-inside-avoid print:shadow-none print:border-none print:p-0">
            <div className="flex justify-between items-start pb-4 border-b">
-             <div className="text-left">
+             <div>
                 <div className="mb-4">
                     <Logo />
                 </div>

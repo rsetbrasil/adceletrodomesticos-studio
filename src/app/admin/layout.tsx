@@ -107,7 +107,7 @@ function AdminArea({ children }: { children: ReactNode }) {
     
     return (
         <>
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto px-4 py-8 print:p-0">
                 <header className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b pb-6 print-hidden">
                     <div className="flex items-center gap-4">
                         <Shield className="h-10 w-10 text-primary" />
