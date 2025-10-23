@@ -39,9 +39,9 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
     return (
         <div className="bg-white p-6 break-inside-avoid-page text-black font-mono text-xs relative">
              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-4">
+                <div className="text-left">
                     <Logo />
-                    <div className="text-[10px]">
+                    <div className="mt-2 text-[10px]">
                         <p className="font-bold">{settings.storeName}</p>
                         <p className="whitespace-pre-line">{settings.storeAddress}</p>
                     </div>

@@ -205,8 +205,8 @@ export default function FinanceiroPage() {
     };
 
   return (
-    <>
-      <div className="print-hidden space-y-8">
+    <div className='space-y-8'>
+      <div className="print-hidden">
           <Card>
             <CardHeader>
                 <CardTitle>Relatório Financeiro</CardTitle>
@@ -366,7 +366,7 @@ export default function FinanceiroPage() {
       <div className="print-only">
         <div className="mb-8">
             <div className="flex justify-between items-start pb-4 border-b">
-                <div>
+                <div className="text-left">
                     <Logo />
                      <div className="mt-2 text-xs">
                         <p className="font-bold">{settings.storeName}</p>
@@ -532,6 +532,6 @@ export default function FinanceiroPage() {
             </div>
         </DialogContent>
     </Dialog>
-    </>
+    </div>
   );
 }

@@ -30,7 +30,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
         <div className="pb-2 print:pb-1 border-b">
             <div style={{ display: 'table', width: '100%' }}>
                 <div style={{ display: 'table-row' }}>
-                    <div style={{ display: 'table-cell', width: '30%', verticalAlign: 'middle' }}>
+                    <div style={{ display: 'table-cell', width: '30%', verticalAlign: 'middle', textAlign: 'left' }}>
                         <Logo />
                     </div>
                     <div style={{ display: 'table-cell', width: '70%', verticalAlign: 'middle' }} className="text-sm print:text-[10px]">

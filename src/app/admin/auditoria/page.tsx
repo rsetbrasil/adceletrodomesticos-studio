@@ -236,7 +236,7 @@ function StockAuditTab() {
             <div className="print-only">
                 <div className="mb-8">
                     <div className="flex justify-between items-start pb-4 border-b">
-                        <div>
+                        <div className="text-left">
                             <Logo />
                             <div className="mt-2 text-xs">
                                 <p className="font-bold">{settings.storeName}</p>
