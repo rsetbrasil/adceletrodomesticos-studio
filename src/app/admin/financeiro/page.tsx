@@ -367,9 +367,6 @@ export default function FinanceiroPage() {
         <div className="mb-8">
             <div className="flex justify-between items-start pb-4 border-b">
                 <div className="text-left">
-                    <div className="mb-4">
-                        <Logo />
-                    </div>
                     <div className="text-xs">
                         <p className="font-bold">{settings.storeName}</p>
                         <p className="whitespace-pre-line">{settings.storeAddress}</p>
