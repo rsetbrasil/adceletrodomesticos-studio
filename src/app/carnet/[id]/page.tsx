@@ -31,12 +31,12 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
             <div style={{ display: 'table', width: '100%' }}>
                 <div style={{ display: 'table-row' }}>
                     <div style={{ display: 'table-cell', width: '70%', verticalAlign: 'middle' }} className="text-sm print:text-[10px]">
-                        <div className="text-xs mb-2">
+                        <div className="mb-4">
+                           <Logo />
+                        </div>
+                        <div className="text-xs">
                             <p className="font-bold">{settings.storeName}</p>
                             <p className="whitespace-pre-line">{settings.storeAddress}</p>
-                        </div>
-                        <div className="mt-4">
-                           <Logo />
                         </div>
                     </div>
                      <div style={{ display: 'table-cell', width: '30%', verticalAlign: 'middle', textAlign: 'right' }}>

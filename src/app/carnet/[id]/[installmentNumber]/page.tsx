@@ -40,12 +40,12 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
         <div className="bg-white p-6 break-inside-avoid-page text-black font-mono text-xs relative">
              <div className="flex justify-between items-start mb-4">
                 <div className="text-left">
+                    <div className="mb-4">
+                        <Logo />
+                    </div>
                     <div className="text-[10px] mb-2">
                         <p className="font-bold">{settings.storeName}</p>
                         <p className="whitespace-pre-line">{settings.storeAddress}</p>
-                    </div>
-                    <div className="mt-4">
-                        <Logo />
                     </div>
                 </div>
                 <h1 className="font-bold text-lg tracking-wider">EXTRATO DA PARCELA</h1>
