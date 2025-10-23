@@ -367,11 +367,11 @@ export default function FinanceiroPage() {
         <div className="mb-8">
             <div className="flex justify-between items-start pb-4 border-b">
                 <div className="text-left">
-                    <Logo />
-                     <div className="mt-2 text-xs">
+                    <div className="text-xs mb-2">
                         <p className="font-bold">{settings.storeName}</p>
                         <p className="whitespace-pre-line">{settings.storeAddress}</p>
                     </div>
+                    <Logo />
                 </div>
                 <div className="text-right">
                     <p className="text-sm text-gray-500">{new Date().toLocaleDateString('pt-BR')}</p>

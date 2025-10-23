@@ -76,11 +76,11 @@ export default function CommissionReceiptPage() {
         <main ref={receiptRef} id="receipt-content" className="bg-background rounded-lg border shadow-sm p-8 break-inside-avoid print:shadow-none print:border-none print:p-0">
            <div className="flex justify-between items-start pb-4 border-b">
              <div className="text-left">
-                <Logo />
-                <div className="mt-2 text-xs">
+                <div className="text-xs mb-2">
                     <p className="font-bold">{settings.storeName}</p>
                     <p className="whitespace-pre-line">{settings.storeAddress}</p>
                 </div>
+                <Logo />
              </div>
              <div className="text-right">
                 <p className="font-bold text-lg">Recibo de Comissão</p>
