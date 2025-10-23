@@ -411,7 +411,7 @@ export default function FinanceiroPage() {
                 <thead>
                     <tr className="border-b-2">
                         <th className="text-left p-2 font-bold">Mês/Ano</th>
-                        <th className="text-right p-2 font-bold">Total Vendido</th>
+                        <th className="text-left p-2 font-bold">Total Vendido</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -434,8 +434,8 @@ export default function FinanceiroPage() {
                                 <th className="text-left p-2 font-bold">Pedido</th>
                                 <th className="text-left p-2 font-bold">Cliente</th>
                                 <th className="text-left p-2 font-bold">Vendedor</th>
-                                <th className="text-right p-2 font-bold">Valor</th>
-                                <th className="text-right p-2 font-bold">Comissão</th>
+                                <th className="text-left p-2 font-bold">Valor</th>
+                                <th className="text-left p-2 font-bold">Comissão</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -467,8 +467,8 @@ export default function FinanceiroPage() {
                 <thead>
                     <tr className="border-b-2">
                         <th className="text-left p-2 font-bold">Vendedor</th>
-                        <th className="text-center p-2 font-bold">Nº de Vendas</th>
-                        <th className="text-right p-2 font-bold">Comissão Total</th>
+                        <th className="text-left p-2 font-bold">Nº de Vendas</th>
+                        <th className="text-left p-2 font-bold">Comissão Total</th>
                     </tr>
                 </thead>
                 <tbody>
