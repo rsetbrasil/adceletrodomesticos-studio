@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment, StockAudit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
@@ -11,26 +10,6 @@ import { useAuth } from './AuthContext';
 import { useAudit } from './AuditContext';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-
-const saveDataToLocalStorage = (key: string, data: any) => {
-    if (typeof window === 'undefined') return;
-    try {
-        localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-        console.error(`Failed to save ${key} to localStorage`, error);
-    }
-};
-
-const loadDataFromLocalStorage = (key: string) => {
-    if (typeof window === 'undefined') return null;
-    try {
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : null;
-    } catch (error) {
-        console.error(`Failed to load ${key} from localStorage`, error);
-        return null;
-    }
-}
 
 interface AdminContextType {
   orders: Order[];
@@ -84,57 +63,44 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     setIsLoading(true);
+
     const productsUnsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       setProducts(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
-    },
-    (error) => {
+    }, (error) => {
       console.error("Error fetching products:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: 'products',
-        operation: 'list',
-      }));
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'products', operation: 'list' }));
     });
+
     const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
       setCategories(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
-    },
-    (error) => {
+    }, (error) => {
       console.error("Error fetching categories:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: 'categories',
-        operation: 'list',
-      }));
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'categories', operation: 'list' }));
     });
+
     const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
       setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    },
-    (error) => {
+    }, (error) => {
       console.error("Error fetching orders:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: 'orders',
-        operation: 'list',
-      }));
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'orders', operation: 'list' }));
     });
+
     const commissionPaymentsUnsubscribe = onSnapshot(collection(db, 'commissionPayments'), (snapshot) => {
       setCommissionPayments(snapshot.docs.map(d => d.data() as CommissionPayment));
-    },
-    (error) => {
+    }, (error) => {
       console.error("Error fetching commission payments:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: 'commissionPayments',
-        operation: 'list',
-      }));
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'commissionPayments', operation: 'list' }));
     });
-     const stockAuditsUnsubscribe = onSnapshot(collection(db, 'stockAudits'), (snapshot) => {
+
+    const stockAuditsUnsubscribe = onSnapshot(collection(db, 'stockAudits'), (snapshot) => {
       setStockAudits(snapshot.docs.map(d => d.data() as StockAudit));
     }, (error) => {
       console.error("Error fetching stock audits:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: 'stockAudits',
-        operation: 'list',
-      }));
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'stockAudits', operation: 'list' }));
     });
 
-
+    // We can set loading to false once all listeners are attached.
+    // The data will flow in asynchronously.
     setIsLoading(false);
 
     return () => {
@@ -149,32 +115,22 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const restoreAdminData = async (data: { products: Product[], orders: Order[], categories: Category[] }) => {
     setIsLoading(true);
     const batch = writeBatch(db);
+
+    // Instead of getDocs, use the state to know which documents to delete
+    products.forEach(p => batch.delete(doc(db, 'products', p.id)));
+    orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
+    categories.forEach(c => batch.delete(doc(db, 'categories', c.id)));
     
-    try {
-        const productsCollectionRef = collection(db, "products");
-        const productsSnapshot = await getDocs(productsCollectionRef);
-        productsSnapshot.forEach(doc => batch.delete(doc.ref));
-        
-        const ordersCollectionRef = collection(db, "orders");
-        const ordersSnapshot = await getDocs(ordersCollectionRef);
-        ordersSnapshot.forEach(doc => batch.delete(doc.ref));
+    // Commit deletions
+    await batch.commit();
 
-        const categoriesCollectionRef = collection(db, "categories");
-        const categoriesSnapshot = await getDocs(categoriesCollectionRef);
-        categoriesSnapshot.forEach(doc => batch.delete(doc.ref));
-
-        await batch.commit(); // Commit deletions first
-    } catch (error) {
-        console.error("Error clearing existing data:", error);
-        // Do not emit here, as it might be a general error, not a permission one.
-    }
-
+    // Create a new batch for additions
     const addBatch = writeBatch(db);
     data.products.forEach(p => addBatch.set(doc(db, 'products', p.id), p));
     data.orders.forEach(o => addBatch.set(doc(db, 'orders', o.id), o));
     data.categories.forEach(c => addBatch.set(doc(db, 'categories', c.id), c));
 
-    addBatch.commit().then(() => {
+    await addBatch.commit().then(() => {
         logAction('Restauração de Backup', 'Todos os dados de produtos, pedidos e categorias foram restaurados.', user);
         toast({ title: 'Dados restaurados com sucesso!' });
         setIsLoading(false);
@@ -186,9 +142,10 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const resetOrders = async () => {
     setIsLoading(true);
-    const ordersSnapshot = await getDocs(collection(db, 'orders'));
     const batch = writeBatch(db);
-    ordersSnapshot.docs.forEach(d => batch.delete(d.ref));
+    // Use the 'orders' state instead of fetching again with getDocs
+    orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
+    
     batch.commit().then(() => {
         logAction('Reset de Pedidos', 'Todos os pedidos e clientes foram zerados.', user);
         setIsLoading(false);
@@ -199,9 +156,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const resetAllAdminData = async () => {
-    const initialProducts = []; // Assuming no initial products after a full reset
-    const initialCats = []; // No initial categories either
-    await restoreAdminData({ products: initialProducts, orders: [], categories: initialCats });
+    await restoreAdminData({ products: [], orders: [], categories: [] });
     logAction('Reset da Loja', 'Todos os dados da loja foram resetados para o padrão.', user);
   };
 
@@ -769,7 +724,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const importCustomers = async (csvData: string) => {
-    // 1. Sanitize input and remove BOM
     const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, '');
     if (!sanitizedCsv) {
         toast({ title: 'Arquivo Vazio', description: 'O arquivo CSV está vazio.', variant: 'destructive' });
