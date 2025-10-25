@@ -794,45 +794,33 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const delimiter = lines[0].includes(';') ? ';' : ',';
     const headerLine = lines[0].trim();
     const header = headerLine.split(delimiter);
-    
-    const normalizeHeader = (name: string) => name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/gi, '').trim();
 
-    const columnMap: { [key in keyof CustomerInfo]?: number } = {};
-    const headerMapping: { [key: string]: keyof CustomerInfo } = {
-        'cpf': 'cpf',
-        'nome': 'name',
-        'name': 'name',
-        'telefone': 'phone',
-        'fone': 'phone',
-        'email': 'email',
-        'e-mail': 'email',
-        'mail': 'email',
-        'cep': 'zip',
-        'endereco': 'address',
-        'endereço': 'address',
-        'rua': 'address',
-        'numero': 'number',
-        'número': 'number',
-        'complemento': 'complement',
-        'bairro': 'neighborhood',
-        'cidade': 'city',
-        'estado': 'state',
-        'uf': 'state',
+    const getColumnIndex = (possibleNames: string[]) => {
+      for (const name of possibleNames) {
+        const lowerName = name.toLowerCase();
+        const index = header.findIndex(h => h.toLowerCase().trim().replace(/"/g, '') === lowerName);
+        if (index !== -1) return index;
+      }
+      return -1;
     };
     
-    header.forEach((colName, index) => {
-        const normalized = normalizeHeader(colName);
-        for(const key in headerMapping) {
-            if (normalized === key) {
-                columnMap[headerMapping[key as keyof typeof headerMapping] as keyof CustomerInfo] = index;
-                break;
-            }
-        }
-    });
+    const columnMap: { [key in keyof CustomerInfo]?: number } = {
+        cpf: getColumnIndex(['cpf']),
+        name: getColumnIndex(['nome', 'name']),
+        phone: getColumnIndex(['telefone', 'fone']),
+        email: getColumnIndex(['email', 'e-mail']),
+        zip: getColumnIndex(['cep']),
+        address: getColumnIndex(['endereco', 'endereço', 'rua']),
+        number: getColumnIndex(['numero', 'número']),
+        complement: getColumnIndex(['complemento']),
+        neighborhood: getColumnIndex(['bairro']),
+        city: getColumnIndex(['cidade']),
+        state: getColumnIndex(['estado', 'uf']),
+    };
 
-    if (columnMap.cpf === undefined) {
-         toast({ title: 'Arquivo Inválido', description: "A coluna 'cpf' é obrigatória e não foi encontrada no arquivo.", variant: 'destructive' });
-         return;
+    if (columnMap.cpf === -1) {
+        toast({ title: 'Arquivo Inválido', description: "A coluna 'cpf' é obrigatória e não foi encontrada no arquivo.", variant: 'destructive' });
+        return;
     }
 
     const customersToImport: Partial<CustomerInfo>[] = lines.slice(1).map(line => {
@@ -841,7 +829,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         for (const key in columnMap) {
             const typedKey = key as keyof CustomerInfo;
             const colIndex = columnMap[typedKey];
-            if (colIndex !== undefined && data[colIndex]) {
+            if (colIndex !== undefined && colIndex !== -1 && data[colIndex]) {
                 customer[typedKey] = data[colIndex].trim().replace(/"/g, '');
             }
         }
