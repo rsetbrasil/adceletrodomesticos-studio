@@ -130,7 +130,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     data.orders.forEach(o => addBatch.set(doc(db, 'orders', o.id), o));
     data.categories.forEach(c => addBatch.set(doc(db, 'categories', c.id), c));
 
-    await addBatch.commit().then(() => {
+    addBatch.commit().then(() => {
         logAction('Restauração de Backup', 'Todos os dados de produtos, pedidos e categorias foram restaurados.', user);
         toast({ title: 'Dados restaurados com sucesso!' });
         setIsLoading(false);
@@ -867,19 +867,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
     let detailsToUpdate: Partial<Order> = { ...details };
 
-    if ('sellerId' in details && details.sellerId && details.sellerId !== order.sellerId) {
-      const tempOrderForCommissionCalc = { ...order, ...detailsToUpdate };
-      if (!tempOrderForCommissionCalc.isCommissionManual) {
+    // Update commission only if sellerId is being changed, to avoid recalculating unnecessarily
+    if (details.sellerId && details.sellerId !== order.sellerId && !order.isCommissionManual) {
+        const tempOrderForCommissionCalc = { ...order, ...detailsToUpdate };
         detailsToUpdate.commission = calculateCommission(tempOrderForCommissionCalc, products);
-      }
     }
-
-    Object.keys(detailsToUpdate).forEach(key => {
-        const k = key as keyof typeof detailsToUpdate;
-        if (detailsToUpdate[k] === undefined) {
-            delete detailsToUpdate[k];
-        }
-    });
     
     const orderRef = doc(db, 'orders', orderId);
     updateDoc(orderRef, detailsToUpdate).then(() => {
