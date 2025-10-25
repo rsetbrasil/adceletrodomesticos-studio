@@ -793,31 +793,37 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     
     const delimiter = lines[0].includes(';') ? ';' : ',';
     const headerLine = lines[0].trim();
-    const header = headerLine.split(delimiter).map(h => h.trim().replace(/"/g, ''));
+    const header = headerLine.split(delimiter);
     
-    const normalizeHeader = (name: string) => name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/gi, '');
+    const normalizeHeader = (name: string) => name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/gi, '').trim();
 
     const columnMap: { [key in keyof CustomerInfo]?: number } = {};
     const headerMapping: { [key: string]: keyof CustomerInfo } = {
         'cpf': 'cpf',
         'nome': 'name',
+        'name': 'name',
         'telefone': 'phone',
         'fone': 'phone',
         'email': 'email',
         'e-mail': 'email',
+        'mail': 'email',
         'cep': 'zip',
         'endereco': 'address',
+        'endereço': 'address',
+        'rua': 'address',
         'numero': 'number',
+        'número': 'number',
         'complemento': 'complement',
         'bairro': 'neighborhood',
         'cidade': 'city',
         'estado': 'state',
+        'uf': 'state',
     };
     
     header.forEach((colName, index) => {
         const normalized = normalizeHeader(colName);
         for(const key in headerMapping) {
-            if (normalized.includes(key)) {
+            if (normalized === key) {
                 columnMap[headerMapping[key as keyof typeof headerMapping] as keyof CustomerInfo] = index;
                 break;
             }
