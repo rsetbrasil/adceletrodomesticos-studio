@@ -782,30 +782,25 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     });
   };
   
-  const importCustomers = async (csvData: string) => {
+    const importCustomers = async (csvData: string) => {
         const cleanedCsvData = csvData.trim().replace(/^\uFEFF/, '');
         const lines = cleanedCsvData.split(/\r?\n/).filter(line => line.trim() !== '');
 
-        if (lines.length < 1) {
-            toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV está vazio.', variant: 'destructive' });
+        if (lines.length < 2) { // Must have header and at least one data line
+            toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV está vazio ou contém apenas o cabeçalho.', variant: 'destructive' });
             return;
         }
 
-        const firstLine = lines[0];
-        const delimiter = firstLine.includes(';') ? ';' : ',';
-        const header = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/["\s]/g, ''));
-
-        if (!header.includes('cpf')) {
-            toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV deve conter uma coluna "cpf".', variant: 'destructive' });
-            return;
-        }
+        const delimiter = lines[0].includes(';') ? ';' : ',';
+        // Define the fixed order of columns we expect
+        const expectedHeader = ['cpf', 'name', 'phone', 'email', 'zip', 'address', 'number', 'complement', 'neighborhood', 'city', 'state'];
         
         const customersToImport: CustomerInfo[] = lines.slice(1).map(line => {
             const data = line.split(delimiter);
             const customer: any = {};
-            header.forEach((key, index) => {
-                const cleanedKey = key.replace(/["\s]/g, '');
-                customer[cleanedKey] = data[index]?.trim().replace(/"/g, '') || '';
+             expectedHeader.forEach((key, index) => {
+                const value = data[index]?.trim().replace(/"/g, '') || '';
+                customer[key] = value;
             });
             return customer as CustomerInfo;
         });
@@ -818,18 +813,23 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             if (!importedCustomer || !importedCustomer.cpf) return;
 
             const cpf = importedCustomer.cpf.replace(/\D/g, '');
+            if (cpf.length !== 11) return; // Skip invalid CPF
+
             const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
 
             if (existingOrders.length > 0) {
+                // Update existing customer records across all their orders
                 existingOrders.forEach(order => {
-                    batch.update(doc(db, 'orders', order.id), { customer: { ...order.customer, ...importedCustomer } });
+                    const updatedCustomerData = { ...order.customer, ...importedCustomer, cpf }; // Ensure CPF is clean
+                    batch.update(doc(db, 'orders', order.id), { customer: updatedCustomerData });
                 });
                 updatedCount++;
             } else {
+                // Create a new dummy order for the new customer
                 const orderId = `IMP-${cpf}-${Date.now()}`;
                 const dummyOrder: Order = {
                     id: orderId,
-                    customer: { ...importedCustomer, password: cpf.substring(0,6) },
+                    customer: { ...importedCustomer, cpf, password: cpf.substring(0,6) },
                     items: [],
                     total: 0,
                     installments: 0,
