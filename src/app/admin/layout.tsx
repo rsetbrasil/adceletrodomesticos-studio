@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { ReactNode, useEffect, useState, useCallback } from "react";
@@ -25,7 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { AdminProvider } from "@/context/AdminContext";
+import { AdminProvider, useAdminActions } from "@/context/AdminContext";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'A senha atual é obrigatória.'),

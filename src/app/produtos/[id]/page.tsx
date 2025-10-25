@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -14,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Product } from '@/lib/types';
-import { useAdmin } from '@/context/AdminContext';
+import { useData } from '@/context/DataContext';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -24,7 +23,7 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { addToCart, setIsCartOpen } = useCart();
-  const { products, isLoading: isProductsLoading } = useAdmin();
+  const { products, isLoading: isProductsLoading } = useData();
   const id = params.id as string;
 
   const product = useMemo(() => {

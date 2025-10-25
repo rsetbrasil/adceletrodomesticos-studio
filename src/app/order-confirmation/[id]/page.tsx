@@ -16,7 +16,7 @@ import Image from 'next/image';
 import { generatePixPayload } from '@/lib/pix';
 import PixQRCode from '@/components/PixQRCode';
 import { format } from 'date-fns';
-import { useAdmin } from '@/context/AdminContext';
+import { useData } from '@/context/DataContext';
 
 
 const formatCurrency = (value: number) => {
@@ -26,7 +26,7 @@ const formatCurrency = (value: number) => {
 export default function OrderConfirmationPage() {
   const { lastOrder } = useCart();
   const { settings } = useSettings();
-  const { orders, isLoading: isOrdersLoading } = useAdmin();
+  const { orders, isLoading: isOrdersLoading } = useData();
   const router = useRouter();
   const params = useParams();
   const [order, setOrder] = useState<Order | null>(null);

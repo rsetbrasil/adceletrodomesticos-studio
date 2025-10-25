@@ -3,7 +3,8 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { useAdmin } from '@/context/AdminContext';
+import { useAdminActions } from '@/context/AdminContext';
+import { useData } from '@/context/DataContext';
 import type { Product } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,15 +24,20 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import ProductForm from '@/components/ProductForm';
+import { useAuth } from '@/context/AuthContext';
+import { useAudit } from '@/context/AuditContext';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
 export default function ManageProductsPage() {
-    const { products, deleteProduct } = useAdmin();
+    const { deleteProduct } = useAdminActions();
+    const { products } = useData();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+    const { user } = useAuth();
+    const { logAction } = useAudit();
 
     const handleAddNew = () => {
         setProductToEdit(null);
@@ -44,7 +50,7 @@ export default function ManageProductsPage() {
     };
     
     const handleDelete = (productId: string) => {
-        deleteProduct(productId);
+        deleteProduct(productId, logAction, user);
     }
 
     return (

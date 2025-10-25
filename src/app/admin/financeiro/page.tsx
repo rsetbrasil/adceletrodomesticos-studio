@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import Logo from '@/components/Logo';
 import { useSettings } from '@/context/SettingsContext';
 import { useAuth } from '@/context/AuthContext';
+import { useData } from '@/context/DataContext';
 
 
 const formatCurrency = (value: number) => {
@@ -33,7 +34,8 @@ type SellerCommissionDetails = {
 };
 
 export default function FinanceiroPage() {
-  const { orders, products, payCommissions } = useAdmin();
+  const { payCommissions } = useAdmin();
+  const { orders, products } = useData();
   const { settings } = useSettings();
   const { users } = useAuth();
   const router = useRouter();

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -14,7 +13,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/Logo';
-import { useAdmin } from '@/context/AdminContext';
+import { useData } from '@/context/DataContext';
 
 const formatCurrency = (value: number) => {
   if (typeof value !== 'number' || isNaN(value)) return 'R$ 0,00';
@@ -132,7 +131,7 @@ export default function SingleInstallmentPage() {
   const params = useParams();
   const router = useRouter();
   const { settings } = useSettings();
-  const { orders, isLoading } = useAdmin();
+  const { orders, isLoading } = useData();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 

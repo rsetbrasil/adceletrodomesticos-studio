@@ -17,6 +17,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Logo from '@/components/Logo';
 import { useSettings } from '@/context/SettingsContext';
+import { useData } from '@/context/DataContext';
 
 
 type StockCount = {
@@ -39,7 +40,8 @@ const getAnos = () => {
 
 
 function StockAuditTab() {
-    const { products, saveStockAudit, stockAudits } = useAdmin();
+    const { saveStockAudit, stockAudits } = useAdmin();
+    const { products } = useData();
     const { settings } = useSettings();
     const { user } = useAuth();
     const router = useRouter();

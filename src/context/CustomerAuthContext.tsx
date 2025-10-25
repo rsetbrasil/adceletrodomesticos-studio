@@ -5,10 +5,11 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { CustomerInfo, Order } from '@/lib/types';
+import { useData } from './DataContext';
 
 interface CustomerAuthContextType {
   customer: CustomerInfo | null;
-  login: (cpf: string, pass: string, allOrders: Order[]) => Promise<boolean>;
+  login: (cpf: string, pass: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -21,6 +22,7 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+  const { orders } = useData();
   
   useEffect(() => {
     setIsLoading(true);
@@ -37,10 +39,10 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = async (cpf: string, pass: string, allOrders: Order[]): Promise<boolean> => {
+  const login = async (cpf: string, pass: string): Promise<boolean> => {
     const normalizedCpf = cpf.replace(/\D/g, '');
     
-    const customerOrders = allOrders
+    const customerOrders = orders
         .filter(o => o.customer.cpf.replace(/\D/g, '') === normalizedCpf)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -98,5 +100,3 @@ export const useCustomerAuth = () => {
   }
   return context;
 };
-
-  

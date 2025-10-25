@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -17,7 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useAdmin } from '@/context/AdminContext';
+import { useAdminActions } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { PackagePlus, X, Percent, DollarSign } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
@@ -27,6 +26,8 @@ import { ScrollArea } from './ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Checkbox } from './ui/checkbox';
+import { useData } from '@/context/DataContext';
+import { useAudit } from '@/context/AuditContext';
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto é obrigatório.'),
@@ -97,8 +98,10 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ productToEdit, onFinished }: ProductFormProps) {
-  const { addProduct, updateProduct, categories } = useAdmin();
+  const { addProduct, updateProduct } = useAdminActions();
+  const { categories } = useData();
   const { user } = useAuth();
+  const { logAction } = useAudit();
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   
   const form = useForm<ProductFormValues>({
@@ -210,9 +213,9 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   function onSubmit(values: ProductFormValues) {
     const productData = { ...values };
     if (productToEdit) {
-        updateProduct({ ...productToEdit, ...productData });
+        updateProduct({ ...productToEdit, ...productData }, logAction, user);
     } else {
-        addProduct(productData);
+        addProduct(productData, logAction, user);
     }
     onFinished();
   }

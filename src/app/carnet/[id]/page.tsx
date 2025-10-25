@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -14,7 +13,7 @@ import { ptBR } from 'date-fns/locale';
 import { generatePixPayload } from '@/lib/pix';
 import PixQRCode from '@/components/PixQRCode';
 import { cn } from '@/lib/utils';
-import { useAdmin } from '@/context/AdminContext';
+import { useData } from '@/context/DataContext';
 
 
 const formatCurrency = (value: number) => {
@@ -128,7 +127,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
 export default function CarnetPage() {
   const params = useParams();
   const router = useRouter();
-  const { orders, isLoading } = useAdmin();
+  const { orders, isLoading } = useData();
   const { settings } = useSettings();
 
   const order = useMemo(() => {

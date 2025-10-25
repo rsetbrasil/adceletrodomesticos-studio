@@ -13,7 +13,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import FilterSheet from '@/components/FilterSheet';
-import { useAdmin } from '@/context/AdminContext';
+import { useData } from '@/context/DataContext';
 
 
 const formatCurrency = (value: number) => {
@@ -25,7 +25,7 @@ const formatCurrency = (value: number) => {
 
 
 export default function Home() {
-  const { products: allProducts, categories, isLoading } = useAdmin();
+  const { products: allProducts, categories, isLoading } = useData();
 
   const [filters, setFilters] = useState({
     category: 'all',

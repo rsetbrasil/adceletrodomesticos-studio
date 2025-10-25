@@ -8,17 +8,17 @@ import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useData } from './DataContext';
 
 // Helper function to log actions, passed as an argument now
 type LogAction = (action: string, details: string, user: User | null) => void;
 
 interface AdminContextType {
   orders: Order[];
-  products: Product[];
-  categories: Category[];
   commissionPayments: CommissionPayment[];
   stockAudits: StockAudit[];
   isLoading: boolean;
+  addOrder: (order: Partial<Order>, logAction: LogAction, user: User | null) => Promise<Order | null>;
   deleteOrder: (orderId: string, logAction: LogAction, user: User | null) => Promise<void>;
   permanentlyDeleteOrder: (orderId: string, logAction: LogAction, user: User | null) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status'], logAction: LogAction, user: User | null) => Promise<void>;
@@ -51,28 +51,15 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { products, categories, orders, isLoading: isDataLoading } = useData();
   const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
   const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
+  const [isSecondaryLoading, setIsSecondaryLoading] = useState(true);
+  
   const { toast } = useToast();
 
   useEffect(() => {
-    setIsLoading(true);
-
-    const productsUnsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-      setProducts(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
-    }, (error) => console.error("Error fetching products:", error));
-
-    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
-      setCategories(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
-    }, (error) => console.error("Error fetching categories:", error));
-
-    const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
-      setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    }, (error) => console.error("Error fetching orders:", error));
+    setIsSecondaryLoading(true);
 
     const commissionPaymentsUnsubscribe = onSnapshot(collection(db, 'commissionPayments'), (snapshot) => {
       setCommissionPayments(snapshot.docs.map(d => d.data() as CommissionPayment));
@@ -82,22 +69,17 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       setStockAudits(snapshot.docs.map(d => d.data() as StockAudit));
     }, (error) => console.error("Error fetching stock audits:", error));
 
-    setIsLoading(false);
+    setIsSecondaryLoading(false);
 
     return () => {
-      productsUnsubscribe();
-      categoriesUnsubscribe();
-      ordersUnsubscribe();
       commissionPaymentsUnsubscribe();
       stockAuditsUnsubscribe();
     }
   }, []);
   
   const restoreAdminData = useCallback(async (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => {
-    setIsLoading(true);
     const batch = writeBatch(db);
 
-    // Use current state data to delete existing docs
     products.forEach(p => batch.delete(doc(db, 'products', p.id)));
     orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
     categories.forEach(c => batch.delete(doc(db, 'categories', c.id)));
@@ -112,23 +94,18 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     addBatch.commit().then(() => {
         logAction('Restauração de Backup', 'Todos os dados de produtos, pedidos e categorias foram restaurados.', user);
         toast({ title: 'Dados restaurados com sucesso!' });
-        setIsLoading(false);
     }).catch(async (error) => {
-        setIsLoading(false);
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'multiple', operation: 'write' }));
     });
   }, [products, orders, categories, toast]);
 
   const resetOrders = useCallback(async (logAction: LogAction, user: User | null) => {
-    setIsLoading(true);
     const batch = writeBatch(db);
     orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
     
     batch.commit().then(() => {
         logAction('Reset de Pedidos', 'Todos os pedidos e clientes foram zerados.', user);
-        setIsLoading(false);
     }).catch(async (error) => {
-        setIsLoading(false);
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'orders', operation: 'delete' }));
     });
   }, [orders]);
@@ -463,12 +440,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       }, 0);
   };
 
-  const manageStockForOrder = useCallback(async (order: Order | undefined, operation: 'add' | 'subtract', allProducts: Product[]): Promise<boolean> => {
+  const manageStockForOrder = useCallback(async (order: Order | undefined, operation: 'add' | 'subtract'): Promise<boolean> => {
     if (!order) return false;
     const batch = writeBatch(db);
     
     for (const orderItem of order.items) {
-        const product = allProducts.find(p => p.id === orderItem.id);
+        const product = products.find(p => p.id === orderItem.id);
         if (product) {
             const stockChange = orderItem.quantity;
             const newStock = operation === 'add' ? product.stock + stockChange : product.stock - stockChange;
@@ -496,7 +473,45 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         }));
         throw e; // Re-throw to indicate failure
     }
-  }, [toast]);
+  }, [products, toast]);
+
+  const addOrder = async (order: Partial<Order>, logAction: LogAction, user: User | null): Promise<Order | null> => {
+    try {
+        const orderToSave = {
+            ...order,
+            sellerId: '',
+            sellerName: 'Não atribuído',
+            commission: 0,
+            commissionPaid: false,
+        } as Order;
+        
+        if (orderToSave.installmentDetails) {
+            orderToSave.installmentDetails = orderToSave.installmentDetails.map(inst => ({
+                ...inst,
+                id: `inst-${orderToSave.id}-${inst.installmentNumber}`,
+                paidAmount: 0,
+                payments: [],
+            }));
+        }
+        
+        if (!await manageStockForOrder(orderToSave, 'subtract')) {
+          throw new Error(`Estoque insuficiente para um ou mais produtos.`);
+        }
+
+        await setDoc(doc(db, 'orders', orderToSave.id), orderToSave);
+        
+        const creator = user ? `por ${user.name}`: 'pelo cliente';
+        logAction('Criação de Pedido', `Novo pedido #${orderToSave.id} para ${orderToSave.customer.name} no valor de R$${orderToSave.total?.toFixed(2)} foi criado ${creator}.`, user);
+        return orderToSave;
+    } catch(e) {
+        console.error("Failed to add order", e);
+        if (e instanceof Error && e.message.startsWith('Estoque insuficiente')) {
+          throw e;
+        }
+        await manageStockForOrder(order as Order, 'add');
+        throw e;
+    }
+  };
 
   const updateOrderStatus = useCallback(async (orderId: string, newStatus: Order['status'], logAction: LogAction, user: User | null) => {
     const orderToUpdate = orders.find(o => o.id === orderId);
@@ -506,9 +521,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const wasCanceledOrDeleted = oldStatus === 'Cancelado' || oldStatus === 'Excluído';
     const isNowCanceledOrDeleted = newStatus === 'Cancelado' || newStatus === 'Excluído';
 
-    // Optimistic update for UI responsiveness
     if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
-        if (!await manageStockForOrder(orderToUpdate, 'subtract', products)) {
+        if (!await manageStockForOrder(orderToUpdate, 'subtract')) {
             return;
         }
     }
@@ -527,7 +541,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const orderRef = doc(db, 'orders', orderId);
     updateDoc(orderRef, detailsToUpdate).then(async () => {
         if (!wasCanceledOrDeleted && isNowCanceledOrDeleted) {
-            await manageStockForOrder(orderToUpdate, 'add', products);
+            await manageStockForOrder(orderToUpdate, 'add');
         }
         
         logAction('Atualização de Status de Pedido', `Status do pedido #${orderId} alterado de "${oldStatus}" para "${newStatus}".`, user);
@@ -541,7 +555,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     }).catch(async (e) => {
         // Revert optimistic stock update on failure
         if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
-            await manageStockForOrder(orderToUpdate, 'add', products);
+            await manageStockForOrder(orderToUpdate, 'add');
         }
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: orderRef.path,
@@ -926,12 +940,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AdminContext.Provider
       value={{
-        orders, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateCustomer, importCustomers, updateOrderDetails,
-        products, addProduct, updateProduct, deleteProduct,
-        categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
+        orders, addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateCustomer, importCustomers, updateOrderDetails,
+        addProduct, updateProduct, deleteProduct,
+        addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         commissionPayments, payCommissions, reverseCommissionPayment,
         stockAudits,
-        isLoading,
+        isLoading: isDataLoading || isSecondaryLoading,
         restoreAdminData, resetOrders, resetAllAdminData,
         saveStockAudit,
       }}
@@ -946,7 +960,33 @@ export const useAdmin = () => {
   if (context === undefined) {
     throw new Error('useAdmin must be used within an AdminProvider');
   }
-  return context;
+  
+  // Create a new object to avoid exposing the full products/categories arrays
+  // to components that don't need them, but keep the functions.
+  const { 
+    addProduct: originalAddProduct,
+    updateProduct: originalUpdateProduct,
+    deleteProduct: originalDeleteProduct,
+    addCategory: originalAddCategory,
+    deleteCategory: originalDeleteCategory,
+    updateCategoryName: originalUpdateCategoryName,
+    addSubcategory: originalAddSubcategory,
+    updateSubcategory: originalUpdateSubcategory,
+    deleteSubcategory: originalDeleteSubcategory,
+    moveCategory: originalMoveCategory,
+    reorderSubcategories: originalReorderSubcategories,
+    moveSubcategory: originalMoveSubcategory,
+    ...rest } = context;
+
+    const { products, categories } = useData();
+
+  return { ...rest, products, categories };
 };
 
-  
+export const useAdminActions = () => {
+    const context = useContext(AdminContext);
+    if (context === undefined) {
+        throw new Error('useAdminActions must be used within an AdminProvider');
+    }
+    return context;
+}
