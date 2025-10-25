@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -65,43 +66,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => usersUnsubscribe();
   }, []);
 
-  const login = async (username: string, pass: string) => {
-    try {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where("username", "==", username));
-        const querySnapshot = await getDocs(q);
+  const login = (username: string, pass: string) => {
+    const foundUser = users.find(u => u.username.toLowerCase() === username.toLowerCase());
 
-        if (querySnapshot.empty) {
-            toast({ title: 'Falha no Login', description: 'Usuário não encontrado.', variant: 'destructive' });
-            return;
-        }
-
-        const foundUserDoc = querySnapshot.docs[0];
-        const userWithId = { ...foundUserDoc.data(), id: foundUserDoc.id } as User;
+    if (!foundUser) {
+        toast({ title: 'Falha no Login', description: 'Usuário não encontrado.', variant: 'destructive' });
+        return;
+    }
+    
+    // In a real app, this would be a hashed password comparison
+    if (foundUser.password === pass) {
+        const userToStore = { ...foundUser };
+        // Ensure password is not stored in state or localStorage for security
+        delete userToStore.password;
         
-        if (userWithId.password === pass) {
-            const userToStore = { ...userWithId };
-            // Ensure password is not stored in state or localStorage for security
-            delete userToStore.password;
-            
-            setUser(userToStore); 
-            localStorage.setItem('user', JSON.stringify(userToStore));
-            logAction('Login', `Usuário "${userWithId.name}" realizou login.`, userToStore);
-            router.push('/admin/pedidos');
-            toast({
-                title: 'Login bem-sucedido!',
-                description: `Bem-vindo(a), ${userWithId.name}.`,
-            });
-        } else {
-            toast({
-                title: 'Falha no Login',
-                description: 'Senha inválida.',
-                variant: 'destructive',
-            });
-        }
-    } catch (error) {
-        console.error("Login error:", error);
-        toast({ title: 'Erro de Login', description: 'Não foi possível conectar. Verifique as regras do banco de dados.', variant: 'destructive' });
+        setUser(userToStore); 
+        localStorage.setItem('user', JSON.stringify(userToStore));
+        logAction('Login', `Usuário "${foundUser.name}" realizou login.`, userToStore);
+        router.push('/admin/pedidos');
+        toast({
+            title: 'Login bem-sucedido!',
+            description: `Bem-vindo(a), ${foundUser.name}.`,
+        });
+    } else {
+        toast({
+            title: 'Falha no Login',
+            description: 'Senha inválida.',
+            variant: 'destructive',
+        });
     }
   };
 
@@ -115,9 +107,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addUser = async (data: Omit<User, 'id'>): Promise<boolean> => {
-    const q = query(collection(db, 'users'), where("username", "==", data.username.toLowerCase()));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
+    const isUsernameTaken = users.some(u => u.username.toLowerCase() === data.username.toLowerCase());
+    if (isUsernameTaken) {
         toast({
             title: 'Erro ao Criar Usuário',
             description: 'Este nome de usuário já está em uso.',
@@ -129,28 +120,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const newUserId = `user-${Date.now()}`;
     const newUser: User = { ...data, id: newUserId };
     
-    try {
-        await setDoc(doc(db, 'users', newUserId), newUser);
+    const userRef = doc(db, 'users', newUserId);
+    setDoc(userRef, newUser).then(() => {
         logAction('Criação de Usuário', `Novo usuário "${data.name}" (Perfil: ${data.role}) foi criado.`, user);
         toast({
             title: 'Usuário Criado!',
             description: `O usuário ${data.name} foi criado com sucesso.`,
         });
-        return true;
-    } catch (error) {
-        console.error("Error adding user to Firestore:", error);
-        toast({ title: "Erro", description: "Não foi possível criar o usuário.", variant: "destructive" });
-        return false;
-    }
+    }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'create',
+            requestResourceData: newUser
+        }));
+    });
+    return true; // Assume success for optimistic UI
   };
 
   const updateUser = async (userId: string, data: Partial<Omit<User, 'id'>>) => {
-    
     if (data.username) {
-        const q = query(collection(db, 'users'), where("username", "==", data.username.toLowerCase()));
-        const querySnapshot = await getDocs(q);
-        const isUsernameTaken = querySnapshot.docs.some(d => d.id !== userId);
-
+        const isUsernameTaken = users.some(u => u.id !== userId && u.username.toLowerCase() === data.username?.toLowerCase());
         if (isUsernameTaken) {
             toast({
                 title: 'Erro ao Atualizar',
@@ -161,27 +150,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
     
-    try {
-        const userRef = doc(db, 'users', userId);
-        const userDoc = await getDoc(userRef);
-        const updatedUser = userDoc.data() as User | undefined;
-        
-        if (updatedUser) {
-            let details = `Dados do usuário "${updatedUser.name}" foram alterados.`;
-            if (data.name && data.name !== updatedUser.name) {
-                details += ` Nome: de "${updatedUser.name}" para "${data.name}".`
-            }
-            if (data.username && data.username !== updatedUser.username) {
-                details += ` Username: de "${updatedUser.username}" para "${data.username}".`
-            }
-            if (data.password) {
-                details += ' Senha foi alterada.';
-            }
-            logAction('Atualização de Usuário', details, user);
+    const userRef = doc(db, 'users', userId);
+    
+    // Log before updating
+    const updatedUser = users.find(u => u.id === userId);
+    if (updatedUser) {
+        let details = `Dados do usuário "${updatedUser.name}" foram alterados.`;
+        if (data.name && data.name !== updatedUser.name) {
+            details += ` Nome: de "${updatedUser.name}" para "${data.name}".`
         }
-        
-        await updateDoc(userRef, data);
-        
+        if (data.username && data.username !== updatedUser.username) {
+            details += ` Username: de "${updatedUser.username}" para "${data.username}".`
+        }
+        if (data.password) {
+            details += ' Senha foi alterada.';
+        }
+        logAction('Atualização de Usuário', details, user);
+    }
+    
+    updateDoc(userRef, data).then(() => {
         if (user?.id === userId) {
             const updatedCurrentUser = { ...user, ...data };
             delete updatedCurrentUser.password;
@@ -193,10 +180,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             title: 'Usuário Atualizado!',
             description: 'As informações do usuário foram salvas com sucesso.',
         });
-    } catch (error) {
-        console.error("Error updating user in Firestore:", error);
-        toast({ title: "Erro", description: "Não foi possível atualizar o usuário.", variant: "destructive" });
-    }
+    }).catch(async (error) => {
+         errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'update',
+            requestResourceData: data
+        }));
+    });
   };
 
   const changeMyPassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
@@ -204,48 +194,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           toast({ title: "Erro", description: "Você não está logado.", variant: "destructive" });
           return false;
       }
-      try {
-          const userRef = doc(db, 'users', user.id);
-          const userDoc = await getDoc(userRef);
-          
-          if (!userDoc.exists() || userDoc.data().password !== currentPassword) {
-              toast({ title: "Erro", description: "A senha atual está incorreta.", variant: "destructive" });
-              return false;
-          }
-
-          await updateDoc(userRef, { password: newPassword });
-          logAction('Alteração de Senha', `O usuário "${user.name}" alterou a própria senha.`, user);
-          toast({ title: "Senha Alterada!", description: "Sua senha foi atualizada com sucesso." });
-          return true;
-
-      } catch (error) {
-          console.error("Error changing password:", error);
-          toast({ title: "Erro", description: "Não foi possível alterar a senha.", variant: "destructive" });
+      
+      const currentUserInDB = users.find(u => u.id === user.id);
+      
+      if (!currentUserInDB || currentUserInDB.password !== currentPassword) {
+          toast({ title: "Erro", description: "A senha atual está incorreta.", variant: "destructive" });
           return false;
       }
+
+      const userRef = doc(db, 'users', user.id);
+      await updateDoc(userRef, { password: newPassword });
+      logAction('Alteração de Senha', `O usuário "${user.name}" alterou a própria senha.`, user);
+      toast({ title: "Senha Alterada!", description: "Sua senha foi atualizada com sucesso." });
+      return true;
   };
   
   const restoreUsers = async (usersToRestore: User[]) => {
-      try {
-        const usersCollectionRef = collection(db, "users");
-        const snapshot = await getDocs(usersCollectionRef);
-        const deleteBatch = writeBatch(db);
-        snapshot.docs.forEach(doc => {
-            deleteBatch.delete(doc.ref);
-        });
-        await deleteBatch.commit();
-        
-        const addBatch = writeBatch(db);
-        usersToRestore.forEach(u => {
-            const docRef = doc(db, 'users', u.id);
-            addBatch.set(docRef, u);
-        });
-        await addBatch.commit();
+    const batch = writeBatch(db);
+    
+    users.forEach(existingUser => {
+        batch.delete(doc(db, 'users', existingUser.id));
+    });
+
+    usersToRestore.forEach(u => {
+        const docRef = doc(db, 'users', u.id);
+        batch.set(docRef, u);
+    });
+
+    batch.commit().then(() => {
         logAction('Restauração de Usuários', 'Todos os usuários foram restaurados a partir de um backup.', user);
-      } catch (error) {
-        console.error("Error restoring users to Firestore:", error);
-        toast({ title: "Erro", description: "Não foi possível restaurar os usuários.", variant: "destructive" });
-      }
+        toast({ title: "Usuários Restaurados!", description: "A lista de usuários foi substituída com sucesso." });
+    }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'users',
+            operation: 'write'
+        }));
+    });
   };
 
   return (
