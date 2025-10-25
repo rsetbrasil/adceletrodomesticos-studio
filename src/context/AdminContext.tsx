@@ -720,14 +720,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const importCustomers = async (csvData: string) => {
-    // 1. Sanitize input and detect delimiter
-    const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, '');
+    const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, ''); // Remove BOM
     if (!sanitizedCsv) {
         toast({ title: 'Arquivo Vazio', description: 'O arquivo CSV está vazio.', variant: 'destructive' });
         return;
     }
     const lines = sanitizedCsv.split(/\r?\n/).filter(line => line.trim() !== '');
-
     if (lines.length < 2) {
         toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV precisa ter um cabeçalho e pelo menos uma linha de dados.', variant: 'destructive' });
         return;
@@ -735,12 +733,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     
     const headerLine = lines[0];
     const dataLines = lines.slice(1);
-
     const delimiter = headerLine.includes(';') ? ';' : ',';
     
-    // 2. Flexible Header Mapping
-    const normalizeHeader = (h: string) => h.trim().toLowerCase().replace(/["']/g, '').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const fileHeaders = headerLine.split(delimiter).map(normalizeHeader);
+    const fileHeaders = headerLine.split(delimiter).map(h => h.trim().replace(/["']/g, ''));
 
     const possibleMappings: { [key in keyof Omit<CustomerInfo, 'password'>]?: string[] } = {
         cpf: ['cpf'],
@@ -757,22 +752,25 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const headerMap: { [key in keyof Omit<CustomerInfo, 'password'>]?: number } = {};
-    
+
     for (const key in possibleMappings) {
         const typedKey = key as keyof Omit<CustomerInfo, 'password'>;
         const potentialNames = possibleMappings[typedKey]!;
-        const foundIndex = fileHeaders.findIndex(h => potentialNames.some(p => h.includes(p)));
+        
+        const foundIndex = fileHeaders.findIndex(header => 
+            potentialNames.some(pName => header.toLowerCase().includes(pName.toLowerCase()))
+        );
+
         if (foundIndex !== -1) {
             headerMap[typedKey] = foundIndex;
         }
     }
-
+    
     if (headerMap.cpf === undefined) {
         toast({ title: 'Arquivo Inválido', description: "A coluna 'cpf' é obrigatória e não foi encontrada no arquivo.", variant: 'destructive' });
         return;
     }
-
-    // 3. Process data lines
+    
     const customersToImport = dataLines.map(line => {
         if (!line.trim()) return null;
         const data = line.split(delimiter);
@@ -792,7 +790,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     
-    // 4. Batch write to Firestore
     const batch = writeBatch(db);
     let updatedCount = 0;
     let createdCount = 0;
@@ -803,7 +800,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const cpf = importedCustomer.cpf!.replace(/\D/g, '');
         const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
 
-        if (existingOrders.length > 0) { // Update existing customers found in orders
+        if (existingOrders.length > 0) {
             let customerAlreadyUpdated = false;
             existingOrders.forEach(order => {
                 const updatedCustomerData = { ...order.customer, ...importedCustomer, cpf };
@@ -813,7 +810,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
                     customerAlreadyUpdated = true;
                 }
             });
-        } else { // Create a new dummy order for new customers
+        } else {
             if (!existingCpfSet.has(cpf)) {
                 const orderId = `IMP-${cpf}-${Date.now()}`;
                 const completeCustomerData: CustomerInfo = {
