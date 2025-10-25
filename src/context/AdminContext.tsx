@@ -782,7 +782,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     });
   };
   
-    const importCustomers = async (csvData: string) => {
+  const importCustomers = async (csvData: string) => {
         const cleanedCsvData = csvData.trim().replace(/^\uFEFF/, '');
         const lines = cleanedCsvData.split(/\r?\n/).filter(line => line.trim() !== '');
 
@@ -793,8 +793,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
         const firstLine = lines[0];
         const delimiter = firstLine.includes(';') ? ';' : ',';
-
-        const header = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, '').replace(/[^a-zA-Z0-9]/g, ''));
+        const header = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/["\s]/g, ''));
 
         if (!header.includes('cpf')) {
             toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV deve conter uma coluna "cpf".', variant: 'destructive' });
@@ -805,7 +804,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             const data = line.split(delimiter);
             const customer: any = {};
             header.forEach((key, index) => {
-                customer[key] = data[index]?.trim().replace(/"/g, '') || '';
+                const cleanedKey = key.replace(/["\s]/g, '');
+                customer[cleanedKey] = data[index]?.trim().replace(/"/g, '') || '';
             });
             return customer as CustomerInfo;
         });
