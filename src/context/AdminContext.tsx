@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -784,7 +783,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   
     const importCustomers = async (csvData: string) => {
         // 1. Sanitize input, remove BOM, and split into lines
-        const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, '');
+        const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, ''); // Remove BOM
         if (!sanitizedCsv) {
             toast({ title: 'Arquivo Vazio', description: 'O arquivo CSV está vazio.', variant: 'destructive' });
             return;
@@ -795,40 +794,43 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
 
-        // 2. Detect delimiter and normalize headers
+        // 2. Detect delimiter and get headers
         const headerLine = lines[0];
         const delimiter = headerLine.includes(';') ? ';' : ',';
-        const headers = headerLine.split(delimiter).map(h => h.trim().replace(/["']/g, '').toLowerCase());
+        const fileHeaders = headerLine.split(delimiter).map(h => h.trim().replace(/["']/g, ''));
 
-        // 3. Map headers to customer fields
+        // 3. Map headers to customer fields using a flexible mapping
         const possibleMappings: { [key in keyof CustomerInfo]?: string[] } = {
             cpf: ['cpf'],
-            name: ['nome', 'nome completo', 'cliente', 'razao social'],
+            name: ['nome', 'nome completo', 'cliente', 'razão social', 'razao social'],
             phone: ['telefone', 'fone', 'celular', 'whatsapp'],
             email: ['email', 'e-mail'],
             zip: ['cep'],
-            address: ['endereco', 'rua', 'logradouro'],
-            number: ['numero', 'num'],
+            address: ['endereço', 'endereco', 'rua', 'logradouro'],
+            number: ['número', 'numero', 'num'],
             complement: ['complemento', 'compl'],
             neighborhood: ['bairro'],
-            city: ['cidade', 'municipio'],
+            city: ['cidade', 'município', 'municipio'],
             state: ['estado', 'uf'],
         };
-
-        const headerMapping: { [key: string]: number } = {};
         
-        headers.forEach((header, index) => {
-            const normalizedHeader = header.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const normalizeHeader = (h: string) => h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+        const headerMap: { [key: string]: number } = {};
+        
+        fileHeaders.forEach((fileHeader, index) => {
+            const normalizedFileHeader = normalizeHeader(fileHeader);
             for (const key in possibleMappings) {
                 const typedKey = key as keyof CustomerInfo;
-                if (possibleMappings[typedKey]?.some(p => normalizedHeader.includes(p))) {
-                    headerMapping[typedKey] = index;
-                    break;
+                if (possibleMappings[typedKey]?.some(p => normalizedFileHeader.includes(p))) {
+                    if (!headerMap[typedKey]) { // Assign first match
+                      headerMap[typedKey] = index;
+                    }
                 }
             }
         });
 
-        if (headerMapping.cpf === undefined) {
+        if (headerMap.cpf === undefined) {
             toast({ title: 'Arquivo Inválido', description: "A coluna 'cpf' é obrigatória e não foi encontrada no arquivo.", variant: 'destructive' });
             return;
         }
@@ -838,9 +840,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             if (!line.trim()) return null;
             const data = line.split(delimiter);
             const customer: Partial<CustomerInfo> = {};
-            for (const key in headerMapping) {
+            for (const key in headerMap) {
                 const typedKey = key as keyof CustomerInfo;
-                const colIndex = headerMapping[typedKey];
+                const colIndex = headerMap[typedKey];
                 if (colIndex !== undefined && colIndex < data.length) {
                     customer[typedKey] = data[colIndex]?.trim().replace(/["']/g, '') || '';
                 }
