@@ -783,136 +783,132 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const importCustomers = async (csvData: string) => {
-    const cleanedCsvData = csvData.trim().replace(/^\uFEFF/, '');
-    const lines = cleanedCsvData.split(/\r?\n/);
+    const lines = csvData.trim().replace(/^\uFEFF/, '').split(/\r?\n/);
     if (lines.length < 2) {
-      toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV está vazio ou contém apenas o cabeçalho.', variant: 'destructive' });
-      return;
+        toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV está vazio ou contém apenas o cabeçalho.', variant: 'destructive' });
+        return;
     }
-  
+
     const headerLine = lines[0];
     const delimiter = headerLine.includes(';') ? ';' : ',';
-    const headers = headerLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/["']/g, ''));
-  
-    const fieldMapping: { [key: string]: keyof CustomerInfo } = {
-      'cpf': 'cpf',
-      'nome': 'name',
-      'nomecompleto': 'name',
-      'cliente': 'name',
-      'telefone': 'phone',
-      'fone': 'phone',
-      'celular': 'phone',
-      'email': 'email',
-      'e-mail': 'email',
-      'cep': 'zip',
-      'endereco': 'address',
-      'endereço': 'address',
-      'rua': 'address',
-      'numero': 'number',
-      'número': 'number',
-      'complemento': 'complement',
-      'bairro': 'neighborhood',
-      'cidade': 'city',
-      'estado': 'state',
-      'uf': 'state',
+    const headers = headerLine.split(delimiter).map(h => h.trim().replace(/["']/g, ''));
+
+    const possibleMappings: { [key in keyof CustomerInfo]?: string[] } = {
+        cpf: ['cpf'],
+        name: ['nome', 'nomecompleto', 'cliente'],
+        phone: ['telefone', 'fone', 'celular'],
+        email: ['email', 'e-mail'],
+        zip: ['cep'],
+        address: ['endereco', 'endereço', 'rua'],
+        number: ['numero', 'número'],
+        complement: ['complemento'],
+        neighborhood: ['bairro'],
+        city: ['cidade'],
+        state: ['estado', 'uf'],
     };
-  
-    const columnIndexMap: { [key in keyof CustomerInfo]?: number } = {};
+
+    const headerMapping: { [key in keyof CustomerInfo]?: number } = {};
+
     headers.forEach((header, index) => {
-      const normalizedHeader = header.replace(/[^a-z0-9]/gi, '');
-      const mappedKey = fieldMapping[normalizedHeader];
-      if (mappedKey) {
-        columnIndexMap[mappedKey] = index;
-      }
-    });
-  
-    if (columnIndexMap.cpf === undefined) {
-      toast({ title: 'Arquivo Inválido', description: "A coluna 'cpf' é obrigatória e não foi encontrada no arquivo.", variant: 'destructive' });
-      return;
-    }
-  
-    const customersToImport = lines.slice(1).map(line => {
-      if (!line.trim()) return null;
-      const data = line.split(delimiter);
-      const customer: Partial<CustomerInfo> = {};
-      for (const key in columnIndexMap) {
-        const typedKey = key as keyof CustomerInfo;
-        const colIndex = columnIndexMap[typedKey];
-        if (colIndex !== undefined && colIndex < data.length) {
-          customer[typedKey] = data[colIndex]?.trim().replace(/["']/g, '') || '';
+        const normalizedHeader = header.toLowerCase().replace(/[^a-z0-9]/gi, '');
+        for (const key in possibleMappings) {
+            const typedKey = key as keyof CustomerInfo;
+            if (possibleMappings[typedKey]?.includes(normalizedHeader)) {
+                headerMapping[typedKey] = index;
+                break;
+            }
         }
-      }
-      return customer;
-    }).filter(c => c && c.cpf && c.cpf.replace(/\D/g, '').length === 11);
-  
-    if (customersToImport.length === 0) {
-      toast({ title: 'Nenhum Cliente Válido', description: 'Nenhum cliente com CPF válido foi encontrado no arquivo para importar.', variant: 'destructive' });
-      return;
+    });
+
+    if (headerMapping.cpf === undefined) {
+        toast({ title: 'Arquivo Inválido', description: "A coluna 'cpf' é obrigatória e não foi encontrada no arquivo.", variant: 'destructive' });
+        return;
     }
-  
+
+    const customersToImport = lines.slice(1).map(line => {
+        if (!line.trim()) return null;
+        const data = line.split(delimiter);
+        const customer: Partial<CustomerInfo> = {};
+        for (const key in headerMapping) {
+            const typedKey = key as keyof CustomerInfo;
+            const colIndex = headerMapping[typedKey];
+            if (colIndex !== undefined && colIndex < data.length) {
+                customer[typedKey] = data[colIndex]?.trim().replace(/["']/g, '') || '';
+            }
+        }
+        return customer;
+    }).filter(c => c && c.cpf && c.cpf.replace(/\D/g, '').length === 11);
+
+    if (customersToImport.length === 0) {
+        toast({ title: 'Nenhum Cliente Válido', description: 'Nenhum cliente com CPF válido foi encontrado no arquivo para importar.', variant: 'destructive' });
+        return;
+    }
+
     const batch = writeBatch(db);
     let updatedCount = 0;
     let createdCount = 0;
-  
+    const existingCpfSet = new Set(orders.map(o => o.customer.cpf.replace(/\D/g, '')));
+
     customersToImport.forEach(importedCustomer => {
-      if (!importedCustomer) return;
-      const cpf = importedCustomer.cpf!.replace(/\D/g, '');
-      const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
-  
-      if (existingOrders.length > 0) {
-        // Update existing customer records across their orders
-        existingOrders.forEach(order => {
-          const updatedCustomerData = { ...order.customer, ...importedCustomer, cpf };
-          batch.update(doc(db, 'orders', order.id), { customer: updatedCustomerData });
-        });
-        if (!existingOrders.some(o => o.customer.cpf.replace(/\D/g, '') === cpf)) updatedCount++;
-      } else {
-        // Create new customer via a dummy order
-        const orderId = `IMP-${cpf}-${Date.now()}`;
-        const completeCustomerData: CustomerInfo = {
-          cpf,
-          name: importedCustomer.name || 'Nome não informado',
-          phone: importedCustomer.phone || '',
-          email: importedCustomer.email || '',
-          zip: importedCustomer.zip || '',
-          address: importedCustomer.address || '',
-          number: importedCustomer.number || '',
-          complement: importedCustomer.complement || '',
-          neighborhood: importedCustomer.neighborhood || '',
-          city: importedCustomer.city || '',
-          state: importedCustomer.state || '',
-          password: cpf.substring(0, 6)
-        };
-        const dummyOrder: Order = {
-          id: orderId,
-          customer: completeCustomerData,
-          items: [],
-          total: 0,
-          installments: 0,
-          installmentValue: 0,
-          date: new Date().toISOString(),
-          status: 'Excluído',
-          paymentMethod: 'Dinheiro',
-          installmentDetails: [],
-        };
-        batch.set(doc(db, 'orders', orderId), dummyOrder);
-        createdCount++;
-      }
+        if (!importedCustomer || !importedCustomer.cpf) return;
+        const cpf = importedCustomer.cpf.replace(/\D/g, '');
+        const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
+
+        if (existingOrders.length > 0) {
+            existingOrders.forEach(order => {
+                const updatedCustomerData = { ...order.customer, ...importedCustomer, cpf };
+                batch.update(doc(db, 'orders', order.id), { customer: updatedCustomerData });
+            });
+            updatedCount++;
+        } else {
+            if (!existingCpfSet.has(cpf)) {
+                const orderId = `IMP-${cpf}-${Date.now()}`;
+                const completeCustomerData: CustomerInfo = {
+                    cpf,
+                    name: importedCustomer.name || 'Nome não informado',
+                    phone: importedCustomer.phone || '',
+                    email: importedCustomer.email || '',
+                    zip: importedCustomer.zip || '',
+                    address: importedCustomer.address || '',
+                    number: importedCustomer.number || '',
+                    complement: importedCustomer.complement || '',
+                    neighborhood: importedCustomer.neighborhood || '',
+                    city: importedCustomer.city || '',
+                    state: importedCustomer.state || '',
+                    password: cpf.substring(0, 6)
+                };
+                const dummyOrder: Order = {
+                    id: orderId,
+                    customer: completeCustomerData,
+                    items: [],
+                    total: 0,
+                    installments: 0,
+                    installmentValue: 0,
+                    date: new Date().toISOString(),
+                    status: 'Excluído',
+                    paymentMethod: 'Dinheiro',
+                    installmentDetails: [],
+                };
+                batch.set(doc(db, 'orders', orderId), dummyOrder);
+                createdCount++;
+                existingCpfSet.add(cpf);
+            }
+        }
     });
-  
+
     try {
-      await batch.commit();
-      logAction('Importação de Clientes', `${createdCount} clientes criados e ${updatedCount} atualizados via CSV.`, user);
-      toast({
-        title: 'Importação Concluída!',
-        description: `${createdCount} novos clientes foram criados e ${updatedCount} clientes existentes foram atualizados.`
-      });
+        await batch.commit();
+        logAction('Importação de Clientes', `${createdCount} clientes criados e ${updatedCount} atualizados via CSV.`, user);
+        toast({
+            title: 'Importação Concluída!',
+            description: `${createdCount} novos clientes foram criados e ${updatedCount} clientes existentes foram atualizados.`
+        });
     } catch (e) {
-      console.error("Error during batch commit for customer import", e);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: 'orders',
-        operation: 'write',
-      }));
+        console.error("Error during batch commit for customer import", e);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'orders',
+            operation: 'write',
+        }));
     }
   };
 
