@@ -17,7 +17,7 @@ import { useCart } from '@/context/CartContext';
 import { Minus, Plus, Trash2, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useAdmin } from '@/context/AdminContext';
 
 
@@ -82,7 +82,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                           variant="outline"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity - 1, products)}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -91,7 +91,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                           variant="outline"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity + 1, products)}
                           disabled={item.quantity >= item.stock}
                         >
                           <Plus className="h-4 w-4" />
@@ -157,3 +157,5 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
     </Sheet>
   );
 }
+
+  

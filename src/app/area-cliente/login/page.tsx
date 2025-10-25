@@ -9,16 +9,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { User, Shield } from 'lucide-react';
 import Link from 'next/link';
+import { useAdmin } from '@/context/AdminContext';
 
 export default function CustomerLoginPage() {
-  const { login } = useCustomerAuth();
+  const { login, isLoading } = useCustomerAuth();
+  const { orders, isLoading: isOrdersLoading } = useAdmin();
   const [cpf, setCpf] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = (e: FormEvent) => {
     e.preventDefault();
     const normalizedCpf = cpf.replace(/\D/g, ''); // Remove non-digit characters
-    login(normalizedCpf, password);
+    login(normalizedCpf, password, orders);
   };
 
   return (
@@ -55,8 +57,8 @@ export default function CustomerLoginPage() {
             </div>
             </CardContent>
             <CardFooter className="flex-col gap-4">
-                <Button type="submit" className="w-full">
-                    Entrar
+                <Button type="submit" className="w-full" disabled={isLoading || isOrdersLoading}>
+                    {isLoading || isOrdersLoading ? 'Carregando...' : 'Entrar'}
                 </Button>
                 <Button variant="link" size="sm" className="text-muted-foreground" asChild>
                     <Link href="/">Voltar para a loja</Link>
@@ -67,3 +69,5 @@ export default function CustomerLoginPage() {
     </div>
   );
 }
+
+  

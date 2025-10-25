@@ -6,10 +6,11 @@ import type { Order, Product, Installment, CustomerInfo, Category, User, Commiss
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query, onSnapshot, orderBy } from 'firebase/firestore';
-import { useAuth } from './AuthContext';
-import { useAudit } from './AuditContext';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+
+// Helper function to log actions, passed as an argument now
+type LogAction = (action: string, details: string, user: User | null) => void;
 
 interface AdminContextType {
   orders: Order[];
@@ -18,33 +19,33 @@ interface AdminContextType {
   commissionPayments: CommissionPayment[];
   stockAudits: StockAudit[];
   isLoading: boolean;
-  deleteOrder: (orderId: string) => Promise<void>;
-  permanentlyDeleteOrder: (orderId: string) => Promise<void>;
-  updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
-  recordInstallmentPayment: (orderId: string, installmentNumber: number, payment: Omit<Payment, 'receivedBy'>) => Promise<void>;
-  reversePayment: (orderId: string, installmentNumber: number, paymentId: string) => Promise<void>;
-  updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date) => Promise<void>;
-  updateCustomer: (customer: CustomerInfo) => Promise<void>;
-  importCustomers: (csvData: string) => Promise<void>;
-  updateOrderDetails: (orderId: string, details: Partial<Order>) => Promise<void>;
-  addProduct: (product: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>) => Promise<void>;
-  updateProduct: (product: Product) => Promise<void>;
-  deleteProduct: (productId: string) => Promise<void>;
-  addCategory: (categoryName: string) => Promise<void>;
-  deleteCategory: (categoryId: string) => Promise<void>;
-  updateCategoryName: (categoryId: string, newName: string) => Promise<void>;
-  addSubcategory: (categoryId: string, subcategoryName: string) => Promise<void>;
-  updateSubcategory: (categoryId: string, oldSub: string, newSub: string) => Promise<void>;
-  deleteSubcategory: (categoryId: string, subcategoryName: string) => Promise<void>;
-  moveCategory: (categoryId: string, direction: 'up' | 'down') => Promise<void>;
-  reorderSubcategories: (categoryId: string, draggedSub: string, targetSub: string) => Promise<void>;
-  moveSubcategory: (sourceCategoryId: string, subName: string, targetCategoryId: string) => Promise<void>;
-  payCommissions: (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string) => Promise<string | null>;
-  reverseCommissionPayment: (paymentId: string) => Promise<void>;
-  restoreAdminData: (data: { products: Product[], orders: Order[], categories: Category[] }) => Promise<void>;
-  resetOrders: () => Promise<void>;
-  resetAllAdminData: () => Promise<void>;
-  saveStockAudit: (audit: StockAudit) => Promise<void>;
+  deleteOrder: (orderId: string, logAction: LogAction, user: User | null) => Promise<void>;
+  permanentlyDeleteOrder: (orderId: string, logAction: LogAction, user: User | null) => Promise<void>;
+  updateOrderStatus: (orderId: string, status: Order['status'], logAction: LogAction, user: User | null) => Promise<void>;
+  recordInstallmentPayment: (orderId: string, installmentNumber: number, payment: Omit<Payment, 'receivedBy'>, logAction: LogAction, user: User | null) => Promise<void>;
+  reversePayment: (orderId: string, installmentNumber: number, paymentId: string, logAction: LogAction, user: User | null) => Promise<void>;
+  updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date, logAction: LogAction, user: User | null) => Promise<void>;
+  updateCustomer: (updatedCustomer: CustomerInfo, logAction: LogAction, user: User | null) => Promise<void>;
+  importCustomers: (csvData: string, logAction: LogAction, user: User | null) => Promise<void>;
+  updateOrderDetails: (orderId: string, details: Partial<Order>, logAction: LogAction, user: User | null) => Promise<void>;
+  addProduct: (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => Promise<void>;
+  updateProduct: (product: Product, logAction: LogAction, user: User | null) => Promise<void>;
+  deleteProduct: (productId: string, logAction: LogAction, user: User | null) => Promise<void>;
+  addCategory: (categoryName: string, logAction: LogAction, user: User | null) => Promise<void>;
+  deleteCategory: (categoryId: string, logAction: LogAction, user: User | null) => Promise<void>;
+  updateCategoryName: (categoryId: string, newName: string, logAction: LogAction, user: User | null) => Promise<void>;
+  addSubcategory: (categoryId: string, subcategoryName: string, logAction: LogAction, user: User | null) => Promise<void>;
+  updateSubcategory: (categoryId: string, oldSub: string, newSub: string, logAction: LogAction, user: User | null) => Promise<void>;
+  deleteSubcategory: (categoryId: string, subcategoryName: string, logAction: LogAction, user: User | null) => Promise<void>;
+  moveCategory: (categoryId: string, direction: 'up' | 'down', logAction: LogAction, user: User | null) => Promise<void>;
+  reorderSubcategories: (categoryId: string, draggedSub: string, targetSub: string, logAction: LogAction, user: User | null) => Promise<void>;
+  moveSubcategory: (sourceCategoryId: string, subName: string, targetCategoryId: string, logAction: LogAction, user: User | null) => Promise<void>;
+  payCommissions: (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string, logAction: LogAction, user: User | null) => Promise<string | null>;
+  reverseCommissionPayment: (paymentId: string, logAction: LogAction, user: User | null) => Promise<void>;
+  restoreAdminData: (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => Promise<void>;
+  resetOrders: (logAction: LogAction, user: User | null) => Promise<void>;
+  resetAllAdminData: (logAction: LogAction, user: User | null) => Promise<void>;
+  saveStockAudit: (audit: StockAudit, logAction: LogAction, user: User | null) => Promise<void>;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -57,50 +58,30 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
   const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
   const { toast } = useToast();
-  const { user } = useAuth();
-  const { logAction } = useAudit();
-
 
   useEffect(() => {
     setIsLoading(true);
 
     const productsUnsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       setProducts(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
-    }, (error) => {
-      console.error("Error fetching products:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'products', operation: 'list' }));
-    });
+    }, (error) => console.error("Error fetching products:", error));
 
     const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
       setCategories(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
-    }, (error) => {
-      console.error("Error fetching categories:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'categories', operation: 'list' }));
-    });
+    }, (error) => console.error("Error fetching categories:", error));
 
     const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
       setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    }, (error) => {
-      console.error("Error fetching orders:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'orders', operation: 'list' }));
-    });
+    }, (error) => console.error("Error fetching orders:", error));
 
     const commissionPaymentsUnsubscribe = onSnapshot(collection(db, 'commissionPayments'), (snapshot) => {
       setCommissionPayments(snapshot.docs.map(d => d.data() as CommissionPayment));
-    }, (error) => {
-      console.error("Error fetching commission payments:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'commissionPayments', operation: 'list' }));
-    });
+    }, (error) => console.error("Error fetching commission payments:", error));
 
     const stockAuditsUnsubscribe = onSnapshot(collection(db, 'stockAudits'), (snapshot) => {
       setStockAudits(snapshot.docs.map(d => d.data() as StockAudit));
-    }, (error) => {
-      console.error("Error fetching stock audits:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'stockAudits', operation: 'list' }));
-    });
+    }, (error) => console.error("Error fetching stock audits:", error));
 
-    // We can set loading to false once all listeners are attached.
-    // The data will flow in asynchronously.
     setIsLoading(false);
 
     return () => {
@@ -112,10 +93,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
   
-  const restoreAdminData = async (data: { products: Product[], orders: Order[], categories: Category[] }) => {
+  const restoreAdminData = useCallback(async (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => {
     setIsLoading(true);
     const batch = writeBatch(db);
 
+    // Use current state data to delete existing docs
     products.forEach(p => batch.delete(doc(db, 'products', p.id)));
     orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
     categories.forEach(c => batch.delete(doc(db, 'categories', c.id)));
@@ -135,9 +117,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'multiple', operation: 'write' }));
     });
-  };
+  }, [products, orders, categories, toast]);
 
-  const resetOrders = async () => {
+  const resetOrders = useCallback(async (logAction: LogAction, user: User | null) => {
     setIsLoading(true);
     const batch = writeBatch(db);
     orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
@@ -149,14 +131,14 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'orders', operation: 'delete' }));
     });
-  };
+  }, [orders]);
   
-  const resetAllAdminData = async () => {
-    await restoreAdminData({ products: [], orders: [], categories: [] });
+  const resetAllAdminData = useCallback(async (logAction: LogAction, user: User | null) => {
+    await restoreAdminData({ products: [], orders: [], categories: [] }, logAction, user);
     logAction('Reset da Loja', 'Todos os dados da loja foram resetados para o padrão.', user);
-  };
+  }, [restoreAdminData]);
 
-  const addProduct = async (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>) => {
+  const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => {
       const newProductId = `prod-${Date.now()}`;
       const newProduct: Product = {
         ...productData,
@@ -179,9 +161,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: newProduct,
         }));
       });
-  };
+  }, [toast]);
 
-  const updateProduct = async (updatedProduct: Product) => {
+  const updateProduct = useCallback(async (updatedProduct: Product, logAction: LogAction, user: User | null) => {
     const productRef = doc(db, 'products', updatedProduct.id);
     const productToUpdate = { ...updatedProduct };
     
@@ -194,9 +176,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: productToUpdate,
         }));
     });
-  };
+  }, []);
 
-  const deleteProduct = async (productId: string) => {
+  const deleteProduct = useCallback(async (productId: string, logAction: LogAction, user: User | null) => {
       const productRef = doc(db, 'products', productId);
       const productToDelete = products.find(p => p.id === productId);
 
@@ -215,9 +197,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             operation: 'delete',
         }));
       });
-  };
+  }, [products, toast]);
 
-  const addCategory = async (categoryName: string) => {
+  const addCategory = useCallback(async (categoryName: string, logAction: LogAction, user: User | null) => {
     if (categories.some(c => c.name.toLowerCase() === categoryName.toLowerCase())) {
       toast({ title: "Erro", description: "Essa categoria já existe.", variant: "destructive" });
       return;
@@ -242,9 +224,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: newCategory,
         }));
     });
-  };
+  }, [categories, toast]);
 
-  const updateCategoryName = async (categoryId: string, newName: string) => {
+  const updateCategoryName = useCallback(async (categoryId: string, newName: string, logAction: LogAction, user: User | null) => {
     if (categories.some(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== categoryId)) {
         toast({ title: "Erro", description: "Uma categoria com esse novo nome já existe.", variant: "destructive" });
         return;
@@ -274,9 +256,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: { name: newName },
         }));
     });
-  };
+  }, [categories, products, toast]);
 
-  const deleteCategory = async (categoryId: string) => {
+  const deleteCategory = useCallback(async (categoryId: string, logAction: LogAction, user: User | null) => {
     const categoryToDelete = categories.find(c => c.id === categoryId);
     if (!categoryToDelete) return;
 
@@ -296,9 +278,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             operation: 'delete',
         }));
     });
-  };
+  }, [categories, products, toast]);
 
-  const addSubcategory = async (categoryId: string, subcategoryName: string) => {
+  const addSubcategory = useCallback(async (categoryId: string, subcategoryName: string, logAction: LogAction, user: User | null) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
     if (category.subcategories.some(s => s.toLowerCase() === subcategoryName.toLowerCase())) {
@@ -317,9 +299,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: { subcategories: newSubcategories },
         }));
     });
-  };
+  }, [categories, toast]);
 
-  const updateSubcategory = async (categoryId: string, oldSub: string, newSub: string) => {
+  const updateSubcategory = useCallback(async (categoryId: string, oldSub: string, newSub: string, logAction: LogAction, user: User | null) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
     if (category.subcategories.some(s => s.toLowerCase() === newSub.toLowerCase() && s.toLowerCase() !== oldSub.toLowerCase())) {
@@ -345,9 +327,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             operation: 'update',
         }));
     });
-  };
+  }, [categories, products, toast]);
 
-  const deleteSubcategory = async (categoryId: string, subcategoryName: string) => {
+  const deleteSubcategory = useCallback(async (categoryId: string, subcategoryName: string, logAction: LogAction, user: User | null) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
     
@@ -371,9 +353,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: { subcategories: newSubcategories },
         }));
     });
-  };
+  }, [categories, products, toast]);
     
-  const moveCategory = async (categoryId: string, direction: 'up' | 'down') => {
+  const moveCategory = useCallback(async (categoryId: string, direction: 'up' | 'down', logAction: LogAction, user: User | null) => {
     const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
     const index = sortedCategories.findIndex(c => c.id === categoryId);
 
@@ -400,9 +382,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             operation: 'update',
         }));
     });
-  };
+  }, [categories]);
 
-  const reorderSubcategories = async (categoryId: string, draggedSub: string, targetSub: string) => {
+  const reorderSubcategories = useCallback(async (categoryId: string, draggedSub: string, targetSub: string, logAction: LogAction, user: User | null) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
 
@@ -425,9 +407,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: { subcategories: subs },
         }));
     });
-  };
+  }, [categories]);
 
-  const moveSubcategory = async (sourceCategoryId: string, subName: string, targetCategoryId: string) => {
+  const moveSubcategory = useCallback(async (sourceCategoryId: string, subName: string, targetCategoryId: string, logAction: LogAction, user: User | null) => {
     const sourceCategory = categories.find(c => c.id === sourceCategoryId);
     const targetCategory = categories.find(c => c.id === targetCategoryId);
 
@@ -458,32 +440,30 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             operation: 'update',
         }));
     });
-  };
+  }, [categories, products, toast]);
 
   const calculateCommission = (order: Order, allProducts: Product[]) => {
       if (!order.sellerId) return 0;
 
-      if (order.isCommissionManual) {
-        return order.commission || 0;
+      if (order.isCommissionManual && typeof order.commission === 'number') {
+        return order.commission;
       }
 
       return order.items.reduce((totalCommission, item) => {
           const product = allProducts.find(p => p.id === item.id);
-          if (!product || !product.commissionType || typeof product.commissionValue === 'undefined' || product.commissionValue === null) {
-              return totalCommission;
-          }
+          if (!product || typeof product.commissionValue === 'undefined') return totalCommission;
+          
           if (product.commissionType === 'fixed') {
               return totalCommission + (product.commissionValue * item.quantity);
           }
           if (product.commissionType === 'percentage') {
-              const itemTotal = item.price * item.quantity;
-              return totalCommission + (itemTotal * product.commissionValue / 100);
+              return totalCommission + (item.price * item.quantity * product.commissionValue / 100);
           }
           return totalCommission;
       }, 0);
-  }
+  };
 
-  const manageStockForOrder = async (order: Order | undefined, operation: 'add' | 'subtract', allProducts: Product[]): Promise<boolean> => {
+  const manageStockForOrder = useCallback(async (order: Order | undefined, operation: 'add' | 'subtract', allProducts: Product[]): Promise<boolean> => {
     if (!order) return false;
     const batch = writeBatch(db);
     
@@ -506,40 +486,19 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         }
     }
     
-    batch.commit().catch(async (e) => {
+    try {
+        await batch.commit();
+        return true; // Indicate success
+    } catch(e) {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: 'products',
             operation: 'update',
         }));
         throw e; // Re-throw to indicate failure
-    });
-
-    return true; // Indicate success
-  };
-
-  const deleteOrder = async (orderId: string) => {
-    await updateOrderStatus(orderId, 'Excluído');
-  };
-
-  const permanentlyDeleteOrder = async (orderId: string) => {
-    const orderToDelete = orders.find(o => o.id === orderId);
-    if (!orderToDelete || orderToDelete.status !== 'Excluído') {
-      toast({ title: "Erro", description: "Só é possível excluir permanentemente pedidos que estão na lixeira.", variant: "destructive" });
-      return;
     }
-    
-    const orderRef = doc(db, 'orders', orderId);
-    deleteDoc(orderRef).then(() => {
-        logAction('Exclusão Permanente de Pedido', `Pedido #${orderId} foi excluído permanentemente.`, user);
-    }).catch(async (e) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: orderRef.path,
-            operation: 'delete',
-        }));
-    });
-  };
+  }, [toast]);
 
-  const updateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
+  const updateOrderStatus = useCallback(async (orderId: string, newStatus: Order['status'], logAction: LogAction, user: User | null) => {
     const orderToUpdate = orders.find(o => o.id === orderId);
     if (!orderToUpdate) return;
 
@@ -557,9 +516,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const detailsToUpdate: Partial<Order> = { status: newStatus };
 
     if (newStatus === 'Entregue' && orderToUpdate.sellerId) {
-      if (!orderToUpdate.isCommissionManual) {
-        detailsToUpdate.commission = calculateCommission(orderToUpdate, products);
-      }
+      detailsToUpdate.commission = calculateCommission(orderToUpdate, products);
     } else {
         if (!orderToUpdate.isCommissionManual) {
           detailsToUpdate.commission = 0;
@@ -591,9 +548,31 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             operation: 'update',
         }));
     });
-  };
+  }, [orders, products, manageStockForOrder, toast]);
 
-  const recordInstallmentPayment = async (orderId: string, installmentNumber: number, paymentData: Omit<Payment, 'receivedBy'>) => {
+  const deleteOrder = useCallback(async (orderId: string, logAction: LogAction, user: User | null) => {
+    await updateOrderStatus(orderId, 'Excluído', logAction, user);
+  }, [updateOrderStatus]);
+
+  const permanentlyDeleteOrder = useCallback(async (orderId: string, logAction: LogAction, user: User | null) => {
+    const orderToDelete = orders.find(o => o.id === orderId);
+    if (!orderToDelete || orderToDelete.status !== 'Excluído') {
+      toast({ title: "Erro", description: "Só é possível excluir permanentemente pedidos que estão na lixeira.", variant: "destructive" });
+      return;
+    }
+    
+    const orderRef = doc(db, 'orders', orderId);
+    deleteDoc(orderRef).then(() => {
+        logAction('Exclusão Permanente de Pedido', `Pedido #${orderId} foi excluído permanentemente.`, user);
+    }).catch(async (e) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: orderRef.path,
+            operation: 'delete',
+        }));
+    });
+  }, [orders, toast]);
+
+  const recordInstallmentPayment = useCallback(async (orderId: string, installmentNumber: number, paymentData: Omit<Payment, 'receivedBy'>, logAction: LogAction, user: User | null) => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     
@@ -607,11 +586,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const currentPaidAmount = Number(inst.paidAmount) || 0;
         const paymentAmount = Number(paymentWithUser.amount) || 0;
         const newPaidAmount = currentPaidAmount + paymentAmount;
-        // Check if paid amount is effectively equal to installment amount, handling floating point inaccuracies
         const isPaid = Math.abs(newPaidAmount - inst.amount) < 0.01;
         const newStatus = isPaid ? 'Pago' : 'Pendente';
-        
-        const existingPayments = (Array.isArray(inst.payments) ? inst.payments : []).filter(p => typeof p.amount === 'number' && p.amount > 0);
+        const existingPayments = Array.isArray(inst.payments) ? inst.payments : [];
 
         return { 
           ...inst, 
@@ -634,9 +611,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: { installmentDetails: updatedInstallments },
         }));
     });
-  };
+  }, [orders, toast]);
 
-  const reversePayment = async (orderId: string, installmentNumber: number, paymentId: string) => {
+  const reversePayment = useCallback(async (orderId: string, installmentNumber: number, paymentId: string, logAction: LogAction, user: User | null) => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
@@ -651,12 +628,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const newPaidAmount = (inst.paidAmount || 0) - reversedPaymentAmount;
         const newStatus = newPaidAmount >= inst.amount ? 'Pago' : 'Pendente';
         
-        return {
-          ...inst,
-          payments: newPayments,
-          paidAmount: newPaidAmount,
-          status: newStatus,
-        };
+        return { ...inst, payments: newPayments, paidAmount: newPaidAmount, status: newStatus };
       }
       return inst;
     });
@@ -672,10 +644,10 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: { installmentDetails: updatedInstallments },
         }));
     });
-  };
+  }, [orders, toast]);
 
 
-  const updateInstallmentDueDate = async (orderId: string, installmentNumber: number, newDueDate: Date) => {
+  const updateInstallmentDueDate = useCallback(async (orderId: string, installmentNumber: number, newDueDate: Date, logAction: LogAction, user: User | null) => {
      const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
@@ -695,9 +667,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: { installmentDetails: updatedInstallments },
         }));
     });
-  };
+  }, [orders, toast]);
 
-  const updateCustomer = async (updatedCustomer: CustomerInfo) => {
+  const updateCustomer = useCallback(async (updatedCustomer: CustomerInfo, logAction: LogAction, user: User | null) => {
     const batch = writeBatch(db);
     orders.forEach(order => {
         if (order.customer.cpf === updatedCustomer.cpf) {
@@ -717,10 +689,10 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             operation: 'update',
         }));
     });
-  };
+  }, [orders, toast]);
   
-  const importCustomers = async (csvData: string) => {
-    const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, ''); // Remove BOM
+  const importCustomers = useCallback(async (csvData: string, logAction: LogAction, user: User | null) => {
+    const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, ''); 
     if (!sanitizedCsv) {
         toast({ title: 'Arquivo Vazio', description: 'O arquivo CSV está vazio.', variant: 'destructive' });
         return;
@@ -735,7 +707,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const dataLines = lines.slice(1);
     const delimiter = headerLine.includes(';') ? ';' : ',';
     
-    const fileHeaders = headerLine.split(delimiter).map(h => h.trim().replace(/["']/g, ''));
+    const fileHeaders = headerLine.split(delimiter).map(h => h.trim().replace(/["']/g, '').toLowerCase());
 
     const possibleMappings: { [key in keyof Omit<CustomerInfo, 'password'>]?: string[] } = {
         cpf: ['cpf'],
@@ -758,7 +730,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const potentialNames = possibleMappings[typedKey]!;
         
         const foundIndex = fileHeaders.findIndex(header => 
-            potentialNames.some(pName => header.toLowerCase().includes(pName.toLowerCase()))
+            potentialNames.some(pName => header.includes(pName))
         );
 
         if (foundIndex !== -1) {
@@ -855,10 +827,10 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             operation: 'write',
         }));
     }
-  };
+  }, [orders, toast]);
 
 
-  const updateOrderDetails = async (orderId: string, details: Partial<Order>) => {
+  const updateOrderDetails = useCallback(async (orderId: string, details: Partial<Order>, logAction: LogAction, user: User | null) => {
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
 
@@ -875,9 +847,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
           requestResourceData: detailsToUpdate,
       }));
     });
-  };
+  }, [orders, toast]);
 
-  const payCommissions = async (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string): Promise<string | null> => {
+  const payCommissions = useCallback(async (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string, logAction: LogAction, user: User | null): Promise<string | null> => {
     const paymentId = `comp-${sellerId}-${Date.now()}`;
     const payment: CommissionPayment = {
         id: paymentId,
@@ -910,9 +882,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         }));
         return null;
     }
-  };
+  }, [toast]);
 
-  const reverseCommissionPayment = async (paymentId: string) => {
+  const reverseCommissionPayment = useCallback(async (paymentId: string, logAction: LogAction, user: User | null) => {
     const paymentToReverse = commissionPayments.find(p => p.id === paymentId);
     if (!paymentToReverse) {
       toast({ title: "Erro", description: "Pagamento não encontrado.", variant: "destructive" });
@@ -935,9 +907,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             operation: 'delete',
         }));
     });
-  };
+  }, [commissionPayments, toast]);
 
-  const saveStockAudit = async (audit: StockAudit) => {
+  const saveStockAudit = useCallback(async (audit: StockAudit, logAction: LogAction, user: User | null) => {
     const auditRef = doc(db, 'stockAudits', audit.id);
     setDoc(auditRef, audit).then(() => {
         logAction('Auditoria de Estoque', `Auditoria de estoque para ${audit.month}/${audit.year} foi salva.`, user);
@@ -949,7 +921,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: audit,
         }));
     });
-  };
+  }, [toast]);
 
   return (
     <AdminContext.Provider
@@ -976,3 +948,5 @@ export const useAdmin = () => {
   }
   return context;
 };
+
+  

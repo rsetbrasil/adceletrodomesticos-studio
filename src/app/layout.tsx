@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import './globals.css';
@@ -19,8 +18,6 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 import { AdminProvider } from '@/context/AdminContext';
 
 
-// This is a new component that wraps the main content
-// It has access to all the contexts defined in the main RootLayout
 const AppContent = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const isSpecialRoute = pathname.startsWith('/carnet') || pathname.startsWith('/login') || pathname.startsWith('/area-cliente');
@@ -67,21 +64,21 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <AuditProvider>
-          <AuthProvider>
-            <PermissionsProvider>
-              <SettingsProvider>
-                <AdminProvider>
-                  <CustomerAuthProvider>
-                    <CartProvider>
-                      <AppContent>{children}</AppContent>
-                    </CartProvider>
-                  </CustomerAuthProvider>
-                </AdminProvider>
-              </SettingsProvider>
-            </PermissionsProvider>
-          </AuthProvider>
-        </AuditProvider>
+          <AuditProvider>
+            <AuthProvider>
+              <PermissionsProvider>
+                <SettingsProvider>
+                  <AdminProvider>
+                    <CustomerAuthProvider>
+                      <CartProvider>
+                        <AppContent>{children}</AppContent>
+                      </CartProvider>
+                    </CustomerAuthProvider>
+                  </AdminProvider>
+                </SettingsProvider>
+              </PermissionsProvider>
+            </AuthProvider>
+          </AuditProvider>
       </body>
     </html>
   );

@@ -1,16 +1,14 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { CustomerInfo, Order } from '@/lib/types';
-import { useAdmin } from './AdminContext';
 
 interface CustomerAuthContextType {
   customer: CustomerInfo | null;
-  login: (cpf: string, pass: string) => Promise<boolean>;
+  login: (cpf: string, pass: string, allOrders: Order[]) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -23,7 +21,6 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
-  const { orders, isLoading: isAdminLoading } = useAdmin();
   
   useEffect(() => {
     setIsLoading(true);
@@ -40,15 +37,10 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = async (cpf: string, pass: string): Promise<boolean> => {
+  const login = async (cpf: string, pass: string, allOrders: Order[]): Promise<boolean> => {
     const normalizedCpf = cpf.replace(/\D/g, '');
     
-    if (isAdminLoading) {
-        toast({ title: 'Aguarde', description: 'Carregando dados dos clientes...' });
-        return false;
-    }
-    
-    const customerOrders = orders
+    const customerOrders = allOrders
         .filter(o => o.customer.cpf.replace(/\D/g, '') === normalizedCpf)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -93,7 +85,7 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <CustomerAuthContext.Provider value={{ customer, login, logout, isLoading: isLoading || isAdminLoading, isAuthenticated: !!customer }}>
+    <CustomerAuthContext.Provider value={{ customer, login, logout, isLoading, isAuthenticated: !!customer }}>
       {children}
     </CustomerAuthContext.Provider>
   );
@@ -107,4 +99,4 @@ export const useCustomerAuth = () => {
   return context;
 };
 
-    
+  

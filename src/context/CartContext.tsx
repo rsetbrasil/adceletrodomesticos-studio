@@ -1,15 +1,14 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem, Order, Product } from '@/lib/types';
+import type { CartItem, Order, Product, User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, writeBatch } from 'firebase/firestore';
-import { useAuth } from './AuthContext';
-import { useAudit } from './AuditContext';
-import { useAdmin } from './AdminContext';
+
+// Helper function to log actions, passed as an argument now
+type LogAction = (action: string, details: string, user: User | null) => void;
 
 const saveDataToLocalStorage = (key: string, data: any) => {
     if (typeof window === 'undefined') return;
@@ -35,7 +34,7 @@ interface CartContextType {
   cartItems: CartItem[];
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  updateQuantity: (productId: string, quantity: number, allProducts: Product[]) => void;
   clearCart: () => void;
   getCartTotal: () => number;
   cartCount: number;
@@ -47,7 +46,7 @@ interface CartContextType {
   setSelectedCategoryForSheet: (category: string | null) => void;
   lastOrder: Order | null;
   setLastOrder: (order: Order) => void;
-  addOrder: (order: Partial<Order>, products: Product[], allOrders: Order[]) => Promise<Order | null>;
+  addOrder: (order: Partial<Order>, allProducts: Product[], allOrders: Order[], user: User | null, logAction: LogAction) => Promise<Order | null>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -59,10 +58,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [selectedCategoryForSheet, setSelectedCategoryForSheet] = useState<string | null>(null);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
-  const { logAction } = useAudit();
-  const { products: allProducts } = useAdmin();
-
 
   useEffect(() => {
     const storedCart = loadDataFromLocalStorage('cartItems');
@@ -96,7 +91,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         name: product.name,
         price: product.price,
         quantity: 1,
-        imageUrl: product.imageUrls[0] || '',
+        imageUrl: product.imageUrls?.[0] || 'https://placehold.co/100x100.png',
       });
     }
 
@@ -111,7 +106,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     saveDataToLocalStorage('cartItems', newCartItems);
   };
   
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = (productId: string, quantity: number, allProducts: Product[]) => {
     if (quantity < 1) {
       removeFromCart(productId);
       return;
@@ -181,7 +176,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return false;
   };
 
-  const addOrder = async (order: Partial<Order>, allProducts: Product[], allOrders: Order[]): Promise<Order | null> => {
+  const addOrder = async (order: Partial<Order>, allProducts: Product[], allOrders: Order[], user: User | null, logAction: LogAction): Promise<Order | null> => {
     try {
         const orderToSave = {
             ...order,
@@ -204,17 +199,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           throw new Error(`Estoque insuficiente para um ou mais produtos.`);
         }
 
-        // Add new customer info to other orders if they exist
         const customerOrders = allOrders.filter(o => o.customer.cpf === orderToSave.customer.cpf);
         const hasExistingPassword = customerOrders.some(o => o.customer.password);
 
         let customerToSave = { ...orderToSave.customer };
 
         if (!hasExistingPassword) {
-            // First time this customer is ordering, generate password
             customerToSave.password = orderToSave.customer.cpf.replace(/\D/g, '').substring(0, 6);
         } else {
-            // Customer exists, don't include password in this new order record
             delete customerToSave.password;
         }
 
@@ -259,4 +251,4 @@ export const useCart = () => {
   return context;
 };
 
-    
+  

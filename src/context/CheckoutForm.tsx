@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -26,6 +25,8 @@ import { addMonths } from 'date-fns';
 import { AlertTriangle, CreditCard, KeyRound, Trash2 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { useAdmin } from '@/context/AdminContext';
+import { useAuth } from './AuthContext';
+import { useAudit } from './AuditContext';
 
 function isValidCPF(cpf: string) {
     if (typeof cpf !== 'string') return false;
@@ -62,6 +63,8 @@ export default function CheckoutForm() {
   const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, removeFromCart } = useCart();
   const { settings } = useSettings();
   const { orders, products } = useAdmin();
+  const { user } = useAuth();
+  const { logAction } = useAudit();
   const router = useRouter();
   const { toast } = useToast();
   const [isNewCustomer, setIsNewCustomer] = useState(true);
@@ -232,7 +235,6 @@ export default function CheckoutForm() {
       
     const orderId = `PED-${String(lastOrderNumber + 1).padStart(4, '0')}`;
     
-    // Default to 1 installment, seller will change it later
     const finalInstallments = 1;
     const finalInstallmentValue = total / finalInstallments;
     const orderDate = new Date();
@@ -250,7 +252,7 @@ export default function CheckoutForm() {
     const order: Partial<Order> = {
       id: orderId,
       customer: customerData,
-      items: cartItems.map(({ ...item }) => item), // Create a plain object without methods
+      items: cartItems.map(({ ...item }) => item),
       total,
       installments: finalInstallments,
       installmentValue: finalInstallmentValue,
@@ -261,37 +263,38 @@ export default function CheckoutForm() {
     };
     
     try {
-        const savedOrder = await addOrder(order, products, orders);
-        setLastOrder(savedOrder as Order);
-        clearCart();
-    
-        toast({
-            title: "Pedido Realizado com Sucesso!",
-            description: `Seu pedido #${orderId} foi confirmado.`,
-        });
+        const savedOrder = await addOrder(order, products, orders, user, logAction);
+        if (savedOrder) {
+          setLastOrder(savedOrder);
+          clearCart();
+      
+          toast({
+              title: "Pedido Realizado com Sucesso!",
+              description: `Seu pedido #${orderId} foi confirmado.`,
+          });
 
-        // Notify company via WhatsApp
-        if (settings.storePhone) {
-            const storePhone = settings.storePhone.replace(/\D/g, '');
-            const productNames = cartItemsWithDetails.map(item => item.name).join(', ');
-            
-            const messageParts = [
-                `*Novo Pedido Recebido!*`,
-                `*Pedido:* ${orderId}`,
-                `*Cliente:* ${values.name}`,
-                `*Produtos:* ${productNames}`,
-                `*Total:* ${formatCurrency(total)}`,
-                `*Parcelamento Máximo:* Até ${maxAllowedInstallments}x`
-            ];
+          if (settings.storePhone) {
+              const storePhone = settings.storePhone.replace(/\D/g, '');
+              const productNames = cartItemsWithDetails.map(item => item.name).join(', ');
+              
+              const messageParts = [
+                  `*Novo Pedido Recebido!*`,
+                  `*Pedido:* ${orderId}`,
+                  `*Cliente:* ${values.name}`,
+                  `*Produtos:* ${productNames}`,
+                  `*Total:* ${formatCurrency(total)}`,
+                  `*Parcelamento Máximo:* Até ${maxAllowedInstallments}x`
+              ];
 
-            const message = messageParts.join('\n');
-            const encodedMessage = encodeURIComponent(message);
-            
-            const webUrl = `https://wa.me/55${storePhone}?text=${encodedMessage}`;
-            window.open(webUrl, '_blank');
+              const message = messageParts.join('\n');
+              const encodedMessage = encodeURIComponent(message);
+              
+              const webUrl = `https://wa.me/55${storePhone}?text=${encodedMessage}`;
+              window.open(webUrl, '_blank');
+          }
+      
+          router.push(`/order-confirmation/${orderId}`);
         }
-    
-        router.push(`/order-confirmation/${orderId}`);
     } catch (error) {
         console.error("Failed to process order:", error);
         toast({
@@ -385,4 +388,4 @@ export default function CheckoutForm() {
   );
 }
 
-    
+  
