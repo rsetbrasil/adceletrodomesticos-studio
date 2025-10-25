@@ -783,50 +783,44 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const importCustomers = async (csvData: string) => {
-    // 1. Sanitize file content
-    const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, '');
+    const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, ''); // Remove BOM
     const lines = sanitizedCsv.split(/\r?\n/);
     if (lines.length < 2) {
       toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV está vazio ou contém apenas o cabeçalho.', variant: 'destructive' });
       return;
     }
 
-    // 2. Detect Delimiter
     const headerLine = lines[0];
     const delimiter = headerLine.includes(';') ? ';' : ',';
-
-    // 3. Map Headers
     const headers = headerLine.split(delimiter).map(h => h.trim().replace(/["']/g, ''));
-    
+
+    const normalizeHeader = (header: string) => 
+        header.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9-]/gi, '');
+
     const possibleMappings: { [key in keyof CustomerInfo]?: string[] } = {
       cpf: ['cpf'],
-      name: ['nome', 'nomecompleto', 'cliente', 'nome completo'],
+      name: ['nome', 'nomecompleto', 'cliente'],
       phone: ['telefone', 'fone', 'celular', 'whatsapp'],
       email: ['email', 'e-mail'],
       zip: ['cep'],
-      address: ['endereco', 'endereço', 'rua'],
-      number: ['numero', 'número', 'num'],
+      address: ['endereco', 'rua'],
+      number: ['numero', 'num'],
       complement: ['complemento', 'compl'],
       neighborhood: ['bairro'],
       city: ['cidade'],
       state: ['estado', 'uf'],
     };
 
-    const normalizeHeader = (header: string) => 
-        header.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '');
-
     const headerMapping: { [key in keyof CustomerInfo]?: number } = {};
-
     headers.forEach((header, index) => {
-      const normalizedHeader = normalizeHeader(header);
-      for (const key in possibleMappings) {
-        const typedKey = key as keyof CustomerInfo;
-        const aliases = possibleMappings[typedKey]!;
-        if (aliases.some(alias => normalizedHeader.includes(alias))) {
-          headerMapping[typedKey] = index;
-          break; // Move to next header once a mapping is found
+        const normalizedHeader = normalizeHeader(header);
+        for (const key in possibleMappings) {
+            const typedKey = key as keyof CustomerInfo;
+            if (possibleMappings[typedKey]?.some(alias => normalizedHeader.includes(alias))) {
+                headerMapping[typedKey] = index;
+                break;
+            }
         }
-      }
     });
 
     if (headerMapping.cpf === undefined) {
@@ -834,7 +828,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // 4. Process data
     const customersToImport = lines.slice(1).map(line => {
       if (!line.trim()) return null;
       const data = line.split(delimiter);
@@ -854,7 +847,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    // 5. Batch write to Firestore
     const batch = writeBatch(db);
     let updatedCount = 0;
     let createdCount = 0;
@@ -1061,3 +1053,4 @@ export const useAdmin = () => {
   }
   return context;
 };
+
