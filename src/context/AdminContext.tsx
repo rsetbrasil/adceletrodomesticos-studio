@@ -783,44 +783,48 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const importCustomers = async (csvData: string) => {
-    const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, ''); // Remove BOM
+    const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, '');
+    if (!sanitizedCsv) {
+        toast({ title: 'Arquivo Vazio', description: 'O arquivo CSV está vazio.', variant: 'destructive' });
+        return;
+    }
     const lines = sanitizedCsv.split(/\r?\n/);
     if (lines.length < 2) {
-      toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV está vazio ou contém apenas o cabeçalho.', variant: 'destructive' });
+      toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV contém apenas o cabeçalho ou está vazio.', variant: 'destructive' });
       return;
     }
 
     const headerLine = lines[0];
     const delimiter = headerLine.includes(';') ? ';' : ',';
+    
+    const normalizeHeader = (header: string) => header.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '');
+
     const headers = headerLine.split(delimiter).map(h => h.trim().replace(/["']/g, ''));
-
-    const normalizeHeader = (header: string) => 
-        header.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9-]/gi, '');
-
+    
     const possibleMappings: { [key in keyof CustomerInfo]?: string[] } = {
       cpf: ['cpf'],
       name: ['nome', 'nomecompleto', 'cliente'],
       phone: ['telefone', 'fone', 'celular', 'whatsapp'],
       email: ['email', 'e-mail'],
       zip: ['cep'],
-      address: ['endereco', 'rua'],
+      address: ['endereco', 'rua', 'logradouro'],
       number: ['numero', 'num'],
       complement: ['complemento', 'compl'],
       neighborhood: ['bairro'],
-      city: ['cidade'],
+      city: ['cidade', 'municipio'],
       state: ['estado', 'uf'],
     };
 
-    const headerMapping: { [key in keyof CustomerInfo]?: number } = {};
+    const headerMapping: { [key: string]: number } = {};
     headers.forEach((header, index) => {
-        const normalizedHeader = normalizeHeader(header);
-        for (const key in possibleMappings) {
-            const typedKey = key as keyof CustomerInfo;
-            if (possibleMappings[typedKey]?.some(alias => normalizedHeader.includes(alias))) {
-                headerMapping[typedKey] = index;
-                break;
-            }
+      const normalizedHeader = normalizeHeader(header);
+      for (const key in possibleMappings) {
+        const typedKey = key as keyof CustomerInfo;
+        if (possibleMappings[typedKey]?.some(alias => normalizedHeader.includes(alias))) {
+          headerMapping[typedKey] = index;
+          break;
         }
+      }
     });
 
     if (headerMapping.cpf === undefined) {
@@ -1053,4 +1057,3 @@ export const useAdmin = () => {
   }
   return context;
 };
-
