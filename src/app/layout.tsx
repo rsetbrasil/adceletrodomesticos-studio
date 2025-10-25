@@ -64,21 +64,21 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-          <AuditProvider>
-            <AuthProvider>
-              <PermissionsProvider>
-                <SettingsProvider>
-                  <AdminProvider>
-                    <CustomerAuthProvider>
-                      <CartProvider>
-                        <AppContent>{children}</AppContent>
-                      </CartProvider>
-                    </CustomerAuthProvider>
-                  </AdminProvider>
-                </SettingsProvider>
-              </PermissionsProvider>
-            </AuthProvider>
-          </AuditProvider>
+        <AuditProvider>
+          <AuthProvider>
+            <PermissionsProvider>
+              <SettingsProvider>
+                <AdminProvider>
+                  <CustomerAuthProvider>
+                    <CartProvider>
+                      <AppContent>{children}</AppContent>
+                    </CartProvider>
+                  </CustomerAuthProvider>
+                </AdminProvider>
+              </SettingsProvider>
+            </PermissionsProvider>
+          </AuthProvider>
+        </AuditProvider>
       </body>
     </html>
   );
