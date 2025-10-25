@@ -790,35 +790,38 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV está vazio ou contém apenas o cabeçalho.', variant: 'destructive' });
         return;
     }
-    
-    const delimiter = lines[0].includes(';') ? ';' : ',';
-    const headerLine = lines[0].trim();
-    const header = headerLine.split(delimiter);
 
-    const getColumnIndex = (possibleNames: string[]) => {
-      for (const name of possibleNames) {
-        const lowerName = name.toLowerCase();
-        const index = header.findIndex(h => h.toLowerCase().trim().replace(/"/g, '') === lowerName);
-        if (index !== -1) return index;
-      }
-      return -1;
-    };
-    
-    const columnMap: { [key in keyof CustomerInfo]?: number } = {
-        cpf: getColumnIndex(['cpf']),
-        name: getColumnIndex(['nome', 'name']),
-        phone: getColumnIndex(['telefone', 'fone']),
-        email: getColumnIndex(['email', 'e-mail']),
-        zip: getColumnIndex(['cep']),
-        address: getColumnIndex(['endereco', 'endereço', 'rua']),
-        number: getColumnIndex(['numero', 'número']),
-        complement: getColumnIndex(['complemento']),
-        neighborhood: getColumnIndex(['bairro']),
-        city: getColumnIndex(['cidade']),
-        state: getColumnIndex(['estado', 'uf']),
+    const headerLine = lines[0];
+    const delimiter = headerLine.includes(';') ? ';' : ',';
+    const rawHeaders = headerLine.split(delimiter).map(h => h.trim().replace(/"/g, ''));
+
+    const headerMapping: { [key: string]: keyof CustomerInfo } = {
+        'cpf': 'cpf',
+        'nome': 'name', 'nome completo': 'name', 'name': 'name',
+        'telefone': 'phone', 'fone': 'phone', 'celular': 'phone',
+        'email': 'email', 'e-mail': 'email',
+        'cep': 'zip',
+        'endereco': 'address', 'endereço': 'address', 'rua': 'address',
+        'numero': 'number', 'número': 'number',
+        'complemento': 'complement',
+        'bairro': 'neighborhood',
+        'cidade': 'city',
+        'estado': 'state', 'uf': 'state',
     };
 
-    if (columnMap.cpf === -1) {
+    const columnIndexMap: { [key in keyof CustomerInfo]?: number } = {};
+    rawHeaders.forEach((header, index) => {
+        const normalizedHeader = header.toLowerCase().replace(/[^a-z0-9]/gi, '');
+        for (const key in headerMapping) {
+            const normalizedKey = key.replace(/[^a-z0-9]/gi, '');
+            if (normalizedHeader === normalizedKey) {
+                columnIndexMap[headerMapping[key]] = index;
+                break;
+            }
+        }
+    });
+    
+    if (columnIndexMap.cpf === undefined) {
         toast({ title: 'Arquivo Inválido', description: "A coluna 'cpf' é obrigatória e não foi encontrada no arquivo.", variant: 'destructive' });
         return;
     }
@@ -826,26 +829,27 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const customersToImport: Partial<CustomerInfo>[] = lines.slice(1).map(line => {
         const data = line.split(delimiter);
         const customer: Partial<CustomerInfo> = {};
-        for (const key in columnMap) {
+        for (const key in columnIndexMap) {
             const typedKey = key as keyof CustomerInfo;
-            const colIndex = columnMap[typedKey];
-            if (colIndex !== undefined && colIndex !== -1 && data[colIndex]) {
-                customer[typedKey] = data[colIndex].trim().replace(/"/g, '');
+            const colIndex = columnIndexMap[typedKey];
+            if (colIndex !== undefined && colIndex < data.length) {
+                customer[typedKey] = data[colIndex]?.trim().replace(/"/g, '') || '';
             }
         }
         return customer;
-    });
+    }).filter(c => c.cpf && c.cpf.replace(/\D/g, '').length === 11);
+
+    if (customersToImport.length === 0) {
+        toast({ title: 'Nenhum Cliente Válido', description: 'Nenhum cliente com CPF válido foi encontrado no arquivo para importar.', variant: 'destructive' });
+        return;
+    }
 
     const batch = writeBatch(db);
     let updatedCount = 0;
     let createdCount = 0;
 
     customersToImport.forEach(importedCustomer => {
-        if (!importedCustomer || !importedCustomer.cpf) return;
-
-        const cpf = importedCustomer.cpf.replace(/\D/g, '');
-        if (cpf.length !== 11) return;
-
+        const cpf = importedCustomer.cpf!.replace(/\D/g, '');
         const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
 
         if (existingOrders.length > 0) {
