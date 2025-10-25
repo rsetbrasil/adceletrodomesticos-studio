@@ -782,146 +782,143 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     });
   };
   
-  const importCustomers = async (csvData: string) => {
-    const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, '');
-    if (!sanitizedCsv) {
-        toast({ title: 'Arquivo Vazio', description: 'O arquivo CSV está vazio.', variant: 'destructive' });
-        return;
-    }
-    const lines = sanitizedCsv.split(/\r?\n/);
-    if (lines.length < 2) {
-      toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV contém apenas o cabeçalho ou está vazio.', variant: 'destructive' });
-      return;
-    }
-
-    const headerLine = lines[0];
-    const delimiter = headerLine.includes(';') ? ';' : ',';
-    
-    const normalizeHeader = (header: string) => header.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '');
-
-    const headers = headerLine.split(delimiter).map(h => h.trim().replace(/["']/g, ''));
-    
-    const possibleMappings: { [key in keyof CustomerInfo]?: string[] } = {
-      cpf: ['cpf'],
-      name: ['nome', 'nomecompleto', 'cliente'],
-      phone: ['telefone', 'fone', 'celular', 'whatsapp'],
-      email: ['email', 'e-mail'],
-      zip: ['cep'],
-      address: ['endereco', 'rua', 'logradouro'],
-      number: ['numero', 'num'],
-      complement: ['complemento', 'compl'],
-      neighborhood: ['bairro'],
-      city: ['cidade', 'municipio'],
-      state: ['estado', 'uf'],
-    };
-
-    const headerMapping: { [key: string]: number } = {};
-    headers.forEach((header, index) => {
-      const normalizedHeader = normalizeHeader(header);
-      for (const key in possibleMappings) {
-        const typedKey = key as keyof CustomerInfo;
-        if (possibleMappings[typedKey]?.some(alias => normalizedHeader.includes(alias))) {
-          headerMapping[typedKey] = index;
-          break;
+    const importCustomers = async (csvData: string) => {
+        // 1. Sanitize input and detect delimiter
+        const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, ''); // Remove BOM
+        if (!sanitizedCsv) {
+            toast({ title: 'Arquivo Vazio', description: 'O arquivo CSV está vazio.', variant: 'destructive' });
+            return;
         }
-      }
-    });
-
-    if (headerMapping.cpf === undefined) {
-      toast({ title: 'Arquivo Inválido', description: "A coluna 'cpf' é obrigatória e não foi encontrada no arquivo.", variant: 'destructive' });
-      return;
-    }
-
-    const customersToImport = lines.slice(1).map(line => {
-      if (!line.trim()) return null;
-      const data = line.split(delimiter);
-      const customer: Partial<CustomerInfo> = {};
-      for (const key in headerMapping) {
-        const typedKey = key as keyof CustomerInfo;
-        const colIndex = headerMapping[typedKey];
-        if (colIndex !== undefined && colIndex < data.length) {
-          customer[typedKey] = data[colIndex]?.trim().replace(/["']/g, '') || '';
+        const lines = sanitizedCsv.split(/\r?\n/);
+        if (lines.length < 2) {
+            toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV precisa ter um cabeçalho e pelo menos uma linha de dados.', variant: 'destructive' });
+            return;
         }
-      }
-      return customer;
-    }).filter((c): c is Partial<CustomerInfo> & { cpf: string } => !!c && !!c.cpf && c.cpf.replace(/\D/g, '').length === 11);
+        
+        const headerLine = lines[0];
+        const delimiter = headerLine.includes(';') ? ';' : ',';
+        const headers = headerLine.split(delimiter).map(h => h.trim().replace(/["']/g, ''));
 
-    if (customersToImport.length === 0) {
-      toast({ title: 'Nenhum Cliente Válido', description: 'Nenhum cliente com CPF válido foi encontrado no arquivo para importar.', variant: 'destructive' });
-      return;
-    }
-    
-    const batch = writeBatch(db);
-    let updatedCount = 0;
-    let createdCount = 0;
-    const allOrders = await getDocs(collection(db, 'orders')).then(snap => snap.docs.map(d => d.data() as Order));
-    const existingCpfSet = new Set(allOrders.map(o => o.customer.cpf.replace(/\D/g, '')));
+        // 2. Map headers to customer fields
+        const possibleMappings: { [key in keyof CustomerInfo]?: string[] } = {
+            cpf: ['cpf'],
+            name: ['nome', 'nome completo', 'cliente'],
+            phone: ['telefone', 'fone', 'celular', 'whatsapp'],
+            email: ['email', 'e-mail'],
+            zip: ['cep'],
+            address: ['endereco', 'rua', 'logradouro'],
+            number: ['numero', 'num'],
+            complement: ['complemento', 'compl'],
+            neighborhood: ['bairro'],
+            city: ['cidade', 'municipio'],
+            state: ['estado', 'uf'],
+        };
 
-    for (const importedCustomer of customersToImport) {
-        const cpf = importedCustomer.cpf!.replace(/\D/g, '');
-        const existingOrders = allOrders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
-
-        if (existingOrders.length > 0) {
-            let customerAlreadyUpdated = false;
-            existingOrders.forEach(order => {
-                const updatedCustomerData = { ...order.customer, ...importedCustomer, cpf };
-                batch.update(doc(db, 'orders', order.id), { customer: updatedCustomerData });
-                if (!customerAlreadyUpdated) {
-                    updatedCount++;
-                    customerAlreadyUpdated = true;
+        const headerMapping: { [key: string]: number } = {};
+        
+        headers.forEach((header, index) => {
+            const normalizedHeader = header.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+            for (const key in possibleMappings) {
+                const typedKey = key as keyof CustomerInfo;
+                if (possibleMappings[typedKey]?.includes(normalizedHeader)) {
+                    headerMapping[typedKey] = index;
+                    break; 
                 }
-            });
-        } else {
-            if (!existingCpfSet.has(cpf)) {
-                const orderId = `IMP-${cpf}-${Date.now()}`;
-                const completeCustomerData: CustomerInfo = {
-                    cpf,
-                    name: importedCustomer.name || 'Nome não informado',
-                    phone: importedCustomer.phone || '',
-                    email: importedCustomer.email || '',
-                    zip: importedCustomer.zip || '',
-                    address: importedCustomer.address || '',
-                    number: importedCustomer.number || '',
-                    complement: importedCustomer.complement || '',
-                    neighborhood: importedCustomer.neighborhood || '',
-                    city: importedCustomer.city || '',
-                    state: importedCustomer.state || '',
-                    password: cpf.substring(0, 6)
-                };
-                const dummyOrder: Order = {
-                    id: orderId,
-                    customer: completeCustomerData,
-                    items: [],
-                    total: 0,
-                    installments: 0,
-                    installmentValue: 0,
-                    date: new Date().toISOString(),
-                    status: 'Excluído',
-                    paymentMethod: 'Dinheiro',
-                    installmentDetails: [],
-                };
-                batch.set(doc(db, 'orders', orderId), dummyOrder);
-                createdCount++;
-                existingCpfSet.add(cpf);
+            }
+        });
+        
+        if (headerMapping.cpf === undefined) {
+            toast({ title: 'Arquivo Inválido', description: "A coluna 'cpf' é obrigatória e não foi encontrada no arquivo.", variant: 'destructive' });
+            return;
+        }
+
+        // 3. Process data rows
+        const customersToImport = lines.slice(1).map(line => {
+            if (!line.trim()) return null;
+            const data = line.split(delimiter);
+            const customer: Partial<CustomerInfo> = {};
+            for (const key in headerMapping) {
+                const typedKey = key as keyof CustomerInfo;
+                const colIndex = headerMapping[typedKey];
+                if (colIndex !== undefined && colIndex < data.length) {
+                    customer[typedKey] = data[colIndex]?.trim().replace(/["']/g, '') || '';
+                }
+            }
+            return customer;
+        }).filter((c): c is Partial<CustomerInfo> & { cpf: string } => !!c && !!c.cpf && c.cpf.replace(/\D/g, '').length === 11);
+
+        if (customersToImport.length === 0) {
+            toast({ title: 'Nenhum Cliente Válido', description: 'Nenhum cliente com CPF válido foi encontrado no arquivo para importar.', variant: 'destructive' });
+            return;
+        }
+    
+        // 4. Batch write to Firestore
+        const batch = writeBatch(db);
+        let updatedCount = 0;
+        let createdCount = 0;
+        const allOrders = await getDocs(collection(db, 'orders')).then(snap => snap.docs.map(d => d.data() as Order));
+        const existingCpfSet = new Set(allOrders.map(o => o.customer.cpf.replace(/\D/g, '')));
+
+        for (const importedCustomer of customersToImport) {
+            const cpf = importedCustomer.cpf!.replace(/\D/g, '');
+            const existingOrders = allOrders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
+
+            if (existingOrders.length > 0) { // Update existing customer's orders
+                let customerAlreadyUpdated = false;
+                existingOrders.forEach(order => {
+                    const updatedCustomerData = { ...order.customer, ...importedCustomer, cpf };
+                    batch.update(doc(db, 'orders', order.id), { customer: updatedCustomerData });
+                    if (!customerAlreadyUpdated) {
+                        updatedCount++;
+                        customerAlreadyUpdated = true;
+                    }
+                });
+            } else { // Create a new dummy order for new customer
+                if (!existingCpfSet.has(cpf)) {
+                    const orderId = `IMP-${cpf}-${Date.now()}`;
+                    const completeCustomerData: CustomerInfo = {
+                        cpf,
+                        name: importedCustomer.name || 'Nome não informado',
+                        phone: importedCustomer.phone || '',
+                        email: importedCustomer.email || '',
+                        zip: importedCustomer.zip || '',
+                        address: importedCustomer.address || '',
+                        number: importedCustomer.number || '',
+                        complement: importedCustomer.complement || '',
+                        neighborhood: importedCustomer.neighborhood || '',
+                        city: importedCustomer.city || '',
+                        state: importedCustomer.state || '',
+                        password: cpf.substring(0, 6)
+                    };
+                    const dummyOrder: Order = {
+                        id: orderId,
+                        customer: completeCustomerData,
+                        items: [], total: 0, installments: 0, installmentValue: 0,
+                        date: new Date().toISOString(), status: 'Excluído',
+                        paymentMethod: 'Dinheiro', installmentDetails: [],
+                    };
+                    batch.set(doc(db, 'orders', orderId), dummyOrder);
+                    createdCount++;
+                    existingCpfSet.add(cpf);
+                }
             }
         }
-    }
     
-    try {
-        await batch.commit();
-        logAction('Importação de Clientes', `${createdCount} clientes criados e ${updatedCount} atualizados via CSV.`, user);
-        toast({
-            title: 'Importação Concluída!',
-            description: `${createdCount} novos clientes foram criados e ${updatedCount} clientes existentes foram atualizados.`
-        });
-    } catch (e) {
-        console.error("Error during batch commit for customer import", e);
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: 'orders',
-            operation: 'write',
-        }));
-    }
-  };
+        try {
+            await batch.commit();
+            logAction('Importação de Clientes', `${createdCount} clientes criados e ${updatedCount} atualizados via CSV.`, user);
+            toast({
+                title: 'Importação Concluída!',
+                description: `${createdCount} novos clientes foram criados e ${updatedCount} clientes existentes foram atualizados.`
+            });
+        } catch (e) {
+            console.error("Error during batch commit for customer import", e);
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: 'orders',
+                operation: 'write',
+            }));
+        }
+    };
 
 
   const updateOrderDetails = async (orderId: string, details: Partial<Order>) => {
