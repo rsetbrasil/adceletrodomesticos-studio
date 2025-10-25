@@ -783,8 +783,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
   
     const importCustomers = async (csvData: string) => {
-        // 1. Sanitize input and detect delimiter
-        const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, ''); // Remove BOM
+        // 1. Sanitize input, remove BOM, and split into lines
+        const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, '');
         if (!sanitizedCsv) {
             toast({ title: 'Arquivo Vazio', description: 'O arquivo CSV está vazio.', variant: 'destructive' });
             return;
@@ -794,15 +794,16 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV precisa ter um cabeçalho e pelo menos uma linha de dados.', variant: 'destructive' });
             return;
         }
-        
+
+        // 2. Detect delimiter and normalize headers
         const headerLine = lines[0];
         const delimiter = headerLine.includes(';') ? ';' : ',';
-        const headers = headerLine.split(delimiter).map(h => h.trim().replace(/["']/g, ''));
+        const headers = headerLine.split(delimiter).map(h => h.trim().replace(/["']/g, '').toLowerCase());
 
-        // 2. Map headers to customer fields
+        // 3. Map headers to customer fields
         const possibleMappings: { [key in keyof CustomerInfo]?: string[] } = {
             cpf: ['cpf'],
-            name: ['nome', 'nome completo', 'cliente'],
+            name: ['nome', 'nome completo', 'cliente', 'razao social'],
             phone: ['telefone', 'fone', 'celular', 'whatsapp'],
             email: ['email', 'e-mail'],
             zip: ['cep'],
@@ -817,22 +818,22 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const headerMapping: { [key: string]: number } = {};
         
         headers.forEach((header, index) => {
-            const normalizedHeader = header.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+            const normalizedHeader = header.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             for (const key in possibleMappings) {
                 const typedKey = key as keyof CustomerInfo;
-                if (possibleMappings[typedKey]?.includes(normalizedHeader)) {
+                if (possibleMappings[typedKey]?.some(p => normalizedHeader.includes(p))) {
                     headerMapping[typedKey] = index;
-                    break; 
+                    break;
                 }
             }
         });
-        
+
         if (headerMapping.cpf === undefined) {
             toast({ title: 'Arquivo Inválido', description: "A coluna 'cpf' é obrigatória e não foi encontrada no arquivo.", variant: 'destructive' });
             return;
         }
 
-        // 3. Process data rows
+        // 4. Process data rows
         const customersToImport = lines.slice(1).map(line => {
             if (!line.trim()) return null;
             const data = line.split(delimiter);
@@ -852,7 +853,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
     
-        // 4. Batch write to Firestore
+        // 5. Batch write to Firestore
         const batch = writeBatch(db);
         let updatedCount = 0;
         let createdCount = 0;
