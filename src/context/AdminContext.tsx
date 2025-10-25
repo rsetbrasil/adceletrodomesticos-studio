@@ -116,15 +116,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     const batch = writeBatch(db);
 
-    // Instead of getDocs, use the state to know which documents to delete
     products.forEach(p => batch.delete(doc(db, 'products', p.id)));
     orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
     categories.forEach(c => batch.delete(doc(db, 'categories', c.id)));
     
-    // Commit deletions
     await batch.commit();
 
-    // Create a new batch for additions
     const addBatch = writeBatch(db);
     data.products.forEach(p => addBatch.set(doc(db, 'products', p.id), p));
     data.orders.forEach(o => addBatch.set(doc(db, 'orders', o.id), o));
@@ -143,7 +140,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const resetOrders = async () => {
     setIsLoading(true);
     const batch = writeBatch(db);
-    // Use the 'orders' state instead of fetching again with getDocs
     orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
     
     batch.commit().then(() => {
@@ -866,12 +862,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     if (!order) return;
 
     let detailsToUpdate: Partial<Order> = { ...details };
-
-    // Update commission only if sellerId is being changed, to avoid recalculating unnecessarily
-    if (details.sellerId && details.sellerId !== order.sellerId && !order.isCommissionManual) {
-        const tempOrderForCommissionCalc = { ...order, ...detailsToUpdate };
-        detailsToUpdate.commission = calculateCommission(tempOrderForCommissionCalc, products);
-    }
     
     const orderRef = doc(db, 'orders', orderId);
     updateDoc(orderRef, detailsToUpdate).then(() => {

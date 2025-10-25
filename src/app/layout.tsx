@@ -18,6 +18,7 @@ import FirebaseErrorListener from '@/components/FirebaseErrorListener';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import { AdminProvider } from '@/context/AdminContext';
 
+
 // This is a new component that wraps the main content
 // It has access to all the contexts defined in the main RootLayout
 const AppContent = ({ children }: { children: React.ReactNode }) => {
@@ -28,8 +29,10 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <>
-      {isSpecialRoute || isAdminRoute ? (
+      {isSpecialRoute ? (
         <>{children}</>
+      ) : isAdminRoute ? (
+         <>{children}</>
       ) : (
         <div className="relative flex min-h-screen flex-col bg-background">
           <Header />
@@ -83,5 +86,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
