@@ -720,6 +720,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const importCustomers = async (csvData: string) => {
+    // 1. Sanitize input and detect delimiter
     const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, '');
     if (!sanitizedCsv) {
         toast({ title: 'Arquivo Vazio', description: 'O arquivo CSV está vazio.', variant: 'destructive' });
@@ -737,6 +738,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
     const delimiter = headerLine.includes(';') ? ';' : ',';
     
+    // 2. Flexible Header Mapping
     const normalizeHeader = (h: string) => h.trim().toLowerCase().replace(/["']/g, '').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const fileHeaders = headerLine.split(delimiter).map(normalizeHeader);
 
@@ -770,6 +772,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
+    // 3. Process data lines
     const customersToImport = dataLines.map(line => {
         if (!line.trim()) return null;
         const data = line.split(delimiter);
@@ -788,7 +791,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: 'Nenhum Cliente Válido', description: 'Nenhum cliente com CPF válido foi encontrado no arquivo para importar.', variant: 'destructive' });
         return;
     }
-
+    
+    // 4. Batch write to Firestore
     const batch = writeBatch(db);
     let updatedCount = 0;
     let createdCount = 0;
@@ -799,7 +803,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const cpf = importedCustomer.cpf!.replace(/\D/g, '');
         const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
 
-        if (existingOrders.length > 0) {
+        if (existingOrders.length > 0) { // Update existing customers found in orders
             let customerAlreadyUpdated = false;
             existingOrders.forEach(order => {
                 const updatedCustomerData = { ...order.customer, ...importedCustomer, cpf };
@@ -809,7 +813,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
                     customerAlreadyUpdated = true;
                 }
             });
-        } else {
+        } else { // Create a new dummy order for new customers
             if (!existingCpfSet.has(cpf)) {
                 const orderId = `IMP-${cpf}-${Date.now()}`;
                 const completeCustomerData: CustomerInfo = {
