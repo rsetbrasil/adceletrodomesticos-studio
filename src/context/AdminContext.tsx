@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode, useCallback } from 'react';
 import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment, StockAudit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, doc, writeBatch, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useData } from './DataContext';
@@ -14,9 +14,6 @@ import { useData } from './DataContext';
 type LogAction = (action: string, details: string, user: User | null) => void;
 
 interface AdminContextType {
-  commissionPayments: CommissionPayment[];
-  stockAudits: StockAudit[];
-  isLoading: boolean;
   addOrder: (order: Partial<Order>, logAction: LogAction, user: User | null) => Promise<Order | null>;
   deleteOrder: (orderId: string, logAction: LogAction, user: User | null) => Promise<void>;
   permanentlyDeleteOrder: (orderId: string, logAction: LogAction, user: User | null) => Promise<void>;
@@ -50,31 +47,8 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
-  const { products, categories, orders, isLoading: isDataLoading } = useData();
-  const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
-  const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
-  const [isSecondaryLoading, setIsSecondaryLoading] = useState(true);
-  
+  const { products, categories, orders, commissionPayments } = useData();
   const { toast } = useToast();
-
-  useEffect(() => {
-    setIsSecondaryLoading(true);
-
-    const commissionPaymentsUnsubscribe = onSnapshot(collection(db, 'commissionPayments'), (snapshot) => {
-      setCommissionPayments(snapshot.docs.map(d => d.data() as CommissionPayment));
-    }, (error) => console.error("Error fetching commission payments:", error));
-
-    const stockAuditsUnsubscribe = onSnapshot(collection(db, 'stockAudits'), (snapshot) => {
-      setStockAudits(snapshot.docs.map(d => d.data() as StockAudit));
-    }, (error) => console.error("Error fetching stock audits:", error));
-
-    setIsSecondaryLoading(false);
-
-    return () => {
-      commissionPaymentsUnsubscribe();
-      stockAuditsUnsubscribe();
-    }
-  }, []);
   
   const restoreAdminData = useCallback(async (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => {
     const batch = writeBatch(db);
@@ -939,12 +913,10 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AdminContext.Provider
       value={{
-        commissionPayments, payCommissions, reverseCommissionPayment,
-        stockAudits,
-        isLoading: isDataLoading || isSecondaryLoading,
         addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateCustomer, importCustomers, updateOrderDetails,
         addProduct, updateProduct, deleteProduct,
         addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
+        payCommissions, reverseCommissionPayment,
         restoreAdminData, resetOrders, resetAllAdminData,
         saveStockAudit,
       }}
@@ -954,7 +926,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useAdmin = () => {
+export const useAdmin = (): AdminContextType => {
   const context = useContext(AdminContext);
   if (context === undefined) {
     throw new Error('useAdmin must be used within an AdminProvider');
@@ -962,7 +934,8 @@ export const useAdmin = () => {
   return context;
 };
 
-export const useAdminActions = () => {
+// This hook is deprecated, use useAdmin instead. It's kept for backward compatibility.
+export const useAdminActions = (): AdminContextType => {
     const context = useContext(AdminContext);
     if (context === undefined) {
         throw new Error('useAdminActions must be used within an AdminProvider');

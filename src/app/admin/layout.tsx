@@ -1,7 +1,7 @@
 
 'use client';
 
-import { ReactNode, useEffect, useState, useCallback } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import { LogOut, Shield, Store, KeyRound, ChevronDown } from 'lucide-react';
@@ -24,7 +24,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { AdminProvider, useAdminActions } from "@/context/AdminContext";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'A senha atual é obrigatória.'),
@@ -47,7 +46,7 @@ const pathToSectionMap: { [key: string]: AppSection } = {
     '/admin/usuarios': 'usuarios',
 };
 
-function AdminArea({ children }: { children: ReactNode }) {
+export default function AdminLayout({ children }: { children: ReactNode }) {
     const { user, isAuthenticated, isLoading, logout, changeMyPassword } = useAuth();
     const { permissions, isLoading: permissionsLoading } = usePermissions();
     const router = useRouter();
@@ -205,13 +204,4 @@ function AdminArea({ children }: { children: ReactNode }) {
             </Dialog>
         </>
     );
-}
-
-
-export default function AdminLayout({ children }: { children: ReactNode }) {
-    return (
-        <AdminProvider>
-            <AdminArea>{children}</AdminArea>
-        </AdminProvider>
-    )
 }

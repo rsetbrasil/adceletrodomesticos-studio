@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -18,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import Logo from '@/components/Logo';
 import { useSettings } from '@/context/SettingsContext';
 import { useData } from '@/context/DataContext';
+import { useAudit } from '@/context/AuditContext';
 
 
 type StockCount = {
@@ -40,10 +40,11 @@ const getAnos = () => {
 
 
 function StockAuditTab() {
-    const { saveStockAudit, stockAudits } = useAdmin();
-    const { products } = useData();
+    const { saveStockAudit } = useAdmin();
+    const { products, stockAudits } = useData();
     const { settings } = useSettings();
     const { user } = useAuth();
+    const { logAction } = useAudit();
     const router = useRouter();
     const [stockCounts, setStockCounts] = useState<StockCount>({});
     const [mes, setMes] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
@@ -117,7 +118,7 @@ function StockAuditTab() {
                 difference: typeof p.difference === 'number' ? p.difference : null,
             })).filter(p => p.physicalCount !== null), // Only save products that were counted
         };
-        saveStockAudit(auditData);
+        saveStockAudit(auditData, logAction, user);
     };
 
 

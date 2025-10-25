@@ -2,9 +2,8 @@
 import CheckoutForm from '@/components/CheckoutForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { AdminProvider } from '@/context/AdminContext';
 
-function CheckoutPageContent() {
+export default function CheckoutPage() {
     return (
         <div className="container mx-auto py-12 px-4">
             <Card className="max-w-4xl mx-auto shadow-lg">
@@ -21,12 +20,4 @@ function CheckoutPageContent() {
             </Card>
         </div>
     );
-}
-
-export default function CheckoutPage() {
-  return (
-    <AdminProvider>
-      <CheckoutPageContent />
-    </AdminProvider>
-  );
 }

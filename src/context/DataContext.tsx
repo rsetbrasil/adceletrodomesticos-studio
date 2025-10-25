@@ -4,12 +4,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Product, Category, Order } from '@/lib/types';
+import type { Product, Category, Order, CommissionPayment, StockAudit } from '@/lib/types';
 
 interface DataContextType {
   products: Product[];
   categories: Category[];
   orders: Order[];
+  commissionPayments: CommissionPayment[];
+  stockAudits: StockAudit[];
   isLoading: boolean;
 }
 
@@ -19,12 +21,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
+  const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const productsUnsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+    const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'desc')), (snapshot) => {
       setProducts(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
-      setIsLoading(false); // Consider loading finished when a key collection is loaded
+      setIsLoading(false);
     }, (error) => {
         console.error("Error fetching products:", error);
         setIsLoading(false);
@@ -42,15 +46,25 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         console.error("Error fetching orders:", error);
     });
 
+    const commissionPaymentsUnsubscribe = onSnapshot(query(collection(db, 'commissionPayments'), orderBy('paymentDate', 'desc')), (snapshot) => {
+      setCommissionPayments(snapshot.docs.map(d => d.data() as CommissionPayment));
+    }, (error) => console.error("Error fetching commission payments:", error));
+
+    const stockAuditsUnsubscribe = onSnapshot(query(collection(db, 'stockAudits'), orderBy('createdAt', 'desc')), (snapshot) => {
+      setStockAudits(snapshot.docs.map(d => d.data() as StockAudit));
+    }, (error) => console.error("Error fetching stock audits:", error));
+
     return () => {
       productsUnsubscribe();
       categoriesUnsubscribe();
       ordersUnsubscribe();
+      commissionPaymentsUnsubscribe();
+      stockAuditsUnsubscribe();
     };
   }, []);
 
   return (
-    <DataContext.Provider value={{ products, categories, orders, isLoading }}>
+    <DataContext.Provider value={{ products, categories, orders, commissionPayments, stockAudits, isLoading }}>
       {children}
     </DataContext.Provider>
   );
