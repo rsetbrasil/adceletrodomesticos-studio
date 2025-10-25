@@ -69,11 +69,11 @@ export default function RootLayout({
             <PermissionsProvider>
               <SettingsProvider>
                 <AdminProvider>
-                  <CartProvider>
-                    <CustomerAuthProvider>
+                  <CustomerAuthProvider>
+                    <CartProvider>
                       <AppContent>{children}</AppContent>
-                    </CustomerAuthProvider>
-                  </CartProvider>
+                    </CartProvider>
+                  </CustomerAuthProvider>
                 </AdminProvider>
               </SettingsProvider>
             </PermissionsProvider>

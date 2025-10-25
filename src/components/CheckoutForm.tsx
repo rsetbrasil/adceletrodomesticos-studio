@@ -21,12 +21,10 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import type { Order, CustomerInfo, Product } from '@/lib/types';
+import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
 import { AlertTriangle, CreditCard, KeyRound, Trash2 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAdmin } from '@/context/AdminContext';
 
 function isValidCPF(cpf: string) {
@@ -95,8 +93,8 @@ export default function CheckoutForm() {
     if (!orders) return [];
     const customerMap = new Map<string, CustomerInfo>();
     orders.forEach(order => {
-      if (order.customer.cpf && !customerMap.has(order.customer.cpf)) {
-        customerMap.set(order.customer.cpf, order.customer);
+      if (order.customer.cpf && !customerMap.has(order.customer.cpf.replace(/\D/g, ''))) {
+        customerMap.set(order.customer.cpf.replace(/\D/g, ''), order.customer);
       }
     });
     return Array.from(customerMap.values());
@@ -206,7 +204,7 @@ export default function CheckoutForm() {
     
     let customerData: CustomerInfo = {
       name: values.name,
-      cpf: values.cpf,
+      cpf: values.cpf.replace(/\D/g, ''),
       phone: values.phone,
       email: values.email,
       zip: values.zip,
@@ -219,12 +217,10 @@ export default function CheckoutForm() {
     };
     
     if (isNewCustomer) {
-        customerData.password = values.cpf.replace(/\D/g, '').substring(0, 6);
+        customerData.password = customerData.cpf.substring(0, 6);
     }
     
-    const allOrders = await getDocs(collection(db, "orders"));
-
-    const lastOrderNumber = allOrders.docs
+    const lastOrderNumber = orders
       .map(o => {
           const orderId = o.id;
           if (!orderId.startsWith('PED-')) return 0;

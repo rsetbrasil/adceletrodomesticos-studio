@@ -25,8 +25,6 @@ import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
 import { AlertTriangle, CreditCard, KeyRound, Trash2 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAdmin } from '@/context/AdminContext';
 
 function isValidCPF(cpf: string) {
@@ -222,10 +220,7 @@ export default function CheckoutForm() {
         customerData.password = customerData.cpf.substring(0, 6);
     }
     
-    const allOrdersSnapshot = await getDocs(collection(db, "orders"));
-    const allOrders = allOrdersSnapshot.docs.map(doc => doc.data() as Order);
-
-    const lastOrderNumber = allOrders
+    const lastOrderNumber = orders
       .map(o => {
           const orderId = o.id;
           if (!orderId.startsWith('PED-')) return 0;
@@ -266,7 +261,7 @@ export default function CheckoutForm() {
     };
     
     try {
-        const savedOrder = await addOrder(order, products, allOrders);
+        const savedOrder = await addOrder(order, products, orders);
         setLastOrder(savedOrder as Order);
         clearCart();
     

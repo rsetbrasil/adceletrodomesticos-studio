@@ -246,7 +246,7 @@ export default function OrdersAdminPage() {
     setPaymentDialogOpen(true);
   };
 
-  const handlePaymentSubmit = (payment: Payment) => {
+  const handlePaymentSubmit = (payment: Omit<Payment, 'receivedBy'>) => {
     if (selectedOrder && installmentToPay) {
       recordInstallmentPayment(selectedOrder.id, installmentToPay.installmentNumber, payment);
       window.open(`/carnet/${selectedOrder.id}/${installmentToPay.installmentNumber}`, '_blank');

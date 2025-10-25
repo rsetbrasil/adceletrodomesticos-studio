@@ -306,11 +306,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const categoryRef = doc(db, 'categories', categoryId);
     batch.update(categoryRef, { name: newName });
     
-    const productsSnapshot = await getDocs(collection(db, 'products'));
-    productsSnapshot.forEach(productDoc => {
-        const p = productDoc.data() as Product;
+    products.forEach(p => {
         if (p.category.toLowerCase() === oldName.toLowerCase()) {
-            const productRef = doc(db, 'products', productDoc.id);
+            const productRef = doc(db, 'products', p.id);
             batch.update(productRef, { category: newName });
         }
     });
@@ -331,8 +329,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const categoryToDelete = categories.find(c => c.id === categoryId);
     if (!categoryToDelete) return;
 
-    const productsSnapshot = await getDocs(collection(db, 'products'));
-    const productsInCategory = productsSnapshot.docs.some(d => (d.data() as Product).category === categoryToDelete.name);
+    const productsInCategory = products.some(p => p.category === categoryToDelete.name);
 
     if (productsInCategory) {
         toast({ title: "Erro", description: "Não é possível excluir categorias que contêm produtos.", variant: "destructive" });
@@ -383,11 +380,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const newSubs = category.subcategories.map(s => s.toLowerCase() === oldSub.toLowerCase() ? newSub : s).sort();
     batch.update(doc(db, 'categories', categoryId), { subcategories: newSubs });
     
-    const productsSnapshot = await getDocs(collection(db, 'products'));
-    productsSnapshot.forEach(productDoc => {
-        const p = productDoc.data() as Product;
+    products.forEach(p => {
         if (p.category === category.name && p.subcategory?.toLowerCase() === oldSub.toLowerCase()) {
-            batch.update(doc(db, 'products', productDoc.id), { subcategory: newSub });
+            batch.update(doc(db, 'products', p.id), { subcategory: newSub });
         }
     });
     batch.commit().then(() => {
@@ -405,9 +400,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
     
-    const productsSnapshot = await getDocs(collection(db, 'products'));
-    const productsInSubcategory = productsSnapshot.docs.some(d => {
-        const p = d.data() as Product;
+    const productsInSubcategory = products.some(p => {
         return p.category === category.name && p.subcategory?.toLowerCase() === subcategoryName.toLowerCase();
     });
 
@@ -497,11 +490,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const newTargetSubs = [...targetCategory.subcategories, subName].sort();
     
     const batch = writeBatch(db);
-    const productsSnapshot = await getDocs(collection(db, 'products'));
-    productsSnapshot.forEach(productDoc => {
-        const p = productDoc.data() as Product;
+    products.forEach(p => {
         if (p.category === sourceCategory.name && p.subcategory?.toLowerCase() === subName.toLowerCase()) {
-            batch.update(doc(db, 'products', productDoc.id), { category: targetCategory.name });
+            batch.update(doc(db, 'products', p.id), { category: targetCategory.name });
         }
     });
     batch.update(doc(db, 'categories', sourceCategoryId), { subcategories: newSourceSubs });
@@ -856,12 +847,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const batch = writeBatch(db);
         let updatedCount = 0;
         let createdCount = 0;
-        const allOrders = await getDocs(collection(db, 'orders')).then(snap => snap.docs.map(d => d.data() as Order));
-        const existingCpfSet = new Set(allOrders.map(o => o.customer.cpf.replace(/\D/g, '')));
+        
+        const existingCpfSet = new Set(orders.map(o => o.customer.cpf.replace(/\D/g, '')));
 
         for (const importedCustomer of customersToImport) {
             const cpf = importedCustomer.cpf!.replace(/\D/g, '');
-            const existingOrders = allOrders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
+            const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
 
             if (existingOrders.length > 0) {
                 let customerAlreadyUpdated = false;
