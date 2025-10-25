@@ -70,9 +70,9 @@ export default function RootLayout({
               <SettingsProvider>
                 <AdminProvider>
                   <CartProvider>
-                      <CustomerAuthProvider>
-                          <AppContent>{children}</AppContent>
-                      </CustomerAuthProvider>
+                    <CustomerAuthProvider>
+                      <AppContent>{children}</AppContent>
+                    </CustomerAuthProvider>
                   </CartProvider>
                 </AdminProvider>
               </SettingsProvider>
@@ -83,3 +83,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

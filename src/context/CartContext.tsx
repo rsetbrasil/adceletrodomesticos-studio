@@ -3,15 +3,12 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem, Order, Product, CustomerInfo, Installment } from '@/lib/types';
+import type { CartItem, Order, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, setDoc, writeBatch, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 import { useAudit } from './AuditContext';
-import { useRouter } from 'next/navigation';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { useAdmin } from './AdminContext';
 
 const saveDataToLocalStorage = (key: string, data: any) => {
@@ -261,3 +258,5 @@ export const useCart = () => {
   }
   return context;
 };
+
+    

@@ -21,14 +21,13 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import type { Order, CustomerInfo, Product } from '@/lib/types';
+import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
 import { AlertTriangle, CreditCard, KeyRound, Trash2 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
-import { collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { useAdmin } from '@/context/AdminContext';
 
 function isValidCPF(cpf: string) {
     if (typeof cpf !== 'string') return false;
@@ -64,34 +63,10 @@ const formatCurrency = (value: number) => {
 export default function CheckoutForm() {
   const { cartItems, getCartTotal, clearCart, setLastOrder, addOrder, removeFromCart } = useCart();
   const { settings } = useSettings();
+  const { orders, products } = useAdmin();
   const router = useRouter();
   const { toast } = useToast();
   const [isNewCustomer, setIsNewCustomer] = useState(true);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-
-  useEffect(() => {
-    const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
-      setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
-    },
-    (error) => {
-        console.error("Error fetching orders:", error);
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'orders', operation: 'list' }));
-    });
-
-    const productsUnsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-      setProducts(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
-    },
-    (error) => {
-        console.error("Error fetching products:", error);
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'products', operation: 'list' }));
-    });
-
-    return () => {
-      ordersUnsubscribe();
-      productsUnsubscribe();
-    }
-  }, []);
   
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -247,9 +222,10 @@ export default function CheckoutForm() {
         customerData.password = customerData.cpf.substring(0, 6);
     }
     
-    const allOrders = await getDocs(collection(db, "orders"));
+    const allOrdersSnapshot = await getDocs(collection(db, "orders"));
+    const allOrders = allOrdersSnapshot.docs.map(doc => doc.data() as Order);
 
-    const lastOrderNumber = allOrders.docs
+    const lastOrderNumber = allOrders
       .map(o => {
           const orderId = o.id;
           if (!orderId.startsWith('PED-')) return 0;
@@ -290,7 +266,7 @@ export default function CheckoutForm() {
     };
     
     try {
-        const savedOrder = await addOrder(order, products, orders);
+        const savedOrder = await addOrder(order, products, allOrders);
         setLastOrder(savedOrder as Order);
         clearCart();
     
@@ -413,3 +389,5 @@ export default function CheckoutForm() {
     </div>
   );
 }
+
+    
