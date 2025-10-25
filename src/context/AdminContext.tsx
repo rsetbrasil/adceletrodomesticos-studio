@@ -786,23 +786,41 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const cleanedCsvData = csvData.trim().replace(/^\uFEFF/, '');
         const lines = cleanedCsvData.split(/\r?\n/).filter(line => line.trim() !== '');
 
-        if (lines.length < 2) { // Must have header and at least one data line
+        if (lines.length < 2) {
             toast({ title: 'Arquivo Inválido', description: 'O arquivo CSV está vazio ou contém apenas o cabeçalho.', variant: 'destructive' });
             return;
         }
-
-        const delimiter = lines[0].includes(';') ? ';' : ',';
-        // Define the fixed order of columns we expect
-        const expectedHeader = ['cpf', 'name', 'phone', 'email', 'zip', 'address', 'number', 'complement', 'neighborhood', 'city', 'state'];
         
-        const customersToImport: CustomerInfo[] = lines.slice(1).map(line => {
-            const data = line.split(delimiter);
-            const customer: any = {};
-             expectedHeader.forEach((key, index) => {
-                const value = data[index]?.trim().replace(/"/g, '') || '';
-                customer[key] = value;
+        const delimiter = lines[0].includes(';') ? ';' : ',';
+        const header = lines[0].split(delimiter).map(h => h.trim().replace(/"/g, ''));
+        
+        const columnIndexMap: { [key: string]: number } = {};
+        const expectedHeaders: (keyof CustomerInfo)[] = ['cpf', 'name', 'phone', 'email', 'zip', 'address', 'number', 'complement', 'neighborhood', 'city', 'state'];
+
+        header.forEach((colName, index) => {
+            const normalizedCol = colName.toLowerCase().replace(/[^a-z0-9]/gi, '');
+            expectedHeaders.forEach(expected => {
+                if (normalizedCol.includes(expected)) {
+                    columnIndexMap[expected] = index;
+                }
             });
-            return customer as CustomerInfo;
+        });
+        
+        if (columnIndexMap.cpf === undefined) {
+             toast({ title: 'Arquivo Inválido', description: "A coluna 'cpf' é obrigatória e não foi encontrada no arquivo.", variant: 'destructive' });
+             return;
+        }
+
+        const customersToImport: Partial<CustomerInfo>[] = lines.slice(1).map(line => {
+            const data = line.split(delimiter);
+            const customer: Partial<CustomerInfo> = {};
+            for (const key in columnIndexMap) {
+                const colIndex = columnIndexMap[key as keyof CustomerInfo];
+                if (colIndex !== undefined && data[colIndex]) {
+                    customer[key as keyof CustomerInfo] = data[colIndex].trim().replace(/"/g, '');
+                }
+            }
+            return customer;
         });
 
         const batch = writeBatch(db);
@@ -813,23 +831,35 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             if (!importedCustomer || !importedCustomer.cpf) return;
 
             const cpf = importedCustomer.cpf.replace(/\D/g, '');
-            if (cpf.length !== 11) return; // Skip invalid CPF
+            if (cpf.length !== 11) return;
 
             const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
 
             if (existingOrders.length > 0) {
-                // Update existing customer records across all their orders
                 existingOrders.forEach(order => {
-                    const updatedCustomerData = { ...order.customer, ...importedCustomer, cpf }; // Ensure CPF is clean
+                    const updatedCustomerData = { ...order.customer, ...importedCustomer, cpf };
                     batch.update(doc(db, 'orders', order.id), { customer: updatedCustomerData });
                 });
                 updatedCount++;
             } else {
-                // Create a new dummy order for the new customer
                 const orderId = `IMP-${cpf}-${Date.now()}`;
+                const completeCustomerData: CustomerInfo = {
+                    cpf: cpf,
+                    name: importedCustomer.name || 'Nome não informado',
+                    phone: importedCustomer.phone || '',
+                    email: importedCustomer.email || '',
+                    zip: importedCustomer.zip || '',
+                    address: importedCustomer.address || '',
+                    number: importedCustomer.number || '',
+                    complement: importedCustomer.complement || '',
+                    neighborhood: importedCustomer.neighborhood || '',
+                    city: importedCustomer.city || '',
+                    state: importedCustomer.state || '',
+                    password: cpf.substring(0,6)
+                };
                 const dummyOrder: Order = {
                     id: orderId,
-                    customer: { ...importedCustomer, cpf, password: cpf.substring(0,6) },
+                    customer: completeCustomerData,
                     items: [],
                     total: 0,
                     installments: 0,
@@ -852,6 +882,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
                 description: `${createdCount} novos clientes foram criados e ${updatedCount} clientes existentes foram atualizados.`
             });
         } catch (e) {
+            console.error("Error during batch commit for customer import", e);
             errorEmitter.emit('permission-error', new FirestorePermissionError({
                 path: 'orders',
                 operation: 'write',
