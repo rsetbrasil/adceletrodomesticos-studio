@@ -16,6 +16,7 @@ import { AuditProvider } from '@/context/AuditContext';
 import FirebaseErrorListener from '@/components/FirebaseErrorListener';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import { DataProvider } from '@/context/DataContext';
+import { AdminProvider } from '@/context/AdminContext';
 
 
 const AppContent = ({ children }: { children: React.ReactNode }) => {
@@ -69,11 +70,13 @@ export default function RootLayout({
             <PermissionsProvider>
               <SettingsProvider>
                 <DataProvider>
-                  <CustomerAuthProvider>
-                    <CartProvider>
-                      <AppContent>{children}</AppContent>
-                    </CartProvider>
-                  </CustomerAuthProvider>
+                  <AdminProvider>
+                    <CustomerAuthProvider>
+                      <CartProvider>
+                        <AppContent>{children}</AppContent>
+                      </CartProvider>
+                    </CustomerAuthProvider>
+                  </AdminProvider>
                 </DataProvider>
               </SettingsProvider>
             </PermissionsProvider>

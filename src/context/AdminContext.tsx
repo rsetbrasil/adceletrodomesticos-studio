@@ -14,7 +14,6 @@ import { useData } from './DataContext';
 type LogAction = (action: string, details: string, user: User | null) => void;
 
 interface AdminContextType {
-  orders: Order[];
   commissionPayments: CommissionPayment[];
   stockAudits: StockAudit[];
   isLoading: boolean;
@@ -940,12 +939,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AdminContext.Provider
       value={{
-        orders, addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateCustomer, importCustomers, updateOrderDetails,
-        addProduct, updateProduct, deleteProduct,
-        addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         commissionPayments, payCommissions, reverseCommissionPayment,
         stockAudits,
         isLoading: isDataLoading || isSecondaryLoading,
+        addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateCustomer, importCustomers, updateOrderDetails,
+        addProduct, updateProduct, deleteProduct,
+        addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         restoreAdminData, resetOrders, resetAllAdminData,
         saveStockAudit,
       }}
@@ -960,27 +959,7 @@ export const useAdmin = () => {
   if (context === undefined) {
     throw new Error('useAdmin must be used within an AdminProvider');
   }
-  
-  // Create a new object to avoid exposing the full products/categories arrays
-  // to components that don't need them, but keep the functions.
-  const { 
-    addProduct: originalAddProduct,
-    updateProduct: originalUpdateProduct,
-    deleteProduct: originalDeleteProduct,
-    addCategory: originalAddCategory,
-    deleteCategory: originalDeleteCategory,
-    updateCategoryName: originalUpdateCategoryName,
-    addSubcategory: originalAddSubcategory,
-    updateSubcategory: originalUpdateSubcategory,
-    deleteSubcategory: originalDeleteSubcategory,
-    moveCategory: originalMoveCategory,
-    reorderSubcategories: originalReorderSubcategories,
-    moveSubcategory: originalMoveSubcategory,
-    ...rest } = context;
-
-    const { products, categories } = useData();
-
-  return { ...rest, products, categories };
+  return context;
 };
 
 export const useAdminActions = () => {
