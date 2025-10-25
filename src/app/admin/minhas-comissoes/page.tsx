@@ -14,11 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { collection, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import type { User } from '@/lib/types';
 
 
 const formatCurrency = (value: number) => {
@@ -28,21 +23,6 @@ const formatCurrency = (value: number) => {
 export default function MyCommissionsPage() {
   const { orders, commissionPayments, reverseCommissionPayment } = useAdmin();
   const { user } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-
-  useEffect(() => {
-    const usersUnsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
-      setUsers(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as User)));
-    },
-    (error) => {
-      console.error("Error fetching users:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: 'users',
-        operation: 'list',
-      }));
-    });
-    return () => usersUnsubscribe();
-  }, []);
   
   const pendingCommissions = useMemo(() => {
     if (!user || !orders) return [];

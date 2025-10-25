@@ -16,10 +16,8 @@ import Image from 'next/image';
 import { generatePixPayload } from '@/lib/pix';
 import PixQRCode from '@/components/PixQRCode';
 import { format } from 'date-fns';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { useAdmin } from '@/context/AdminContext';
+
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -28,49 +26,32 @@ const formatCurrency = (value: number) => {
 export default function OrderConfirmationPage() {
   const { lastOrder } = useCart();
   const { settings } = useSettings();
+  const { orders, isLoading: isOrdersLoading } = useAdmin();
   const router = useRouter();
   const params = useParams();
   const [order, setOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchOrder = async (orderId: string) => {
-        setIsLoading(true);
-        if (lastOrder && lastOrder.id === orderId) {
-            setOrder(lastOrder);
-            setIsLoading(false);
-            return;
-        }
-
-        try {
-            const orderRef = doc(db, 'orders', orderId);
-            const docSnap = await getDoc(orderRef);
-            if (docSnap.exists()) {
-                setOrder({ ...docSnap.data(), id: docSnap.id } as Order);
-            } else {
-                router.push('/');
-            }
-        } catch (error) {
-            console.error("Error fetching order:", error);
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `orders/${orderId}`,
-                operation: 'get',
-            }));
-            // We don't push to router here, because the error overlay will show
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
     const orderId = params.id as string;
-    if (orderId) {
-        fetchOrder(orderId);
-    } else if (lastOrder) {
-        fetchOrder(lastOrder.id);
-    } else {
+    if (!orderId) {
+      if(lastOrder) {
+        setOrder(lastOrder);
+      } else {
         router.push('/');
+      }
+      return;
     }
-  }, [lastOrder, params.id, router]);
+    
+    if (orders) {
+      const foundOrder = orders.find(o => o.id === orderId);
+      if (foundOrder) {
+        setOrder(foundOrder);
+      } else if (!isOrdersLoading) {
+        // Only redirect if we're done loading and still haven't found it.
+        router.push('/');
+      }
+    }
+  }, [params.id, lastOrder, orders, isOrdersLoading, router]);
 
   const pixPayload = useMemo(() => {
     if (!order || !settings.pixKey) return null;
@@ -89,18 +70,10 @@ export default function OrderConfirmationPage() {
     return generatePixPayload(pixKey, storeName, storeCity, txid, amount);
   }, [order, settings]);
 
-  if (isLoading) {
+  if (isOrdersLoading || !order) {
     return (
       <div className="container mx-auto py-24 text-center">
         <p className="text-lg">Carregando detalhes do pedido...</p>
-      </div>
-    );
-  }
-
-  if (!order) {
-    return (
-      <div className="container mx-auto py-24 text-center">
-        <p className="text-lg">Pedido não encontrado. Redirecionando...</p>
       </div>
     );
   }

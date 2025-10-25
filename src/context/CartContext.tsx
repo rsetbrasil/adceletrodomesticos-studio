@@ -5,7 +5,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { CartItem, Order, Product, CustomerInfo, Installment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { products as initialProducts } from '@/lib/products';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, setDoc, writeBatch, onSnapshot } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
@@ -13,6 +12,7 @@ import { useAudit } from './AuditContext';
 import { useRouter } from 'next/navigation';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useAdmin } from './AdminContext';
 
 const saveDataToLocalStorage = (key: string, data: any) => {
     if (typeof window === 'undefined') return;
@@ -64,28 +64,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { logAction } = useAudit();
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const { products: allProducts } = useAdmin();
 
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-        setAllProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
-    },
-    (error) => {
-        console.error("Error fetching products in CartContext:", error);
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: 'products',
-            operation: 'list',
-        }));
-    });
-
     const storedCart = loadDataFromLocalStorage('cartItems');
     if (storedCart) setCartItems(storedCart);
 
     const storedLastOrder = loadDataFromLocalStorage('lastOrder');
     if(storedLastOrder) setLastOrderState(storedLastOrder);
     
-    return () => unsubscribe();
   }, []);
 
   const addToCart = (product: Product) => {

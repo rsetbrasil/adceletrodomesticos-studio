@@ -1,11 +1,11 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useCustomerAuth } from '@/context/CustomerAuthContext';
-import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
-import type { Order, Installment } from '@/lib/types';
+import type { Order } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,10 +14,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { useAdmin } from '@/context/AdminContext';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -25,8 +22,7 @@ const formatCurrency = (value: number) => {
 
 export default function MyAccountPage() {
   const { customer, logout, isAuthenticated, isLoading: authLoading } = useCustomerAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [cartLoading, setCartLoading] = useState(true);
+  const { orders: allOrders, isLoading: ordersLoading } = useAdmin();
   const router = useRouter();
 
   useEffect(() => {
@@ -35,32 +31,12 @@ export default function MyAccountPage() {
     }
   }, [authLoading, isAuthenticated, router]);
   
-  useEffect(() => {
-      if (customer) {
-        setCartLoading(true);
-        const q = query(collection(db, 'orders'), where("customer.cpf", "==", customer.cpf));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
-            setCartLoading(false);
-        },
-        (error) => {
-          console.error("Error fetching customer orders:", error);
-          errorEmitter.emit('permission-error', new FirestorePermissionError({
-              path: `orders where customer.cpf == ${customer.cpf}`,
-              operation: 'list',
-          }));
-          setCartLoading(false);
-        });
-        return () => unsubscribe();
-      }
-  }, [customer]);
-
   const customerOrders = useMemo(() => {
-    if (!customer) return [];
-    return orders
-      .filter(o => o.status !== 'Cancelado' && o.status !== 'Excluído')
+    if (!customer || !allOrders) return [];
+    return allOrders
+      .filter(o => o.customer.cpf === customer.cpf && o.status !== 'Cancelado' && o.status !== 'Excluído')
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [customer, orders]);
+  }, [customer, allOrders]);
 
   const customerFinancials = useMemo(() => {
     if (!customer) {
@@ -86,7 +62,7 @@ export default function MyAccountPage() {
     }
   };
 
-  if (authLoading || cartLoading || !customer) {
+  if (authLoading || ordersLoading || !customer) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <p>Carregando sua conta...</p>

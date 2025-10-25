@@ -6,12 +6,12 @@ import React, { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEven
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAdmin } from '@/context/AdminContext';
-import type { Order, CustomerInfo, Installment, Attachment, Payment } from '@/lib/types';
+import type { Order, CustomerInfo, Installment, Attachment, Payment, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare, History, Import } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare, History, Import } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -81,7 +81,6 @@ export default function CustomersAdminPage() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
-  const [isClient, setIsClient] = useState(false);
   const [imageToView, setImageToView] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedInfo, setEditedInfo] = useState<Partial<CustomerInfo>>({});
@@ -100,10 +99,6 @@ export default function CustomersAdminPage() {
     currentComment?: string;
     onSave?: (comment: string) => Promise<void>;
   }>({ open: false });
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
   
   const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'outline' | 'destructive' => {
     switch (status) {
@@ -121,7 +116,7 @@ export default function CustomersAdminPage() {
   };
 
   const customers = useMemo(() => {
-    if (!isClient || !orders) return [];
+    if (!orders) return [];
     const customerMap = new Map<string, CustomerInfo>();
     orders.forEach(order => {
       if (!customerMap.has(order.customer.cpf)) {
@@ -144,7 +139,7 @@ export default function CustomersAdminPage() {
         customer.name.toLowerCase().includes(lowercasedQuery) || 
         customer.cpf.replace(/\D/g, '').includes(lowercasedQuery)
     );
-  }, [orders, isClient, searchQuery]);
+  }, [orders, searchQuery]);
   
   const customerOrders = useMemo(() => {
       if (!selectedCustomer) return [];
@@ -386,14 +381,6 @@ export default function CustomersAdminPage() {
     };
 
 
-  if (!isClient) {
-    return (
-        <div className="flex justify-center items-center py-24">
-            <p>Carregando painel de clientes...</p>
-        </div>
-    );
-  }
-
   return (
     <>
         <div className="grid lg:grid-cols-3 gap-8 items-start">
@@ -444,7 +431,7 @@ export default function CustomersAdminPage() {
                     >
                     <div className="flex items-center gap-3">
                         <div className="bg-muted rounded-full p-2">
-                        <User className="h-5 w-5 text-muted-foreground" />
+                        <UserIcon className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <div>
                             <p className="font-semibold">{customer.name}</p>
@@ -475,7 +462,7 @@ export default function CustomersAdminPage() {
                 <div>
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold flex items-center gap-2">
-                            <User className="h-5 w-5 text-primary" />
+                            <UserIcon className="h-5 w-5 text-primary" />
                             Informações Pessoais
                         </h3>
                         <Button variant="outline" size="sm" onClick={handleOpenEditDialog}>
@@ -485,7 +472,7 @@ export default function CustomersAdminPage() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                         <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
+                            <UserIcon className="h-4 w-4 text-muted-foreground" />
                             <span>{selectedCustomer.name}</span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -809,7 +796,7 @@ export default function CustomersAdminPage() {
                 </div>
             ) : (
                 <div className="text-center py-24 text-muted-foreground border-2 border-dashed rounded-lg">
-                    <User className="mx-auto h-12 w-12" />
+                    <UserIcon className="mx-auto h-12 w-12" />
                     <p className="mt-4">Selecione um cliente na lista ao lado para visualizar seus detalhes.</p>
                 </div>
             )}
@@ -937,8 +924,3 @@ export default function CustomersAdminPage() {
     </>
   );
 }
-
-    
-
-    
-

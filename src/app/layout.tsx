@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { AuditProvider } from '@/context/AuditContext';
 import FirebaseErrorListener from '@/components/FirebaseErrorListener';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import { AdminProvider } from '@/context/AdminContext';
 
 // This is a new component that wraps the main content
 // It has access to all the contexts defined in the main RootLayout
@@ -67,11 +68,13 @@ export default function RootLayout({
           <AuthProvider>
             <PermissionsProvider>
               <SettingsProvider>
-                <CartProvider>
-                    <CustomerAuthProvider>
-                        <AppContent>{children}</AppContent>
-                    </CustomerAuthProvider>
-                </CartProvider>
+                <AdminProvider>
+                  <CartProvider>
+                      <CustomerAuthProvider>
+                          <AppContent>{children}</AppContent>
+                      </CustomerAuthProvider>
+                  </CartProvider>
+                </AdminProvider>
               </SettingsProvider>
             </PermissionsProvider>
           </AuthProvider>

@@ -13,10 +13,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import FilterSheet from '@/components/FilterSheet';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { useAdmin } from '@/context/AdminContext';
 
 
 const formatCurrency = (value: number) => {
@@ -28,10 +25,7 @@ const formatCurrency = (value: number) => {
 
 
 export default function Home() {
-  const { setIsCartOpen } = useCart();
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { products: allProducts, categories, isLoading } = useAdmin();
 
   const [filters, setFilters] = useState({
     category: 'all',
@@ -39,39 +33,6 @@ export default function Home() {
     search: '',
     sort: 'newest',
   });
-
-  useEffect(() => {
-    const productsUnsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-        const loadedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Product[];
-        setAllProducts(loadedProducts);
-        setIsLoading(false);
-    },
-    (error) => {
-      console.error("Error fetching products:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: 'products',
-          operation: 'list',
-      }));
-      setIsLoading(false);
-    });
-
-    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
-        const loadedCategories = snapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Category[];
-        setCategories(loadedCategories);
-    },
-    (error) => {
-      console.error("Error fetching categories:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: 'categories',
-          operation: 'list',
-      }));
-    });
-
-    return () => {
-        productsUnsubscribe();
-        categoriesUnsubscribe();
-    }
-  }, []);
 
   const handleFilterChange = (
     newFilters: Partial<typeof filters>

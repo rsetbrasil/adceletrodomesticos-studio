@@ -9,16 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, ShoppingCart, Info } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import type { Product } from '@/lib/types';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-
+import { useAdmin } from '@/context/AdminContext';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -28,35 +24,13 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { addToCart, setIsCartOpen } = useCart();
+  const { products, isLoading: isProductsLoading } = useAdmin();
   const id = params.id as string;
-  const [isClient, setIsClient] = useState(false);
-  const [product, setProduct] = useState<Product | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    setIsClient(true);
-    const fetchProduct = async () => {
-        if (!id) return;
-        setIsLoading(true);
-        const productRef = doc(db, 'products', id);
-        
-        try {
-            const docSnap = await getDoc(productRef);
-            if (docSnap.exists()) {
-                setProduct({ ...docSnap.data(), id: docSnap.id } as Product);
-            }
-        } catch (error) {
-             console.error("Error fetching product:", error);
-              errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `products/${id}`,
-                operation: 'get',
-            }));
-        } finally {
-            setIsLoading(false);
-        }
-    }
-    fetchProduct();
-  }, [id]);
+  const product = useMemo(() => {
+    if (isProductsLoading || !products) return null;
+    return products.find(p => p.id === id) || null;
+  }, [id, products, isProductsLoading]);
   
   const handleAddToCart = () => {
     if (!product) return;
@@ -65,7 +39,7 @@ export default function ProductDetailPage() {
   };
 
 
-  if (!isClient || isLoading) {
+  if (isProductsLoading) {
     return (
       <div className="container mx-auto py-24 text-center">
         <p>Carregando produto...</p>

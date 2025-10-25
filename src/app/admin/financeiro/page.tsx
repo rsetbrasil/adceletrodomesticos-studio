@@ -15,12 +15,9 @@ import { ptBR } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { collection, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import Logo from '@/components/Logo';
 import { useSettings } from '@/context/SettingsContext';
+import { useAuth } from '@/context/AuthContext';
 
 
 const formatCurrency = (value: number) => {
@@ -38,31 +35,14 @@ type SellerCommissionDetails = {
 export default function FinanceiroPage() {
   const { orders, products, payCommissions } = useAdmin();
   const { settings } = useSettings();
-  const [users, setUsers] = useState<User[]>([]);
-  const [isClient, setIsClient] = useState(false);
+  const { users } = useAuth();
   const router = useRouter();
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<SellerCommissionDetails | null>(null);
   const [printTitle, setPrintTitle] = useState('');
 
-
-  useEffect(() => {
-    setIsClient(true);
-    const usersUnsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
-      setUsers(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as User)));
-    },
-    (error) => {
-      console.error("Error fetching users:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: 'users',
-        operation: 'list',
-      }));
-    });
-    return () => usersUnsubscribe();
-  }, []);
-
   const financialSummary = useMemo(() => {
-    if (!isClient || !orders || !products) {
+    if (!orders || !products) {
       return { totalVendido: 0, totalRecebido: 0, totalPendente: 0, lucroBruto: 0, monthlyData: [] };
     }
 
@@ -109,10 +89,10 @@ export default function FinanceiroPage() {
     const monthlyData = Object.entries(monthlySales).map(([name, total]) => ({ name, total })).reverse();
 
     return { totalVendido, totalRecebido, totalPendente, lucroBruto, monthlyData };
-  }, [orders, products, isClient]);
+  }, [orders, products]);
 
   const commissionSummary = useMemo(() => {
-    if (!isClient || !orders || !users) {
+    if (!orders || !users) {
         return { totalPendingCommission: 0, commissionsBySeller: [] };
     }
 
@@ -139,12 +119,12 @@ export default function FinanceiroPage() {
     const totalPendingCommission = commissionsBySeller.reduce((acc, seller) => acc + seller.total, 0);
 
     return { totalPendingCommission, commissionsBySeller };
-  }, [orders, users, isClient]);
+  }, [orders, users]);
 
   const deliveredOrders = useMemo(() => {
-    if (!isClient || !orders) return [];
+    if (!orders) return [];
     return orders.filter(o => o.status === 'Entregue').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [orders, isClient]);
+  }, [orders]);
 
 
   const handlePayCommission = async (seller: SellerCommissionDetails) => {
@@ -189,13 +169,6 @@ export default function FinanceiroPage() {
     }, 100);
 };
 
-  if (!isClient) {
-    return (
-        <div className="flex justify-center items-center py-24">
-            <p>Carregando painel financeiro...</p>
-        </div>
-    );
-  }
   
   const chartConfig = {
       total: {

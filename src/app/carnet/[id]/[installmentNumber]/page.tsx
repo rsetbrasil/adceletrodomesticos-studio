@@ -13,12 +13,8 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import Logo from '@/components/Logo';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-
+import { useAdmin } from '@/context/AdminContext';
 
 const formatCurrency = (value: number) => {
   if (typeof value !== 'number' || isNaN(value)) return 'R$ 0,00';
@@ -136,42 +132,16 @@ export default function SingleInstallmentPage() {
   const params = useParams();
   const router = useRouter();
   const { settings } = useSettings();
+  const { orders, isLoading } = useAdmin();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchOrder = async () => {
-        const orderId = params.id as string;
-        if (!orderId) {
-            setIsLoading(false);
-            return;
-        };
+  const order = useMemo(() => {
+      const orderId = params.id as string;
+      if (!orderId || !orders) return null;
+      return orders.find(o => o.id === orderId) || null;
+  }, [params.id, orders]);
 
-        try {
-            const orderRef = doc(db, 'orders', orderId);
-            const docSnap = await getDoc(orderRef);
-
-            if(docSnap.exists()) {
-                setOrder({ id: docSnap.id, ...docSnap.data() } as Order);
-            } else {
-                setOrder(null);
-            }
-        } catch (error) {
-            console.error("Error fetching order:", error);
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `orders/${orderId}`,
-                operation: 'get',
-            }));
-            setOrder(null);
-        } finally {
-            setIsLoading(false);
-        }
-    }
-
-    fetchOrder();
-  }, [params.id]);
 
   const installment = useMemo(() => {
     if (!order || !params.installmentNumber) {

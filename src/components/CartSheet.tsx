@@ -18,11 +18,7 @@ import { Minus, Plus, Trash2, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 import { useMemo, useState, useEffect } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import type { Product } from '@/lib/types';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { useAdmin } from '@/context/AdminContext';
 
 
 const formatCurrency = (value: number) => {
@@ -34,24 +30,7 @@ const formatCurrency = (value: number) => {
 
 export function CartSheet({ children }: { children: React.ReactNode }) {
   const { cartItems, updateQuantity, removeFromCart, getCartTotal, cartCount, isCartOpen, setIsCartOpen } = useCart();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-        setProducts(snapshot.docs.map(d => ({...d.data(), id: d.id } as Product)));
-        setIsLoading(false);
-    },
-    (error) => {
-      console.error("Error fetching products for cart:", error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: 'products',
-          operation: 'list',
-      }));
-      setIsLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+  const { products, isLoading } = useAdmin();
   
   const cartItemsWithStock = useMemo(() => {
     if (isLoading) return [];

@@ -11,13 +11,10 @@ import { ArrowLeft, Printer, ShoppingCart, Phone } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { generatePixPayload } from '@/lib/pix';
 import PixQRCode from '@/components/PixQRCode';
 import { cn } from '@/lib/utils';
+import { useAdmin } from '@/context/AdminContext';
 
 
 const formatCurrency = (value: number) => {
@@ -131,43 +128,14 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
 export default function CarnetPage() {
   const params = useParams();
   const router = useRouter();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { orders, isLoading } = useAdmin();
   const { settings } = useSettings();
-  const [printLayout, setPrintLayout] = useState<'default' | 'a4'>('default');
 
+  const order = useMemo(() => {
+    if (!params.id || !orders) return null;
+    return orders.find(o => o.id === (params.id as string));
+  }, [params.id, orders]);
 
-  useEffect(() => {
-    const fetchOrder = async () => {
-        const orderId = params.id as string;
-        if (!orderId) {
-            setIsLoading(false);
-            return;
-        };
-
-        try {
-            const orderRef = doc(db, 'orders', orderId);
-            const docSnap = await getDoc(orderRef);
-
-            if(docSnap.exists()) {
-                setOrder({ id: docSnap.id, ...docSnap.data() } as Order);
-            } else {
-                setOrder(null);
-            }
-        } catch (error) {
-            console.error("Error fetching order:", error);
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `orders/${orderId}`,
-                operation: 'get',
-            }));
-            setOrder(null);
-        } finally {
-            setIsLoading(false);
-        }
-    }
-
-    fetchOrder();
-  }, [params.id]);
 
   const nextPendingInstallment = useMemo(() => {
     if (!order || !order.installmentDetails) return null;
