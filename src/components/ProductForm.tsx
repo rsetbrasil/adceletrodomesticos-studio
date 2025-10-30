@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useAdminActions } from '@/context/AdminContext';
+import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { PackagePlus, X, Percent, DollarSign } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
@@ -98,7 +98,7 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ productToEdit, onFinished }: ProductFormProps) {
-  const { addProduct, updateProduct } = useAdminActions();
+  const { addProduct, updateProduct } = useAdmin();
   const { categories } = useData();
   const { user } = useAuth();
   const { logAction } = useAudit();

@@ -24,7 +24,7 @@ import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
 import { AlertTriangle, CreditCard, KeyRound, Trash2 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
-import { useAdminActions } from '@/context/AdminContext';
+import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { useAudit } from '@/context/AuditContext';
 import { useData } from '@/context/DataContext';
@@ -63,8 +63,8 @@ const formatCurrency = (value: number) => {
 export default function CheckoutForm() {
   const { cartItems, getCartTotal, clearCart, setLastOrder, removeFromCart } = useCart();
   const { settings } = useSettings();
-  const { orders, addOrder } = useAdminActions();
-  const { products } = useData();
+  const { addOrder } = useAdmin();
+  const { orders, products } = useData();
   const { user } = useAuth();
   const { logAction } = useAudit();
   const router = useRouter();
