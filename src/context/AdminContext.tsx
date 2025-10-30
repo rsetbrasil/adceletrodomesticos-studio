@@ -933,12 +933,3 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
-
-// This hook is deprecated, use useAdmin instead. It's kept for backward compatibility.
-export const useAdminActions = (): AdminContextType => {
-    const context = useContext(AdminContext);
-    if (context === undefined) {
-        throw new Error('useAdminActions must be used within an AdminProvider');
-    }
-    return context;
-}

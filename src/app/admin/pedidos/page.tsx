@@ -48,6 +48,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import PaymentDialog from '@/components/PaymentDialog';
+import { useData } from '@/context/DataContext';
+import { useAudit } from '@/context/AuditContext';
 
 
 const formatCurrency = (value: number) => {
@@ -71,8 +73,10 @@ const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'o
 };
 
 export default function OrdersAdminPage() {
-  const { products, orders, updateOrderStatus, recordInstallmentPayment, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder, reversePayment } = useAdmin();
+  const { updateOrderStatus, recordInstallmentPayment, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder, reversePayment } = useAdmin();
+  const { products, orders } = useData();
   const { user, users } = useAuth();
+  const { logAction } = useAudit();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -102,6 +106,7 @@ export default function OrdersAdminPage() {
     const active: Order[] = [];
     const deleted: Order[] = [];
 
+    if (!orders) return { activeOrders: [], deletedOrders: [] };
     let filtered = [...orders];
 
     if (filters.seller !== 'all') {
@@ -172,7 +177,7 @@ export default function OrdersAdminPage() {
 
   const handleUpdateOrderStatus = (status: Order['status']) => {
     if (selectedOrder) {
-      updateOrderStatus(selectedOrder.id, status);
+      updateOrderStatus(selectedOrder.id, status, logAction, user);
     }
   };
 
@@ -204,7 +209,7 @@ export default function OrdersAdminPage() {
         newDetails = { ...newDetails, installments: 1, installmentValue: selectedOrder.total, installmentDetails: [] };
     }
     
-    updateOrderDetails(selectedOrder.id, newDetails);
+    updateOrderDetails(selectedOrder.id, newDetails, logAction, user);
   };
 
   const handleUpdateInstallments = () => {
@@ -238,7 +243,7 @@ export default function OrdersAdminPage() {
         installmentDetails: newInstallmentDetails
     };
     
-    updateOrderDetails(selectedOrder.id, newDetails);
+    updateOrderDetails(selectedOrder.id, newDetails, logAction, user);
   };
   
   const handleOpenPaymentDialog = (installment: Installment) => {
@@ -248,7 +253,7 @@ export default function OrdersAdminPage() {
 
   const handlePaymentSubmit = (payment: Omit<Payment, 'receivedBy'>) => {
     if (selectedOrder && installmentToPay) {
-      recordInstallmentPayment(selectedOrder.id, installmentToPay.installmentNumber, payment);
+      recordInstallmentPayment(selectedOrder.id, installmentToPay.installmentNumber, payment, logAction, user);
       window.open(`/carnet/${selectedOrder.id}/${installmentToPay.installmentNumber}`, '_blank');
     }
     setPaymentDialogOpen(false);
@@ -258,13 +263,13 @@ export default function OrdersAdminPage() {
 
   const handleDueDateChange = (orderId: string, installmentNumber: number, date: Date | undefined) => {
     if (date) {
-        updateInstallmentDueDate(orderId, installmentNumber, date);
+        updateInstallmentDueDate(orderId, installmentNumber, date, logAction, user);
     }
     setOpenDueDatePopover(null);
   }
 
   const handleDeleteOrder = (orderId: string) => {
-    deleteOrder(orderId);
+    deleteOrder(orderId, logAction, user);
     toast({
       title: 'Pedido Movido para Lixeira!',
       description: 'O pedido foi movido para a lixeira e pode ser restaurado.',
@@ -272,7 +277,7 @@ export default function OrdersAdminPage() {
   };
 
   const handlePermanentlyDeleteOrder = (orderId: string) => {
-    permanentlyDeleteOrder(orderId);
+    permanentlyDeleteOrder(orderId, logAction, user);
     toast({
       title: 'Pedido Excluído!',
       description: 'O pedido foi removido permanentemente.',
@@ -281,7 +286,7 @@ export default function OrdersAdminPage() {
   };
 
   const handleRestoreOrder = async (orderId: string) => {
-    await updateOrderStatus(orderId, 'Processando');
+    await updateOrderStatus(orderId, 'Processando', logAction, user);
   };
 
   const handleAssignSeller = (order: Order, seller: User) => {
@@ -290,7 +295,7 @@ export default function OrdersAdminPage() {
         sellerId: seller.id,
         sellerName: seller.name,
     };
-    updateOrderDetails(order.id, detailsToUpdate);
+    updateOrderDetails(order.id, detailsToUpdate, logAction, user);
     toast({
         title: "Vendedor Atribuído!",
         description: `O pedido #${order.id} foi atribuído a ${seller.name}.`
@@ -309,7 +314,7 @@ export default function OrdersAdminPage() {
       toast({ title: 'Valor inválido', description: 'Por favor, insira um valor de comissão válido.', variant: 'destructive' });
       return;
     }
-    updateOrderDetails(selectedOrder.id, { commission: value, isCommissionManual: true });
+    updateOrderDetails(selectedOrder.id, { commission: value, isCommissionManual: true }, logAction, user);
   }
 
   const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'gerente';
@@ -647,7 +652,7 @@ export default function OrdersAdminPage() {
                                   <div className="flex items-end gap-4">
                                       <div className="flex-grow">
                                           <label className="text-sm font-medium">Status do Pedido</label>
-                                          <Select value={selectedOrder.status} onValueChange={(status) => updateOrderStatus(selectedOrder!.id, status as Order['status'])}>
+                                          <Select value={selectedOrder.status} onValueChange={(status) => handleUpdateOrderStatus(status as Order['status'])}>
                                               <SelectTrigger>
                                                   <SelectValue placeholder="Alterar status" />
                                               </SelectTrigger>
@@ -761,7 +766,7 @@ export default function OrdersAdminPage() {
                                                                                                         </AlertDialogHeader>
                                                                                                         <AlertDialogFooter>
                                                                                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                                                            <AlertDialogAction onClick={() => reversePayment(selectedOrder.id, inst.installmentNumber, p.id)}>Sim, Estornar</AlertDialogAction>
+                                                                                                            <AlertDialogAction onClick={() => reversePayment(selectedOrder.id, inst.installmentNumber, p.id, logAction, user)}>Sim, Estornar</AlertDialogAction>
                                                                                                         </AlertDialogFooter>
                                                                                                     </AlertDialogContent>
                                                                                                 </AlertDialog>
@@ -814,5 +819,3 @@ export default function OrdersAdminPage() {
     </>
   );
 }
-
-    

@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { useAdminActions } from '@/context/AdminContext';
+import { useAdmin } from '@/context/AdminContext';
 import { useData } from '@/context/DataContext';
 import type { Product } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ const formatCurrency = (value: number) => {
 };
 
 export default function ManageProductsPage() {
-    const { deleteProduct } = useAdminActions();
+    const { deleteProduct } = useAdmin();
     const { products } = useData();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [productToEdit, setProductToEdit] = useState<Product | null>(null);

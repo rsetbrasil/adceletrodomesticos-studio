@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent, useRef } from 'react';
@@ -26,6 +25,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/AuthContext';
 import PaymentDialog from '@/components/PaymentDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useData } from '@/context/DataContext';
+import { useAudit } from '@/context/AuditContext';
 
 
 const formatCurrency = (value: number) => {
@@ -76,8 +77,10 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 };
 
 export default function CustomersAdminPage() {
-  const { orders, updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers } = useAdmin();
+  const { updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers } = useAdmin();
+  const { orders } = useData();
   const { user } = useAuth();
+  const { logAction } = useAudit();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
@@ -173,7 +176,7 @@ export default function CustomersAdminPage() {
   
   const handlePaymentSubmit = (payment: Omit<Payment, 'receivedBy'>) => {
     if (orderForPayment && installmentToPay) {
-      recordInstallmentPayment(orderForPayment.id, installmentToPay.installmentNumber, payment);
+      recordInstallmentPayment(orderForPayment.id, installmentToPay.installmentNumber, payment, logAction, user);
       window.open(`/carnet/${orderForPayment.id}/${installmentToPay.installmentNumber}`, '_blank');
     }
     setPaymentDialogOpen(false);
@@ -183,7 +186,7 @@ export default function CustomersAdminPage() {
 
   const handleDueDateChange = (orderId: string, installmentNumber: number, date: Date | undefined) => {
     if (date) {
-        updateInstallmentDueDate(orderId, installmentNumber, date);
+        updateInstallmentDueDate(orderId, installmentNumber, date, logAction, user);
     }
     setOpenDueDatePopover(null);
   };
@@ -197,9 +200,9 @@ export default function CustomersAdminPage() {
         addedBy: user?.name || 'Desconhecido'
     }));
 
-    await updateOrderDetails(order.id, { attachments: [...currentAttachments, ...processedAttachments] });
+    await updateOrderDetails(order.id, { attachments: [...currentAttachments, ...processedAttachments] }, logAction, user);
     toast({ title: 'Anexos Adicionados!', description: 'Os novos documentos foram salvos com sucesso.' });
-  }, [updateOrderDetails, toast, user]);
+  }, [updateOrderDetails, toast, user, logAction]);
 
   const handleFileProcessing = useCallback(async (order: Order, files: File[]) => {
     const filesToProcess = Array.from(files);
@@ -303,7 +306,7 @@ export default function CustomersAdminPage() {
 
   const handleDeleteAttachment = (order: Order, indexToDelete: number) => {
     const newAttachments = (order.attachments || []).filter((_, index) => index !== indexToDelete);
-    updateOrderDetails(order.id, { attachments: newAttachments });
+    updateOrderDetails(order.id, { attachments: newAttachments }, logAction, user);
   };
   
   const handleEditComment = (order: Order, attachmentIndex: number) => {
@@ -321,7 +324,7 @@ export default function CustomersAdminPage() {
           addedAt: new Date().toISOString(),
           addedBy: user?.name || 'Desconhecido',
         };
-        await updateOrderDetails(order.id, { attachments: newAttachments });
+        await updateOrderDetails(order.id, { attachments: newAttachments }, logAction, user);
         toast({ title: 'Comentário salvo!' });
       }
     });
@@ -347,7 +350,7 @@ export default function CustomersAdminPage() {
           delete updatedCustomerData.password;
       }
 
-      updateCustomer(updatedCustomerData as CustomerInfo);
+      updateCustomer(updatedCustomerData as CustomerInfo, logAction, user);
       setSelectedCustomer(updatedCustomerData as CustomerInfo);
       setIsEditDialogOpen(false);
     }
@@ -370,7 +373,7 @@ export default function CustomersAdminPage() {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const text = e.target?.result as string;
-            await importCustomers(text);
+            await importCustomers(text, logAction, user);
         };
         reader.readAsText(file);
         
@@ -662,7 +665,7 @@ export default function CustomersAdminPage() {
                                                                                                                     </AlertDialogHeader>
                                                                                                                     <AlertDialogFooter>
                                                                                                                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                                                                        <AlertDialogAction onClick={() => reversePayment(order.id, inst.installmentNumber, p.id)}>
+                                                                                                                        <AlertDialogAction onClick={() => reversePayment(order.id, inst.installmentNumber, p.id, logAction, user)}>
                                                                                                                             Sim, Estornar
                                                                                                                         </AlertDialogAction>
                                                                                                                     </AlertDialogFooter>
