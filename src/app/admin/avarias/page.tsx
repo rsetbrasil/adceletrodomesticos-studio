@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAdmin } from '@/context/AdminContext';
@@ -14,11 +14,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Wrench, Package, User, Calendar, Save, History } from 'lucide-react';
-import { useMemo } from 'react';
+import { Wrench, Save, History, Edit, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { CustomerInfo } from '@/lib/types';
+import type { CustomerInfo, Avaria } from '@/lib/types';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 const avariaSchema = z.object({
   customerId: z.string().min(1, 'Selecione um cliente.'),
@@ -29,10 +32,12 @@ const avariaSchema = z.object({
 type AvariaFormValues = z.infer<typeof avariaSchema>;
 
 export default function AvariasPage() {
-    const { addAvaria } = useAdmin();
+    const { addAvaria, updateAvaria, deleteAvaria } = useAdmin();
     const { orders, products, avarias } = useData();
     const { user } = useAuth();
     const { logAction } = useAudit();
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [avariaToEdit, setAvariaToEdit] = useState<Avaria | null>(null);
 
     const form = useForm<AvariaFormValues>({
         resolver: zodResolver(avariaSchema),
@@ -41,6 +46,10 @@ export default function AvariasPage() {
             productId: '',
             description: '',
         },
+    });
+    
+    const editForm = useForm<AvariaFormValues>({
+        resolver: zodResolver(avariaSchema),
     });
 
     const customers = useMemo(() => {
@@ -74,6 +83,39 @@ export default function AvariasPage() {
         }, logAction, user);
         
         form.reset();
+    }
+    
+    const handleOpenEditDialog = (avaria: Avaria) => {
+        setAvariaToEdit(avaria);
+        editForm.reset({
+            customerId: avaria.customerId,
+            productId: avaria.productId,
+            description: avaria.description,
+        });
+        setIsEditDialogOpen(true);
+    };
+
+    function onEditSubmit(values: AvariaFormValues) {
+        if (!user || !avariaToEdit) return;
+        const customer = customers.find(c => c.cpf === values.customerId);
+        const product = products.find(p => p.id === values.productId);
+        if (!customer || !product) return;
+        
+        updateAvaria(avariaToEdit.id, {
+            customerId: customer.cpf,
+            customerName: customer.name,
+            productId: product.id,
+            productName: product.name,
+            description: values.description,
+        }, logAction, user);
+        
+        setIsEditDialogOpen(false);
+        setAvariaToEdit(null);
+    }
+    
+    const handleDelete = (avariaId: string) => {
+        if (!user) return;
+        deleteAvaria(avariaId, logAction, user);
     }
 
     return (
@@ -181,6 +223,7 @@ export default function AvariasPage() {
                                     <TableHead>Produto</TableHead>
                                     <TableHead>Descrição</TableHead>
                                     <TableHead>Registrado por</TableHead>
+                                    <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -194,11 +237,39 @@ export default function AvariasPage() {
                                             <TableCell>{avaria.productName}</TableCell>
                                             <TableCell className="text-muted-foreground">{avaria.description}</TableCell>
                                             <TableCell>{avaria.createdByName}</TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex gap-2 justify-end">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEditDialog(avaria)}>
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Confirmar Exclusão?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    Esta ação não pode ser desfeita. Isso irá apagar permanentemente o registro de avaria.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handleDelete(avaria.id)}>
+                                                                    Sim, Excluir
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </div>
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">
+                                        <TableCell colSpan={6} className="h-24 text-center">
                                             Nenhuma avaria registrada ainda.
                                         </TableCell>
                                     </TableRow>
@@ -208,6 +279,92 @@ export default function AvariasPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent className="sm:max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>Editar Avaria</DialogTitle>
+                        <DialogDescription>
+                            Faça alterações nos detalhes do registro de avaria.
+                        </DialogDescription>
+                    </DialogHeader>
+                     <Form {...editForm}>
+                        <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-6 py-4">
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <FormField
+                                    control={editForm.control}
+                                    name="customerId"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Cliente</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione o cliente" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {customers.map(c => (
+                                                        <SelectItem key={c.cpf} value={c.cpf}>{c.name} - {c.cpf}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={editForm.control}
+                                    name="productId"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Produto Avariado</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione o produto" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {sortedProducts.map(p => (
+                                                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <FormField
+                                control={editForm.control}
+                                name="description"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Descrição da Avaria</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder="Descreva detalhadamente o problema encontrado."
+                                                {...field}
+                                                rows={4}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <Button variant="outline" type="button" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+                                <Button type="submit">
+                                    <Save className="mr-2 h-4 w-4" />
+                                    Salvar Alterações
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }

@@ -43,6 +43,8 @@ interface AdminContextType {
   resetAllAdminData: (logAction: LogAction, user: User | null) => Promise<void>;
   saveStockAudit: (audit: StockAudit, logAction: LogAction, user: User | null) => Promise<void>;
   addAvaria: (avariaData: Omit<Avaria, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>, logAction: LogAction, user: User | null) => Promise<void>;
+  updateAvaria: (avariaId: string, avariaData: Partial<Omit<Avaria, 'id'>>, logAction: LogAction, user: User | null) => Promise<void>;
+  deleteAvaria: (avariaId: string, logAction: LogAction, user: User | null) => Promise<void>;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -938,6 +940,39 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [toast]);
 
+  const updateAvaria = useCallback(async (avariaId: string, avariaData: Partial<Omit<Avaria, 'id'>>, logAction: LogAction, user: User | null) => {
+    const avariaRef = doc(db, 'avarias', avariaId);
+    const dataToUpdate = {
+        ...avariaData,
+        // Update who last modified it, if needed for tracking
+        lastModifiedBy: user?.name,
+        lastModifiedAt: new Date().toISOString(),
+    };
+    updateDoc(avariaRef, dataToUpdate).then(() => {
+        logAction('Atualização de Avaria', `Avaria ID ${avariaId} foi atualizada.`, user);
+        toast({ title: "Avaria Atualizada!", description: "O registro de avaria foi atualizado." });
+    }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: avariaRef.path,
+            operation: 'update',
+            requestResourceData: dataToUpdate,
+        }));
+    });
+  }, [toast]);
+
+  const deleteAvaria = useCallback(async (avariaId: string, logAction: LogAction, user: User | null) => {
+    const avariaRef = doc(db, 'avarias', avariaId);
+    deleteDoc(avariaRef).then(() => {
+        logAction('Exclusão de Avaria', `Avaria ID ${avariaId} foi excluída.`, user);
+        toast({ title: "Avaria Excluída!", variant: "destructive" });
+    }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: avariaRef.path,
+            operation: 'delete',
+        }));
+    });
+  }, [toast]);
+
   return (
     <AdminContext.Provider
       value={{
@@ -946,7 +981,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         payCommissions, reverseCommissionPayment,
         restoreAdminData, resetOrders, resetAllAdminData,
-        saveStockAudit, addAvaria,
+        saveStockAudit, addAvaria, updateAvaria, deleteAvaria
       }}
     >
       {children}
