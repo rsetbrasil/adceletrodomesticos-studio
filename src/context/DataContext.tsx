@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Product, Category, Order, CommissionPayment, StockAudit } from '@/lib/types';
+import type { Product, Category, Order, CommissionPayment, StockAudit, Avaria } from '@/lib/types';
 
 interface DataContextType {
   products: Product[];
@@ -12,6 +12,7 @@ interface DataContextType {
   orders: Order[];
   commissionPayments: CommissionPayment[];
   stockAudits: StockAudit[];
+  avarias: Avaria[];
   isLoading: boolean;
 }
 
@@ -23,6 +24,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
   const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
+  const [avarias, setAvarias] = useState<Avaria[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -54,17 +56,22 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setStockAudits(snapshot.docs.map(d => d.data() as StockAudit));
     }, (error) => console.error("Error fetching stock audits:", error));
 
+    const avariasUnsubscribe = onSnapshot(query(collection(db, 'avarias'), orderBy('createdAt', 'desc')), (snapshot) => {
+      setAvarias(snapshot.docs.map(d => d.data() as Avaria));
+    }, (error) => console.error("Error fetching avarias:", error));
+
     return () => {
       productsUnsubscribe();
       categoriesUnsubscribe();
       ordersUnsubscribe();
       commissionPaymentsUnsubscribe();
       stockAuditsUnsubscribe();
+      avariasUnsubscribe();
     };
   }, []);
 
   return (
-    <DataContext.Provider value={{ products, categories, orders, commissionPayments, stockAudits, isLoading }}>
+    <DataContext.Provider value={{ products, categories, orders, commissionPayments, stockAudits, avarias, isLoading }}>
       {children}
     </DataContext.Provider>
   );

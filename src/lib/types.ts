@@ -139,7 +139,8 @@ export type AppSection =
     | 'minhas-comissoes'
     | 'auditoria'
     | 'configuracao'
-    | 'usuarios';
+    | 'usuarios'
+    | 'avarias';
 
 export type RolePermissions = Record<UserRole, AppSection[]>;
 
@@ -159,5 +160,17 @@ export type StockAudit = {
     auditedBy: string; // User ID
     auditedByName: string;
     products: StockAuditProduct[];
+};
+
+export type Avaria = {
+  id: string;
+  createdAt: string; // ISO String
+  createdBy: string; // User ID
+  createdByName: string; // User name
+  customerId: string;
+  customerName: string;
+  productId: string;
+  productName: string;
+  description: string;
 };
     

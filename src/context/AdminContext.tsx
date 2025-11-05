@@ -1,7 +1,8 @@
+
 'use client';
 
 import React, { createContext, useContext, ReactNode, useCallback } from 'react';
-import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment, StockAudit } from '@/lib/types';
+import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment, StockAudit, Avaria } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, doc, writeBatch, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -41,6 +42,7 @@ interface AdminContextType {
   resetOrders: (logAction: LogAction, user: User | null) => Promise<void>;
   resetAllAdminData: (logAction: LogAction, user: User | null) => Promise<void>;
   saveStockAudit: (audit: StockAudit, logAction: LogAction, user: User | null) => Promise<void>;
+  addAvaria: (avariaData: Omit<Avaria, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>, logAction: LogAction, user: User | null) => Promise<void>;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -909,6 +911,33 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [toast]);
 
+  const addAvaria = useCallback(async (avariaData: Omit<Avaria, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>, logAction: LogAction, user: User | null) => {
+    if (!user) return;
+    const newAvariaId = `avaria-${Date.now()}`;
+    const newAvaria: Avaria = {
+      ...avariaData,
+      id: newAvariaId,
+      createdAt: new Date().toISOString(),
+      createdBy: user.id,
+      createdByName: user.name,
+    };
+    
+    const avariaRef = doc(db, 'avarias', newAvariaId);
+    setDoc(avariaRef, newAvaria).then(() => {
+        logAction('Registro de Avaria', `Nova avaria registrada para o cliente ${avariaData.customerName} (Produto: ${avariaData.productName}).`, user);
+        toast({
+            title: "Avaria Registrada!",
+            description: "O registro de avaria foi salvo com sucesso.",
+        });
+    }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: avariaRef.path,
+            operation: 'create',
+            requestResourceData: newAvaria,
+        }));
+    });
+  }, [toast]);
+
   return (
     <AdminContext.Provider
       value={{
@@ -917,7 +946,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         payCommissions, reverseCommissionPayment,
         restoreAdminData, resetOrders, resetAllAdminData,
-        saveStockAudit,
+        saveStockAudit, addAvaria,
       }}
     >
       {children}
