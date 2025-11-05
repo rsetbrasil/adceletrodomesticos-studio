@@ -1,15 +1,9 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem, Order, Product, User } from '@/lib/types';
+import type { CartItem, Order, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
-import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import { useData } from './DataContext';
-
-// Helper function to log actions, passed as an argument now
-type LogAction = (action: string, details: string, user: User | null) => void;
 
 const saveDataToLocalStorage = (key: string, data: any) => {
     if (typeof window === 'undefined') return;

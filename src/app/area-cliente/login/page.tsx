@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, FormEvent } from 'react';
@@ -9,19 +8,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { User, Shield } from 'lucide-react';
 import Link from 'next/link';
-import { useAdmin } from '@/context/AdminContext';
+import { useData } from '@/context/DataContext';
 
 export default function CustomerLoginPage() {
-  const { login, isLoading } = useCustomerAuth();
-  const { orders, isLoading: isOrdersLoading } = useAdmin();
+  const { login, isLoading: authIsLoading } = useCustomerAuth();
+  const { isLoading: dataIsLoading } = useData();
   const [cpf, setCpf] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = (e: FormEvent) => {
     e.preventDefault();
     const normalizedCpf = cpf.replace(/\D/g, ''); // Remove non-digit characters
-    login(normalizedCpf, password, orders);
+    login(normalizedCpf, password);
   };
+  
+  const isLoading = authIsLoading || dataIsLoading;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-muted/30">
@@ -57,8 +58,8 @@ export default function CustomerLoginPage() {
             </div>
             </CardContent>
             <CardFooter className="flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={isLoading || isOrdersLoading}>
-                    {isLoading || isOrdersLoading ? 'Carregando...' : 'Entrar'}
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Carregando...' : 'Entrar'}
                 </Button>
                 <Button variant="link" size="sm" className="text-muted-foreground" asChild>
                     <Link href="/">Voltar para a loja</Link>
@@ -69,5 +70,3 @@ export default function CustomerLoginPage() {
     </div>
   );
 }
-
-  

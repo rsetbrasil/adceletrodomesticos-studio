@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent, useRef } from 'react';
@@ -145,7 +144,7 @@ export default function CustomersAdminPage() {
   }, [orders, searchQuery]);
   
   const customerOrders = useMemo(() => {
-      if (!selectedCustomer) return [];
+      if (!selectedCustomer || !orders) return [];
       return orders
         .filter(o => o.customer.cpf === selectedCustomer.cpf && o.status !== 'Cancelado' && o.status !== 'Excluído')
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -175,7 +174,7 @@ export default function CustomersAdminPage() {
   };
   
   const handlePaymentSubmit = (payment: Omit<Payment, 'receivedBy'>) => {
-    if (orderForPayment && installmentToPay) {
+    if (orderForPayment && installmentToPay && user) {
       recordInstallmentPayment(orderForPayment.id, installmentToPay.installmentNumber, payment, logAction, user);
       window.open(`/carnet/${orderForPayment.id}/${installmentToPay.installmentNumber}`, '_blank');
     }
@@ -185,13 +184,14 @@ export default function CustomersAdminPage() {
   };
 
   const handleDueDateChange = (orderId: string, installmentNumber: number, date: Date | undefined) => {
-    if (date) {
+    if (date && user) {
         updateInstallmentDueDate(orderId, installmentNumber, date, logAction, user);
     }
     setOpenDueDatePopover(null);
   };
     
   const addAttachments = useCallback(async (order: Order, newAttachments: Omit<Attachment, 'addedAt' | 'addedBy'>[]) => {
+    if (!user) return;
     const currentAttachments = order.attachments || [];
     
     const processedAttachments: Attachment[] = newAttachments.map(att => ({
@@ -305,11 +305,13 @@ export default function CustomersAdminPage() {
   };
 
   const handleDeleteAttachment = (order: Order, indexToDelete: number) => {
+    if (!user) return;
     const newAttachments = (order.attachments || []).filter((_, index) => index !== indexToDelete);
     updateOrderDetails(order.id, { attachments: newAttachments }, logAction, user);
   };
   
   const handleEditComment = (order: Order, attachmentIndex: number) => {
+    if (!user) return;
     const attachment = order.attachments?.[attachmentIndex];
     if (!attachment) return;
 
@@ -343,7 +345,7 @@ export default function CustomersAdminPage() {
   };
 
   const handleSaveChanges = () => {
-    if (selectedCustomer && editedInfo) {
+    if (selectedCustomer && editedInfo && user) {
       const updatedCustomerData = { ...selectedCustomer, ...editedInfo };
       // Se a senha estiver vazia, não a envie na atualização, mantendo a antiga
       if (editedInfo.password === '') {
@@ -367,6 +369,7 @@ export default function CustomersAdminPage() {
   };
 
   const handleImportCustomers = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!user) return;
         const file = event.target.files?.[0];
         if (!file) return;
 

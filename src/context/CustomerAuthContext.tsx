@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -40,6 +39,10 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (cpf: string, pass: string): Promise<boolean> => {
+    if (!orders) {
+        toast({ title: 'Erro', description: 'Os dados dos pedidos ainda não foram carregados. Tente novamente em alguns segundos.', variant: 'destructive' });
+        return false;
+    }
     const normalizedCpf = cpf.replace(/\D/g, '');
     
     const customerOrders = orders
