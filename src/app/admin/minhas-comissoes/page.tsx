@@ -14,6 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useData } from '@/context/DataContext';
+import { useAudit } from '@/context/AuditContext';
 
 
 const formatCurrency = (value: number) => {
@@ -21,8 +23,10 @@ const formatCurrency = (value: number) => {
 };
 
 export default function MyCommissionsPage() {
-  const { orders, commissionPayments, reverseCommissionPayment } = useAdmin();
+  const { reverseCommissionPayment } = useAdmin();
+  const { orders, commissionPayments } = useData();
   const { user } = useAuth();
+  const { logAction } = useAudit();
   
   const pendingCommissions = useMemo(() => {
     if (!user || !orders) return [];
@@ -180,7 +184,7 @@ export default function MyCommissionsPage() {
                                                                         </AlertDialogHeader>
                                                                         <AlertDialogFooter>
                                                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                            <AlertDialogAction onClick={() => reverseCommissionPayment(payment.id)}>
+                                                                            <AlertDialogAction onClick={() => reverseCommissionPayment(payment.id, logAction, user)}>
                                                                                 Sim, estornar
                                                                             </AlertDialogAction>
                                                                         </AlertDialogFooter>
@@ -222,7 +226,7 @@ export default function MyCommissionsPage() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {commissionPayments.length > 0 ? (
+                                            {commissionPayments && commissionPayments.length > 0 ? (
                                                 commissionPayments.sort((a,b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime()).map(payment => (
                                                     <TableRow key={payment.id}>
                                                         <TableCell>{format(parseISO(payment.paymentDate), "dd/MM/yyyy")}</TableCell>
@@ -253,7 +257,7 @@ export default function MyCommissionsPage() {
                                                                         </AlertDialogHeader>
                                                                         <AlertDialogFooter>
                                                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                            <AlertDialogAction onClick={() => reverseCommissionPayment(payment.id)}>
+                                                                            <AlertDialogAction onClick={() => reverseCommissionPayment(payment.id, logAction, user)}>
                                                                                 Sim, estornar
                                                                             </AlertDialogAction>
                                                                         </AlertDialogFooter>
