@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useAdmin } from '@/context/AdminContext';
+import { useData } from '@/context/DataContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,8 @@ import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 export default function ManageCategoriesPage() {
-    const { categories, addCategory, deleteCategory, updateCategoryName, addSubcategory, deleteSubcategory, updateSubcategory, moveCategory, reorderSubcategories, moveSubcategory } = useAdmin();
+    const { addCategory, deleteCategory, updateCategoryName, addSubcategory, deleteSubcategory, updateSubcategory, moveCategory, reorderSubcategories, moveSubcategory } = useAdmin();
+    const { categories } = useData();
     const { toast } = useToast();
 
     const [dialogState, setDialogState] = useState<{
@@ -124,7 +126,7 @@ export default function ManageCategoriesPage() {
                     </Button>
                 </CardHeader>
                 <CardContent>
-                    {categories.length > 0 ? (
+                    {categories && categories.length > 0 ? (
                         <div className="space-y-2">
                             {categories.map((category, index) => (
                                 <Collapsible key={category.id} className="border rounded-lg" defaultOpen>
