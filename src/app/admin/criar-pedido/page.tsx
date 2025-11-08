@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Check, ChevronsUpDown, PlusCircle, ShoppingCart, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -215,20 +215,22 @@ export default function CreateOrderPage() {
                             <Command>
                             <CommandInput placeholder="Buscar cliente por nome..." />
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                            <CommandGroup>
-                                {customers.map(c => (
-                                <CommandItem
-                                    value={c.name}
-                                    key={c.cpf}
-                                    onSelect={() => {
-                                      form.setValue("customerId", c.cpf);
-                                    }}
-                                >
-                                    <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
-                                    {c.name} ({c.cpf})
-                                </CommandItem>
-                                ))}
-                            </CommandGroup>
+                            <CommandList>
+                                <CommandGroup>
+                                    {customers.map(c => (
+                                    <CommandItem
+                                        value={c.name}
+                                        key={c.cpf}
+                                        onSelect={() => {
+                                          form.setValue("customerId", c.cpf);
+                                        }}
+                                    >
+                                        <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
+                                        {c.name} ({c.cpf})
+                                    </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
                             </Command>
                         </PopoverContent>
                     </Popover>
@@ -317,17 +319,19 @@ export default function CreateOrderPage() {
                         <PopoverContent className="w-[300px] p-0">
                             <Command>
                                 <CommandInput placeholder="Buscar produto..." value={productSearch} onValueChange={setProductSearch}/>
-                                <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
-                                <CommandGroup>
-                                {products
-                                    .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
-                                    .map(p => (
-                                    <CommandItem key={p.id} onSelect={() => handleAddItem(p)}>
-                                        <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
-                                        {p.name}
-                                    </CommandItem>
-                                ))}
-                                </CommandGroup>
+                                <CommandList>
+                                    <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
+                                    <CommandGroup>
+                                    {products
+                                        .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                                        .map(p => (
+                                        <CommandItem key={p.id} onSelect={() => handleAddItem(p)}>
+                                            <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
+                                            {p.name}
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </CommandList>
                             </Command>
                         </PopoverContent>
                     </Popover>
