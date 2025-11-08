@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import type { RolePermissions } from '@/lib/types';
 import { initialPermissions } from '@/lib/permissions';
-import { db } from '@/lib/firebase';
+import { getClientFirebase } from '@/lib/firebase-client';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './AuthContext';
@@ -29,6 +29,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     const { logAction } = useAudit();
     
     useEffect(() => {
+        const { db } = getClientFirebase();
         const permissionsRef = doc(db, 'config', 'rolePermissions');
         const unsubscribe = onSnapshot(permissionsRef, async (docSnap) => {
             if (docSnap.exists()) {
@@ -53,6 +54,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
 
     const updatePermissions = useCallback(async (newPermissions: RolePermissions) => {
         try {
+            const { db } = getClientFirebase();
             const permissionsRef = doc(db, 'config', 'rolePermissions');
             await setDoc(permissionsRef, newPermissions);
             // Real-time listener will update the state

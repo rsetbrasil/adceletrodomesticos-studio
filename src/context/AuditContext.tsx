@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import type { AuditLog, User, UserRole } from '@/lib/types';
-import { db } from '@/lib/firebase';
+import { getClientFirebase } from '@/lib/firebase-client';
 import { collection, doc, getDocs, setDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -21,6 +21,7 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const { db } = getClientFirebase();
     const logsCollection = collection(db, 'auditLogs');
     const q = query(logsCollection, orderBy('timestamp', 'desc'));
 
@@ -43,6 +44,7 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
 
   const logAction = useCallback(async (action: string, details: string, user: User | null) => {
     if (!user) return;
+    const { db } = getClientFirebase();
 
     const logId = `log-${Date.now()}`;
     const newLog: AuditLog = {

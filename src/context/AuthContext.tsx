@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from '@/lib/types';
 import { initialUsers } from '@/lib/users';
-import { db } from '@/lib/firebase';
+import { getClientFirebase } from '@/lib/firebase-client';
 import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where, getDoc, onSnapshot } from 'firebase/firestore';
 import { useAudit } from './AuditContext';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -39,6 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   useEffect(() => {
     setIsLoading(true);
+    const { db } = getClientFirebase();
 
     const usersUnsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
         setUsers(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as User)));
@@ -107,6 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addUser = async (data: Omit<User, 'id'>): Promise<boolean> => {
+    const { db } = getClientFirebase();
     const isUsernameTaken = users.some(u => u.username.toLowerCase() === data.username.toLowerCase());
     if (isUsernameTaken) {
         toast({
@@ -138,6 +140,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateUser = async (userId: string, data: Partial<Omit<User, 'id'>>) => {
+    const { db } = getClientFirebase();
     if (data.username) {
         const isUsernameTaken = users.some(u => u.id !== userId && u.username.toLowerCase() === data.username?.toLowerCase());
         if (isUsernameTaken) {
@@ -190,6 +193,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const changeMyPassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+      const { db } = getClientFirebase();
       if (!user) {
           toast({ title: "Erro", description: "Você não está logado.", variant: "destructive" });
           return false;
@@ -210,6 +214,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const restoreUsers = async (usersToRestore: User[]) => {
+    const { db } = getClientFirebase();
     const batch = writeBatch(db);
     
     users.forEach(existingUser => {

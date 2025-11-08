@@ -4,7 +4,7 @@
 import React, { createContext, useContext, ReactNode, useCallback } from 'react';
 import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment, StockAudit, Avaria } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
+import { getClientFirebase } from '@/lib/firebase-client';
 import { collection, doc, writeBatch, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -54,6 +54,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   
   const restoreAdminData = useCallback(async (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const batch = writeBatch(db);
 
     products.forEach(p => batch.delete(doc(db, 'products', p.id)));
@@ -76,6 +77,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [products, orders, categories, toast]);
 
   const resetOrders = useCallback(async (logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const batch = writeBatch(db);
     orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
     
@@ -92,6 +94,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [restoreAdminData]);
 
   const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => {
+      const { db } = getClientFirebase();
       const newProductId = `prod-${Date.now()}`;
       const newProduct: Product = {
         ...productData,
@@ -117,6 +120,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const updateProduct = useCallback(async (updatedProduct: Product, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const productRef = doc(db, 'products', updatedProduct.id);
     const productToUpdate = { ...updatedProduct };
     
@@ -132,6 +136,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const deleteProduct = useCallback(async (productId: string, logAction: LogAction, user: User | null) => {
+      const { db } = getClientFirebase();
       const productRef = doc(db, 'products', productId);
       const productToDelete = products.find(p => p.id === productId);
 
@@ -153,6 +158,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [products, toast]);
 
   const addCategory = useCallback(async (categoryName: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     if (categories.some(c => c.name.toLowerCase() === categoryName.toLowerCase())) {
       toast({ title: "Erro", description: "Essa categoria já existe.", variant: "destructive" });
       return;
@@ -180,6 +186,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [categories, toast]);
 
   const updateCategoryName = useCallback(async (categoryId: string, newName: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     if (categories.some(c => c.name.toLowerCase() === newName.toLowerCase() && c.id !== categoryId)) {
         toast({ title: "Erro", description: "Uma categoria com esse novo nome já existe.", variant: "destructive" });
         return;
@@ -212,6 +219,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [categories, products, toast]);
 
   const deleteCategory = useCallback(async (categoryId: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const categoryToDelete = categories.find(c => c.id === categoryId);
     if (!categoryToDelete) return;
 
@@ -234,6 +242,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [categories, products, toast]);
 
   const addSubcategory = useCallback(async (categoryId: string, subcategoryName: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
     if (category.subcategories.some(s => s.toLowerCase() === subcategoryName.toLowerCase())) {
@@ -255,6 +264,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [categories, toast]);
 
   const updateSubcategory = useCallback(async (categoryId: string, oldSub: string, newSub: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
     if (category.subcategories.some(s => s.toLowerCase() === newSub.toLowerCase() && s.toLowerCase() !== oldSub.toLowerCase())) {
@@ -283,6 +293,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [categories, products, toast]);
 
   const deleteSubcategory = useCallback(async (categoryId: string, subcategoryName: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
     
@@ -309,6 +320,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [categories, products, toast]);
     
   const moveCategory = useCallback(async (categoryId: string, direction: 'up' | 'down', logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
     const index = sortedCategories.findIndex(c => c.id === categoryId);
 
@@ -338,6 +350,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [categories]);
 
   const reorderSubcategories = useCallback(async (categoryId: string, draggedSub: string, targetSub: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
 
@@ -363,6 +376,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [categories]);
 
   const moveSubcategory = useCallback(async (sourceCategoryId: string, subName: string, targetCategoryId: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const sourceCategory = categories.find(c => c.id === sourceCategoryId);
     const targetCategory = categories.find(c => c.id === targetCategoryId);
 
@@ -417,6 +431,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const manageStockForOrder = useCallback(async (order: Order | undefined, operation: 'add' | 'subtract'): Promise<boolean> => {
+    const { db } = getClientFirebase();
     if (!order) return false;
     const batch = writeBatch(db);
     
@@ -452,6 +467,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [products, toast]);
 
   const addOrder = async (order: Partial<Order>, logAction: LogAction, user: User | null): Promise<Order | null> => {
+    const { db } = getClientFirebase();
     const orderToSave = {
         ...order,
         sellerId: '',
@@ -494,6 +510,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateOrderStatus = useCallback(async (orderId: string, newStatus: Order['status'], logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const orderToUpdate = orders.find(o => o.id === orderId);
     if (!orderToUpdate) return;
 
@@ -549,6 +566,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [updateOrderStatus]);
 
   const permanentlyDeleteOrder = useCallback(async (orderId: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const orderToDelete = orders.find(o => o.id === orderId);
     if (!orderToDelete || orderToDelete.status !== 'Excluído') {
       toast({ title: "Erro", description: "Só é possível excluir permanentemente pedidos que estão na lixeira.", variant: "destructive" });
@@ -567,6 +585,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [orders, toast]);
 
   const recordInstallmentPayment = useCallback(async (orderId: string, installmentNumber: number, paymentData: Omit<Payment, 'receivedBy'>, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     
@@ -608,6 +627,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [orders, toast]);
 
   const reversePayment = useCallback(async (orderId: string, installmentNumber: number, paymentId: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
@@ -642,7 +662,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
 
   const updateInstallmentDueDate = useCallback(async (orderId: string, installmentNumber: number, newDueDate: Date, logAction: LogAction, user: User | null) => {
-     const order = orders.find(o => o.id === orderId);
+    const { db } = getClientFirebase();
+    const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
     const oldDueDate = order.installmentDetails?.find(i => i.installmentNumber === installmentNumber)?.dueDate;
@@ -664,6 +685,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [orders, toast]);
 
   const updateCustomer = useCallback(async (updatedCustomer: CustomerInfo, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const batch = writeBatch(db);
     orders.forEach(order => {
         if (order.customer.cpf === updatedCustomer.cpf) {
@@ -686,6 +708,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [orders, toast]);
   
   const importCustomers = useCallback(async (csvData: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, ''); 
     if (!sanitizedCsv) {
         toast({ title: 'Arquivo Vazio', description: 'O arquivo CSV está vazio.', variant: 'destructive' });
@@ -825,6 +848,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
 
   const updateOrderDetails = useCallback(async (orderId: string, details: Partial<Order>, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
 
@@ -844,6 +868,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [orders, toast]);
 
   const payCommissions = useCallback(async (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string, logAction: LogAction, user: User | null): Promise<string | null> => {
+    const { db } = getClientFirebase();
     const paymentId = `comp-${sellerId}-${Date.now()}`;
     const payment: CommissionPayment = {
         id: paymentId,
@@ -879,6 +904,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const reverseCommissionPayment = useCallback(async (paymentId: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const paymentToReverse = commissionPayments.find(p => p.id === paymentId);
     if (!paymentToReverse) {
       toast({ title: "Erro", description: "Pagamento não encontrado.", variant: "destructive" });
@@ -904,6 +930,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [commissionPayments, toast]);
 
   const saveStockAudit = useCallback(async (audit: StockAudit, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const auditRef = doc(db, 'stockAudits', audit.id);
     setDoc(auditRef, audit).then(() => {
         logAction('Auditoria de Estoque', `Auditoria de estoque para ${audit.month}/${audit.year} foi salva.`, user);
@@ -918,6 +945,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const addAvaria = useCallback(async (avariaData: Omit<Avaria, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     if (!user) return;
     const newAvariaId = `avaria-${Date.now()}`;
     const newAvaria: Avaria = {
@@ -945,6 +973,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const updateAvaria = useCallback(async (avariaId: string, avariaData: Partial<Omit<Avaria, 'id'>>, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const avariaRef = doc(db, 'avarias', avariaId);
     const dataToUpdate = {
         ...avariaData,
@@ -965,6 +994,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
   const deleteAvaria = useCallback(async (avariaId: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
     const avariaRef = doc(db, 'avarias', avariaId);
     deleteDoc(avariaRef).then(() => {
         logAction('Exclusão de Avaria', `Avaria ID ${avariaId} foi excluída.`, user);

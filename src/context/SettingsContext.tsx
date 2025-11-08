@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
+import { getClientFirebase } from '@/lib/firebase-client';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { useAudit } from './AuditContext';
 import { useAuth } from './AuthContext';
@@ -45,6 +45,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
 
     useEffect(() => {
+        const { db } = getClientFirebase();
         const settingsRef = doc(db, 'config', 'storeSettings');
         const unsubscribe = onSnapshot(settingsRef, async (docSnap) => {
             if (docSnap.exists()) {
@@ -69,6 +70,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     const updateSettings = async (newSettings: StoreSettings) => {
         try {
+            const { db } = getClientFirebase();
             const settingsRef = doc(db, 'config', 'storeSettings');
             await setDoc(settingsRef, newSettings);
             // Real-time listener will update state

@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getClientFirebase } from '@/lib/firebase-client';
 import type { Product, Category, Order, CommissionPayment, StockAudit, Avaria, CustomerInfo } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -38,6 +38,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const { users } = useAuth();
 
   useEffect(() => {
+    const { db } = getClientFirebase();
     const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'desc')), (snapshot) => {
       setProducts(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
       setIsLoading(false);
