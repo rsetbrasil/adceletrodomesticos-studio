@@ -13,6 +13,29 @@ import { useData } from './DataContext';
 // Helper function to log actions, passed as an argument now
 type LogAction = (action: string, details: string, user: User | null) => void;
 
+// Moved from utils to avoid server-side execution
+const calculateCommission = (order: Order, allProducts: Product[]) => {
+      if (!order.sellerId) return 0;
+
+      if (order.isCommissionManual && typeof order.commission === 'number') {
+        return order.commission;
+      }
+
+      return order.items.reduce((totalCommission, item) => {
+          const product = allProducts.find(p => p.id === item.id);
+          if (!product || typeof product.commissionValue === 'undefined') return totalCommission;
+          
+          if (product.commissionType === 'fixed') {
+              return totalCommission + (product.commissionValue * item.quantity);
+          }
+          if (product.commissionType === 'percentage') {
+              return totalCommission + (item.price * item.quantity * product.commissionValue / 100);
+          }
+          return totalCommission;
+      }, 0);
+  };
+
+
 interface AdminContextType {
   addOrder: (order: Partial<Order>, logAction: LogAction, user: User | null) => Promise<Order | null>;
   deleteOrder: (orderId: string, logAction: LogAction, user: User | null) => Promise<void>;
@@ -408,27 +431,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         }));
     });
   }, [categories, products, toast]);
-
-  const calculateCommission = (order: Order, allProducts: Product[]) => {
-      if (!order.sellerId) return 0;
-
-      if (order.isCommissionManual && typeof order.commission === 'number') {
-        return order.commission;
-      }
-
-      return order.items.reduce((totalCommission, item) => {
-          const product = allProducts.find(p => p.id === item.id);
-          if (!product || typeof product.commissionValue === 'undefined') return totalCommission;
-          
-          if (product.commissionType === 'fixed') {
-              return totalCommission + (product.commissionValue * item.quantity);
-          }
-          if (product.commissionType === 'percentage') {
-              return totalCommission + (item.price * item.quantity * product.commissionValue / 100);
-          }
-          return totalCommission;
-      }, 0);
-  };
 
   const manageStockForOrder = useCallback(async (order: Order | undefined, operation: 'add' | 'subtract'): Promise<boolean> => {
     const { db } = getClientFirebase();
