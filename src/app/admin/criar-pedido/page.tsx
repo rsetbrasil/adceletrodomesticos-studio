@@ -110,7 +110,7 @@ const CustomProductForm = ({ onAdd }: { onAdd: (item: CartItem) => void }) => {
 
 export default function CreateOrderPage() {
   const { addOrder } = useAdmin();
-  const { products, customers } = useData();
+  const { products, customers, orders } = useData();
   const { user, users } = useAuth();
   const { logAction } = useAudit();
   const router = useRouter();
