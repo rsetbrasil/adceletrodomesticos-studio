@@ -261,7 +261,7 @@ export default function CreateOrderPage() {
                 control={form.control}
                 name="sellerId"
                 render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                         <FormLabel>Vendedor</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
