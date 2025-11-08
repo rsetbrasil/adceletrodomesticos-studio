@@ -10,6 +10,7 @@ import { useData } from '@/context/DataContext';
 import { useAuth } from '@/context/AuthContext';
 import { useAudit } from '@/context/AuditContext';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,6 +48,7 @@ export default function CreateOrderPage() {
   const { user, users } = useAuth();
   const { logAction } = useAudit();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [selectedItems, setSelectedItems] = useState<CartItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
@@ -107,6 +109,12 @@ export default function CreateOrderPage() {
     if (quantity < 1) {
       newItems = selectedItems.filter(item => item.id !== productId);
     } else {
+      const productInCatalog = products.find(p => p.id === productId);
+      const stockLimit = productInCatalog?.stock ?? 0;
+      if (quantity > stockLimit) {
+        toast({ title: "Limite de Estoque Atingido", description: `A quantidade máxima para este item é ${stockLimit}.`, variant: "destructive" });
+        quantity = stockLimit;
+      }
       newItems = selectedItems.map(item =>
         item.id === productId ? { ...item, quantity } : item
       );
@@ -130,7 +138,6 @@ export default function CreateOrderPage() {
     const seller = users.find(u => u.id === values.sellerId);
     
     if (!customer || !seller) {
-        // This should not happen due to form validation
         return;
     }
     
@@ -169,9 +176,19 @@ export default function CreateOrderPage() {
         sellerName: seller.name,
     };
     
-    const savedOrder = await addOrder(orderData, logAction, user);
-    if (savedOrder) {
-        router.push(`/admin/pedidos`);
+    try {
+        const savedOrder = await addOrder(orderData, logAction, user);
+        if (savedOrder) {
+            router.push(`/admin/pedidos`);
+        }
+    } catch (error) {
+        if (error instanceof Error) {
+            toast({
+                title: "Erro ao Criar Pedido",
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
     }
   }
 
@@ -189,7 +206,6 @@ export default function CreateOrderPage() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {/* Customer and Seller Selection */}
             <div className="grid md:grid-cols-2 gap-8 items-start">
               <FormField
                 control={form.control}
@@ -223,7 +239,7 @@ export default function CreateOrderPage() {
                                         value={c.name}
                                         key={c.cpf}
                                         onSelect={() => {
-                                          form.setValue("customerId", c.cpf);
+                                          form.setValue("customerId", c.cpf, { shouldValidate: true });
                                           setOpenCustomerPopover(false);
                                         }}
                                     >
@@ -265,7 +281,6 @@ export default function CreateOrderPage() {
                />
             </div>
             
-            {/* Product Selection */}
              <div>
                 <h3 className="text-lg font-medium mb-2">Itens do Pedido</h3>
                 <div className="rounded-md border">
@@ -311,21 +326,25 @@ export default function CreateOrderPage() {
                     </Table>
                 </div>
                 <div className="mt-4 flex flex-col md:flex-row gap-4 items-start md:items-center">
-                    <Popover open={openProductPopover} onOpenChange={setOpenProductPopover}>
+                   <Popover open={openProductPopover} onOpenChange={setOpenProductPopover}>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" aria-expanded={openProductPopover} className="w-full md:w-[300px] justify-between">
+                            <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-full md:w-[300px] justify-between"
+                            >
                                 Adicionar produto...
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0">
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                             <Command>
                                 <CommandInput placeholder="Buscar produto..." value={productSearch} onValueChange={setProductSearch}/>
                                 <CommandList>
                                     <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
                                     <CommandGroup>
                                     {products
-                                        .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                                        .filter(p => p.stock > 0 && p.name.toLowerCase().includes(productSearch.toLowerCase()))
                                         .map(p => (
                                         <CommandItem key={p.id} onSelect={() => handleAddItem(p)}>
                                             <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
@@ -337,11 +356,10 @@ export default function CreateOrderPage() {
                             </Command>
                         </PopoverContent>
                     </Popover>
-                    <FormMessage>{form.formState.errors.items?.message}</FormMessage>
+                    <FormMessage>{form.formState.errors.items?.message || form.formState.errors.items?.root?.message}</FormMessage>
                 </div>
             </div>
             
-            {/* Totals and Installments */}
             <div className="grid md:grid-cols-2 gap-8 items-start pt-6 border-t">
                 <div>
                     <FormLabel>Resumo Financeiro</FormLabel>

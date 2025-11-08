@@ -452,38 +452,42 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [products, toast]);
 
   const addOrder = async (order: Partial<Order>, logAction: LogAction, user: User | null): Promise<Order | null> => {
+    const orderToSave = {
+        ...order,
+        sellerId: '',
+        sellerName: 'Não atribuído',
+        commission: 0,
+        commissionPaid: false,
+    } as Order;
+    
+    if (orderToSave.installmentDetails) {
+        orderToSave.installmentDetails = orderToSave.installmentDetails.map(inst => ({
+            ...inst,
+            id: `inst-${orderToSave.id}-${inst.installmentNumber}`,
+            paidAmount: 0,
+            payments: [],
+        }));
+    }
+    
     try {
-        const orderToSave = {
-            ...order,
-            sellerId: '',
-            sellerName: 'Não atribuído',
-            commission: 0,
-            commissionPaid: false,
-        } as Order;
-        
-        if (orderToSave.installmentDetails) {
-            orderToSave.installmentDetails = orderToSave.installmentDetails.map(inst => ({
-                ...inst,
-                id: `inst-${orderToSave.id}-${inst.installmentNumber}`,
-                paidAmount: 0,
-                payments: [],
-            }));
-        }
-        
-        if (!await manageStockForOrder(orderToSave, 'subtract')) {
-          throw new Error(`Estoque insuficiente para um ou mais produtos.`);
-        }
+      if (!await manageStockForOrder(orderToSave, 'subtract')) {
+        throw new Error(`Estoque insuficiente para um ou mais produtos.`);
+      }
 
-        await setDoc(doc(db, 'orders', orderToSave.id), orderToSave);
-        
-        const creator = user ? `por ${user.name}`: 'pelo cliente';
-        logAction('Criação de Pedido', `Novo pedido #${orderToSave.id} para ${orderToSave.customer.name} no valor de R$${orderToSave.total?.toFixed(2)} foi criado ${creator}.`, user);
-        return orderToSave;
+      await setDoc(doc(db, 'orders', orderToSave.id), orderToSave);
+      
+      const creator = user ? `por ${user.name}`: 'pelo cliente';
+      logAction('Criação de Pedido', `Novo pedido #${orderToSave.id} para ${orderToSave.customer.name} no valor de R$${orderToSave.total?.toFixed(2)} foi criado ${creator}.`, user);
+      return orderToSave;
     } catch(e) {
         console.error("Failed to add order", e);
         if (e instanceof Error && e.message.startsWith('Estoque insuficiente')) {
-          throw e;
+            // Do not rethrow, let the caller handle it via returned null
+        } else {
+             // For other errors, re-throw to be caught by a higher-level handler if needed
+            throw e;
         }
+        // Revert stock if there was an error
         await manageStockForOrder(order as Order, 'add');
         throw e;
     }
