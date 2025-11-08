@@ -24,6 +24,7 @@ import { Check, ChevronsUpDown, PlusCircle, ShoppingCart, Trash2 } from 'lucide-
 import { cn } from '@/lib/utils';
 import type { CustomerInfo, User, Product, CartItem, Order } from '@/lib/types';
 import { addMonths } from 'date-fns';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const createOrderSchema = z.object({
   customerId: z.string().min(1, 'É obrigatório selecionar um cliente.'),
@@ -42,9 +43,74 @@ type CreateOrderFormValues = z.infer<typeof createOrderSchema>;
 
 const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
+const CustomProductForm = ({ onAdd }: { onAdd: (item: CartItem) => void }) => {
+    const [name, setName] = useState('');
+    const [price, setPrice] = useState('');
+    const [quantity, setQuantity] = useState('1');
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleAdd = () => {
+        const priceValue = parseFloat(price.replace(',', '.'));
+        const quantityValue = parseInt(quantity, 10);
+        if (name && !isNaN(priceValue) && priceValue > 0 && !isNaN(quantityValue) && quantityValue > 0) {
+            onAdd({
+                id: `custom-${Date.now()}`,
+                name: name,
+                price: priceValue,
+                quantity: quantityValue,
+                imageUrl: 'https://placehold.co/100x100.png?text=AVULSO',
+            });
+            setName('');
+            setPrice('');
+            setQuantity('1');
+            setIsOpen(false);
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button type="button" variant="outline">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Adicionar Produto Avulso
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Adicionar Produto Avulso</DialogTitle>
+                    <DialogDescription>
+                        Insira os detalhes do produto que não está no catálogo.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <FormLabel htmlFor="custom-product-name">Nome do Produto</FormLabel>
+                        <Input id="custom-product-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Montagem especial" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <FormLabel htmlFor="custom-product-quantity">Quantidade</FormLabel>
+                            <Input id="custom-product-quantity" type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} min={1} />
+                        </div>
+                        <div className="space-y-2">
+                            <FormLabel htmlFor="custom-product-price">Preço Unitário (R$)</FormLabel>
+                            <Input id="custom-product-price" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Ex: 50,00" />
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleAdd}>Adicionar ao Pedido</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 export default function CreateOrderPage() {
   const { addOrder } = useAdmin();
-  const { orders, products, customers } = useData();
+  const { products, customers } = useData();
   const { user, users } = useAuth();
   const { logAction } = useAudit();
   const router = useRouter();
@@ -52,17 +118,12 @@ export default function CreateOrderPage() {
 
   const [selectedItems, setSelectedItems] = useState<CartItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
-  const [customerSearch, setCustomerSearch] = useState('');
+  const [openProductPopover, setOpenProductPopover] = useState(false);
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
   
   const filteredCustomers = useMemo(() => {
-    if (!customerSearch) return customers;
-    const lowercasedQuery = customerSearch.toLowerCase();
-    return customers.filter(c => 
-        c.name.toLowerCase().includes(lowercasedQuery) ||
-        c.cpf.replace(/\D/g, '').includes(lowercasedQuery)
-    );
-  }, [customers, customerSearch]);
+    return customers;
+  }, [customers]);
 
 
   const sellers = useMemo(() => {
@@ -96,23 +157,24 @@ export default function CreateOrderPage() {
     },
   });
   
-  const handleAddItem = (product: Product) => {
+  const handleAddItem = (product: Product | CartItem) => {
     setProductSearch('');
+    setOpenProductPopover(false);
 
     const existingItem = selectedItems.find(item => item.id === product.id);
     let newItems;
 
     if (existingItem) {
       newItems = selectedItems.map(item =>
-        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        item.id === product.id ? { ...item, quantity: item.quantity + (product.quantity || 1) } : item
       );
     } else {
       newItems = [...selectedItems, {
         id: product.id,
         name: product.name,
         price: product.price,
-        quantity: 1,
-        imageUrl: product.imageUrls?.[0] || '',
+        quantity: product.quantity || 1,
+        imageUrl: 'imageUrl' in product ? product.imageUrl : (product.imageUrls?.[0] || 'https://placehold.co/100x100.png'),
       }];
     }
     setSelectedItems(newItems);
@@ -125,7 +187,7 @@ export default function CreateOrderPage() {
       newItems = selectedItems.filter(item => item.id !== productId);
     } else {
       const productInCatalog = products.find(p => p.id === productId);
-      const stockLimit = productInCatalog?.stock ?? 0;
+      const stockLimit = productInCatalog?.stock ?? Infinity; // Infinity for custom products
       if (quantity > stockLimit) {
         toast({ title: "Limite de Estoque Atingido", description: `A quantidade máxima para este item é ${stockLimit}.`, variant: "destructive" });
         quantity = stockLimit;
@@ -237,41 +299,35 @@ export default function CreateOrderPage() {
                             className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
                           >
                             {field.value
-                              ? customers.find(c => c.cpf === field.value)?.name
+                              ? filteredCustomers.find(c => c.cpf === field.value)?.name
                               : "Selecione um cliente"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command shouldFilter={false}>
-                          <CommandInput 
+                        <Command>
+                           <CommandInput 
                             placeholder="Buscar cliente por nome ou CPF..."
-                            value={customerSearch}
-                            onValueChange={setCustomerSearch}
                           />
                            <CommandList>
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandGroup>
                               {filteredCustomers.map(c => (
-                                <Button
-                                    variant="ghost"
+                                <CommandItem
+                                    value={`${c.name} ${c.cpf}`}
                                     key={c.cpf}
-                                    onClick={() => {
+                                    onSelect={() => {
                                       form.setValue("customerId", c.cpf, { shouldValidate: true });
                                       setOpenCustomerPopover(false);
-                                      setCustomerSearch('');
                                     }}
-                                    className="w-full justify-start font-normal h-auto py-2"
                                 >
-                                    <div className="flex items-center">
-                                        <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
-                                        <div className="flex flex-col items-start">
-                                            <span>{c.name}</span>
-                                            <span className="text-xs text-muted-foreground">{c.cpf}</span>
-                                        </div>
+                                    <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
+                                    <div className="flex flex-col items-start">
+                                        <span>{c.name}</span>
+                                        <span className="text-xs text-muted-foreground">{c.cpf}</span>
                                     </div>
-                                </Button>
+                                </CommandItem>
                               ))}
                             </CommandGroup>
                           </CommandList>
@@ -351,18 +407,22 @@ export default function CreateOrderPage() {
                         </TableBody>
                     </Table>
                 </div>
-                <div className="mt-4 flex flex-col md:flex-row gap-4 items-start md:items-center">
-                    <Command shouldFilter={false} className="w-full md:w-[300px] overflow-visible">
-                        <CommandInput 
-                            placeholder="Digite para buscar um produto..." 
-                            value={productSearch}
-                            onValueChange={setProductSearch}
-                        />
-                        <div className="relative mt-1">
-                            {filteredProducts.length > 0 && productSearch.length > 0 && (
-                                <div className="absolute top-0 w-full rounded-xl bg-card border shadow-md z-10">
+                <div className="mt-4 flex flex-wrap gap-4 items-center">
+                    <Popover open={openProductPopover} onOpenChange={setOpenProductPopover}>
+                        <PopoverTrigger asChild>
+                             <Command className="w-full md:w-[300px] overflow-visible">
+                                <CommandInput 
+                                    placeholder="Digite para buscar um produto..." 
+                                    value={productSearch}
+                                    onValueChange={setProductSearch}
+                                    onFocus={() => setOpenProductPopover(true)}
+                                />
+                            </Command>
+                        </PopoverTrigger>
+                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            {filteredProducts.length > 0 && (
+                                <Command>
                                     <CommandList>
-                                        <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
                                         <CommandGroup>
                                         {filteredProducts.map(p => (
                                             <CommandItem key={p.id} onSelect={() => handleAddItem(p)} value={p.name}>
@@ -372,10 +432,11 @@ export default function CreateOrderPage() {
                                         ))}
                                         </CommandGroup>
                                     </CommandList>
-                                </div>
-                            )}
-                        </div>
-                    </Command>
+                                </Command>
+                             )}
+                        </PopoverContent>
+                    </Popover>
+                    <CustomProductForm onAdd={handleAddItem} />
                     <FormMessage>{form.formState.errors.items?.message || form.formState.errors.items?.root?.message}</FormMessage>
                 </div>
             </div>
