@@ -18,7 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList } from '@/components/ui/command';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Check, ChevronsUpDown, PlusCircle, ShoppingCart, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -52,6 +52,7 @@ export default function CreateOrderPage() {
 
   const [selectedItems, setSelectedItems] = useState<CartItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
   const [openProductPopover, setOpenProductPopover] = useState(false);
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
 
@@ -66,6 +67,11 @@ export default function CreateOrderPage() {
     return Array.from(customerMap.values()).sort((a,b) => a.name.localeCompare(b.name));
   }, [orders]);
   
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearch) return customers;
+    return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()));
+  }, [customers, customerSearch]);
+
   const sellers = useMemo(() => {
     return users.filter(u => u.role === 'vendedor' || u.role === 'admin' || u.role === 'gerente');
   }, [users]);
@@ -214,43 +220,48 @@ export default function CreateOrderPage() {
                   <FormItem className="flex flex-col">
                     <FormLabel>Cliente</FormLabel>
                     <Popover open={openCustomerPopover} onOpenChange={setOpenCustomerPopover}>
-                        <PopoverTrigger asChild>
-                            <FormControl>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
-                            >
-                                {field.value
-                                ? customers.find(c => c.cpf === field.value)?.name
-                                : "Selecione um cliente"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                            </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                            <CommandInput placeholder="Buscar cliente por nome..." />
-                            <CommandList>
-                                <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                                <CommandGroup>
-                                    {customers.map(c => (
-                                    <CommandItem
-                                        value={c.name}
-                                        key={c.cpf}
-                                        onSelect={() => {
-                                          form.setValue("customerId", c.cpf, { shouldValidate: true });
-                                          setOpenCustomerPopover(false);
-                                        }}
-                                    >
-                                        <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
-                                        {c.name} ({c.cpf})
-                                    </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                            </CommandList>
-                            </Command>
-                        </PopoverContent>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                          >
+                            {field.value
+                              ? customers.find(c => c.cpf === field.value)?.name
+                              : "Selecione um cliente"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Buscar cliente por nome..."
+                            value={customerSearch}
+                            onValueChange={setCustomerSearch}
+                          />
+                          <CommandList>
+                            <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {filteredCustomers.map(c => (
+                                <Button
+                                    variant="ghost"
+                                    key={c.cpf}
+                                    onClick={() => {
+                                      form.setValue("customerId", c.cpf, { shouldValidate: true });
+                                      setOpenCustomerPopover(false);
+                                    }}
+                                    className="w-full justify-start font-normal text-left h-auto py-2"
+                                >
+                                    <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
+                                    {c.name} ({c.cpf})
+                                </Button>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
                     </Popover>
                     <FormMessage />
                   </FormItem>
