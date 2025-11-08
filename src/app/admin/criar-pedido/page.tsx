@@ -58,20 +58,20 @@ export default function CreateOrderPage() {
 
   const customers = useMemo(() => {
     if (!orders) return [];
-    
-    // Use a map to get the most recent customer data based on order date
     const customerMap = new Map<string, CustomerInfo>();
-    orders.forEach(order => {
+    
+    // Sort orders by date descending to process the most recent ones first
+    const sortedOrders = [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    sortedOrders.forEach(order => {
         const cpf = order.customer.cpf.replace(/\D/g, '');
-        const existingCustomer = customerMap.get(cpf);
-        if (!existingCustomer || new Date(order.date) > new Date(orders.find(o => o.customer.cpf.replace(/\D/g, '') === cpf)!.date) ) {
+        if (!customerMap.has(cpf)) {
             customerMap.set(cpf, order.customer);
         }
     });
 
     return Array.from(customerMap.values())
-        .sort((a,b) => a.name.localeCompare(b.name));
-
+        .sort((a, b) => a.name.localeCompare(b.name));
   }, [orders]);
   
   const filteredCustomers = useMemo(() => {
@@ -87,6 +87,23 @@ export default function CreateOrderPage() {
   const sellers = useMemo(() => {
     return users.filter(u => u.role === 'vendedor' || u.role === 'admin' || u.role === 'gerente');
   }, [users]);
+  
+  const uniqueProducts = useMemo(() => {
+    const productMap = new Map<string, Product>();
+    products.forEach(p => {
+        if (!productMap.has(p.id)) {
+            productMap.set(p.id, p);
+        }
+    });
+    return Array.from(productMap.values()).sort((a,b) => a.name.localeCompare(b.name));
+  }, [products]);
+  
+  const filteredProducts = useMemo(() => {
+    if (!productSearch) return uniqueProducts.filter(p => p.stock > 0);
+    const lowercasedQuery = productSearch.toLowerCase();
+    return uniqueProducts.filter(p => p.stock > 0 && p.name.toLowerCase().includes(lowercasedQuery));
+  }, [productSearch, uniqueProducts]);
+
 
   const form = useForm<CreateOrderFormValues>({
     resolver: zodResolver(createOrderSchema),
@@ -247,27 +264,34 @@ export default function CreateOrderPage() {
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
+                        <Command shouldFilter={false}>
                           <CommandInput 
                             placeholder="Buscar cliente por nome ou CPF..."
                             value={customerSearch}
                             onValueChange={setCustomerSearch}
                           />
-                          <CommandList>
+                           <CommandList>
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandGroup>
                               {filteredCustomers.map(c => (
-                                <CommandItem
+                                <Button
+                                    variant="ghost"
                                     key={c.cpf}
-                                    value={`${c.name} ${c.cpf}`}
-                                    onSelect={() => {
+                                    onClick={() => {
                                       form.setValue("customerId", c.cpf, { shouldValidate: true });
                                       setOpenCustomerPopover(false);
+                                      setCustomerSearch('');
                                     }}
+                                    className="w-full justify-start font-normal h-auto py-2"
                                 >
-                                    <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
-                                    {c.name} ({c.cpf})
-                                </CommandItem>
+                                    <div className="flex items-center">
+                                        <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
+                                        <div className="flex flex-col items-start">
+                                            <span>{c.name}</span>
+                                            <span className="text-xs text-muted-foreground">{c.cpf}</span>
+                                        </div>
+                                    </div>
+                                </Button>
                               ))}
                             </CommandGroup>
                           </CommandList>
@@ -360,15 +384,13 @@ export default function CreateOrderPage() {
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
+                            <Command shouldFilter={false}>
                                 <CommandInput placeholder="Buscar produto..." value={productSearch} onValueChange={setProductSearch}/>
                                 <CommandList>
                                     <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
                                     <CommandGroup>
-                                    {products
-                                        .filter(p => p.stock > 0 && p.name.toLowerCase().includes(productSearch.toLowerCase()))
-                                        .map(p => (
-                                        <CommandItem key={p.id} onSelect={() => handleAddItem(p)}>
+                                    {filteredProducts.map(p => (
+                                        <CommandItem key={p.id} onSelect={() => handleAddItem(p)} value={p.name}>
                                             <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
                                             {p.name}
                                         </CommandItem>
