@@ -26,7 +26,7 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
   const isHomePage = pathname === '/';
 
   return (
-    <>
+    <AdminProvider>
       {isSpecialRoute ? (
         <>{children}</>
       ) : isAdminRoute ? (
@@ -41,7 +41,7 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
       )}
       <Toaster />
       <FirebaseErrorListener />
-    </>
+    </AdminProvider>
   );
 };
 
@@ -70,13 +70,11 @@ export default function RootLayout({
             <PermissionsProvider>
               <SettingsProvider>
                 <DataProvider>
-                  <AdminProvider>
-                    <CustomerAuthProvider>
-                      <CartProvider>
-                        <AppContent>{children}</AppContent>
-                      </CartProvider>
-                    </CustomerAuthProvider>
-                  </AdminProvider>
+                  <CustomerAuthProvider>
+                    <CartProvider>
+                      <AppContent>{children}</AppContent>
+                    </CartProvider>
+                  </CustomerAuthProvider>
                 </DataProvider>
               </SettingsProvider>
             </PermissionsProvider>
