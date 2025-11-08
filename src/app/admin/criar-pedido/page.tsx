@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -22,7 +22,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, Command
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Check, ChevronsUpDown, PlusCircle, ShoppingCart, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { CustomerInfo, User, Product, CartItem } from '@/lib/types';
+import type { CustomerInfo, User, Product, CartItem, Order } from '@/lib/types';
 import { addMonths } from 'date-fns';
 
 const createOrderSchema = z.object({
@@ -59,17 +59,17 @@ export default function CreateOrderPage() {
   const customers = useMemo(() => {
     if (!orders) return [];
     
-    // Get the most recent order for each customer to ensure we have the latest customer data
-    const latestOrdersByCustomer = new Map<string, Order>();
+    // Use a map to get the most recent customer data based on order date
+    const customerMap = new Map<string, CustomerInfo>();
     orders.forEach(order => {
         const cpf = order.customer.cpf.replace(/\D/g, '');
-        if (!latestOrdersByCustomer.has(cpf) || new Date(order.date) > new Date(latestOrdersByCustomer.get(cpf)!.date)) {
-            latestOrdersByCustomer.set(cpf, order);
+        const existingCustomer = customerMap.get(cpf);
+        if (!existingCustomer || new Date(order.date) > new Date(orders.find(o => o.customer.cpf.replace(/\D/g, '') === cpf)!.date) ) {
+            customerMap.set(cpf, order.customer);
         }
     });
 
-    return Array.from(latestOrdersByCustomer.values())
-        .map(order => order.customer)
+    return Array.from(customerMap.values())
         .sort((a,b) => a.name.localeCompare(b.name));
 
   }, [orders]);
@@ -257,18 +257,17 @@ export default function CreateOrderPage() {
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandGroup>
                               {filteredCustomers.map(c => (
-                                <Button
-                                    variant="ghost"
+                                <CommandItem
                                     key={c.cpf}
-                                    onClick={() => {
+                                    value={`${c.name} ${c.cpf}`}
+                                    onSelect={() => {
                                       form.setValue("customerId", c.cpf, { shouldValidate: true });
                                       setOpenCustomerPopover(false);
                                     }}
-                                    className="w-full justify-start font-normal text-left h-auto py-2"
                                 >
                                     <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
                                     {c.name} ({c.cpf})
-                                </Button>
+                                </CommandItem>
                               ))}
                             </CommandGroup>
                           </CommandList>
