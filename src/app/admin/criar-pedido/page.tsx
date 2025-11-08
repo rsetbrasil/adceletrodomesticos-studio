@@ -110,31 +110,26 @@ const CustomProductForm = ({ onAdd }: { onAdd: (item: CartItem) => void }) => {
 
 export default function CreateOrderPage() {
   const { addOrder } = useAdmin();
-  const { products, customers: allCustomers, orders } = useData();
+  const { products: allProducts, customers: allCustomers, orders } = useData();
   const { user, users } = useAuth();
   const { logAction } = useAudit();
   const router = useRouter();
   const { toast } = useToast();
 
   const [selectedItems, setSelectedItems] = useState<CartItem[]>([]);
-  const [customers, setCustomers] = useState<CustomerInfo[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [openProductPopover, setOpenProductPopover] = useState(false);
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
-
-  useEffect(() => {
-    setCustomers(allCustomers);
-  }, [allCustomers]);
   
   const filteredCustomers = useMemo(() => {
-    if (!customerSearch) return customers;
+    if (!customerSearch) return allCustomers;
     const lowercasedQuery = customerSearch.toLowerCase();
-    return customers.filter(c => 
+    return allCustomers.filter(c => 
         c.name.toLowerCase().includes(lowercasedQuery) || 
         c.cpf.replace(/\D/g, '').includes(lowercasedQuery)
     );
-  }, [customers, customerSearch]);
+  }, [allCustomers, customerSearch]);
 
 
   const sellers = useMemo(() => {
@@ -143,13 +138,13 @@ export default function CreateOrderPage() {
   
   const uniqueProducts = useMemo(() => {
     const productMap = new Map<string, Product>();
-    products.forEach(p => {
+    allProducts.forEach(p => {
         if (!productMap.has(p.id)) {
             productMap.set(p.id, p);
         }
     });
     return Array.from(productMap.values()).sort((a,b) => a.name.localeCompare(b.name));
-  }, [products]);
+  }, [allProducts]);
   
   const filteredProducts = useMemo(() => {
     if (!productSearch) return [];
@@ -197,7 +192,7 @@ export default function CreateOrderPage() {
     if (quantity < 1) {
       newItems = selectedItems.filter(item => item.id !== productId);
     } else {
-      const productInCatalog = products.find(p => p.id === productId);
+      const productInCatalog = allProducts.find(p => p.id === productId);
       const stockLimit = productInCatalog?.stock ?? Infinity; // Infinity for custom products
       if (quantity > stockLimit) {
         toast({ title: "Limite de Estoque Atingido", description: `A quantidade máxima para este item é ${stockLimit}.`, variant: "destructive" });
@@ -222,7 +217,7 @@ export default function CreateOrderPage() {
   }, [selectedItems]);
   
   async function onSubmit(values: CreateOrderFormValues) {
-    const customer = customers.find(c => c.cpf === values.customerId);
+    const customer = allCustomers.find(c => c.cpf === values.customerId);
     const seller = users.find(u => u.id === values.sellerId);
     
     if (!customer || !seller) {
@@ -310,7 +305,7 @@ export default function CreateOrderPage() {
                             className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
                           >
                             {field.value
-                              ? customers.find(c => c.cpf === field.value)?.name
+                              ? allCustomers.find(c => c.cpf === field.value)?.name
                               : "Selecione um cliente"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -439,9 +434,10 @@ export default function CreateOrderPage() {
                             className="w-[--radix-popover-trigger-width] p-0" 
                             onOpenAutoFocus={(e) => e.preventDefault()}
                         >
-                            {productSearch && filteredProducts.length > 0 && (
+                            {productSearch && (
                                 <Command>
                                     <CommandList>
+                                        <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
                                         <CommandGroup>
                                             {filteredProducts.map(p => (
                                                 <Button 
