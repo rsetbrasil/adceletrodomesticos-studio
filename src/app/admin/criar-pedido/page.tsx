@@ -110,20 +110,31 @@ const CustomProductForm = ({ onAdd }: { onAdd: (item: CartItem) => void }) => {
 
 export default function CreateOrderPage() {
   const { addOrder } = useAdmin();
-  const { products, customers, orders } = useData();
+  const { products, customers: allCustomers, orders } = useData();
   const { user, users } = useAuth();
   const { logAction } = useAudit();
   const router = useRouter();
   const { toast } = useToast();
 
   const [selectedItems, setSelectedItems] = useState<CartItem[]>([]);
+  const [customers, setCustomers] = useState<CustomerInfo[]>([]);
   const [productSearch, setProductSearch] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
   const [openProductPopover, setOpenProductPopover] = useState(false);
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
+
+  useEffect(() => {
+    setCustomers(allCustomers);
+  }, [allCustomers]);
   
   const filteredCustomers = useMemo(() => {
-    return customers;
-  }, [customers]);
+    if (!customerSearch) return customers;
+    const lowercasedQuery = customerSearch.toLowerCase();
+    return customers.filter(c => 
+        c.name.toLowerCase().includes(lowercasedQuery) || 
+        c.cpf.replace(/\D/g, '').includes(lowercasedQuery)
+    );
+  }, [customers, customerSearch]);
 
 
   const sellers = useMemo(() => {
@@ -299,7 +310,7 @@ export default function CreateOrderPage() {
                             className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
                           >
                             {field.value
-                              ? filteredCustomers.find(c => c.cpf === field.value)?.name
+                              ? customers.find(c => c.cpf === field.value)?.name
                               : "Selecione um cliente"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -309,25 +320,28 @@ export default function CreateOrderPage() {
                         <Command>
                            <CommandInput 
                             placeholder="Buscar cliente por nome ou CPF..."
+                            value={customerSearch}
+                            onValueChange={setCustomerSearch}
                           />
                            <CommandList>
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandGroup>
                               {filteredCustomers.map(c => (
-                                <CommandItem
-                                    value={`${c.name} ${c.cpf}`}
+                                <Button
+                                    variant="ghost"
                                     key={c.cpf}
-                                    onSelect={() => {
+                                    onClick={() => {
                                       form.setValue("customerId", c.cpf, { shouldValidate: true });
                                       setOpenCustomerPopover(false);
                                     }}
+                                    className="w-full justify-start h-auto"
                                 >
                                     <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
-                                    <div className="flex flex-col items-start">
+                                    <div className="flex flex-col items-start text-left">
                                         <span>{c.name}</span>
                                         <span className="text-xs text-muted-foreground">{c.cpf}</span>
                                     </div>
-                                </CommandItem>
+                                </Button>
                               ))}
                             </CommandGroup>
                           </CommandList>
@@ -408,32 +422,42 @@ export default function CreateOrderPage() {
                     </Table>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-4 items-center">
-                    <Popover open={openProductPopover} onOpenChange={setOpenProductPopover}>
+                   <Popover open={openProductPopover} onOpenChange={setOpenProductPopover}>
                         <PopoverTrigger asChild>
-                             <Command className="w-full md:w-[300px] overflow-visible">
-                                <CommandInput 
-                                    placeholder="Digite para buscar um produto..." 
-                                    value={productSearch}
-                                    onValueChange={setProductSearch}
-                                    onFocus={() => setOpenProductPopover(true)}
-                                />
-                            </Command>
+                            <div className="relative w-full md:w-[300px]">
+                                <Command className="overflow-visible">
+                                    <CommandInput 
+                                        placeholder="Digite para buscar um produto..." 
+                                        value={productSearch}
+                                        onValueChange={setProductSearch}
+                                        onFocus={() => setOpenProductPopover(true)}
+                                    />
+                                </Command>
+                            </div>
                         </PopoverTrigger>
-                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            {filteredProducts.length > 0 && (
+                        <PopoverContent 
+                            className="w-[--radix-popover-trigger-width] p-0" 
+                            onOpenAutoFocus={(e) => e.preventDefault()}
+                        >
+                            {productSearch && filteredProducts.length > 0 && (
                                 <Command>
                                     <CommandList>
                                         <CommandGroup>
-                                        {filteredProducts.map(p => (
-                                            <CommandItem key={p.id} onSelect={() => handleAddItem(p)} value={p.name}>
-                                                <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
-                                                {p.name}
-                                            </CommandItem>
-                                        ))}
+                                            {filteredProducts.map(p => (
+                                                <Button 
+                                                    key={p.id} 
+                                                    variant="ghost"
+                                                    onClick={() => handleAddItem(p)} 
+                                                    className="w-full justify-start h-auto"
+                                                >
+                                                    <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
+                                                    {p.name}
+                                                </Button>
+                                            ))}
                                         </CommandGroup>
                                     </CommandList>
                                 </Command>
-                             )}
+                            )}
                         </PopoverContent>
                     </Popover>
                     <CustomProductForm onAdd={handleAddItem} />
