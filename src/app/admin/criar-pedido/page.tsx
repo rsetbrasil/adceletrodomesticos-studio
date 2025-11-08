@@ -51,6 +51,7 @@ export default function CreateOrderPage() {
   const [selectedItems, setSelectedItems] = useState<CartItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [openProductPopover, setOpenProductPopover] = useState(false);
+  const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
 
   const customers = useMemo(() => {
     if (!orders) return [];
@@ -78,7 +79,6 @@ export default function CreateOrderPage() {
   });
   
   const handleAddItem = (product: Product) => {
-    setOpenProductPopover(false);
     setProductSearch('');
 
     const existingItem = selectedItems.find(item => item.id === product.id);
@@ -99,6 +99,7 @@ export default function CreateOrderPage() {
     }
     setSelectedItems(newItems);
     form.setValue('items', newItems, { shouldValidate: true });
+    setOpenProductPopover(false);
   };
   
   const handleQuantityChange = (productId: string, quantity: number) => {
@@ -189,14 +190,14 @@ export default function CreateOrderPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {/* Customer and Seller Selection */}
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid md:grid-cols-2 gap-8 items-start">
               <FormField
                 control={form.control}
                 name="customerId"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Cliente</FormLabel>
-                    <Popover>
+                    <Popover open={openCustomerPopover} onOpenChange={setOpenCustomerPopover}>
                         <PopoverTrigger asChild>
                             <FormControl>
                             <Button
@@ -211,11 +212,11 @@ export default function CreateOrderPage() {
                             </Button>
                             </FormControl>
                         </PopoverTrigger>
-                        <PopoverContent className="w-full p-0">
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                             <Command>
                             <CommandInput placeholder="Buscar cliente por nome..." />
-                            <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandList>
+                                <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                                 <CommandGroup>
                                     {customers.map(c => (
                                     <CommandItem
@@ -223,6 +224,7 @@ export default function CreateOrderPage() {
                                         key={c.cpf}
                                         onSelect={() => {
                                           form.setValue("customerId", c.cpf);
+                                          setOpenCustomerPopover(false);
                                         }}
                                     >
                                         <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
@@ -271,10 +273,10 @@ export default function CreateOrderPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Produto</TableHead>
-                                <TableHead className="w-[100px]">Preço</TableHead>
-                                <TableHead className="w-[120px]">Qtd.</TableHead>
-                                <TableHead className="w-[100px]">Subtotal</TableHead>
-                                <TableHead className="w-[50px]"></TableHead>
+                                <TableHead className="w-[120px] text-right">Preço</TableHead>
+                                <TableHead className="w-[120px] text-center">Qtd.</TableHead>
+                                <TableHead className="w-[120px] text-right">Subtotal</TableHead>
+                                <TableHead className="w-[60px]"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -282,18 +284,18 @@ export default function CreateOrderPage() {
                                 selectedItems.map(item => (
                                     <TableRow key={item.id}>
                                         <TableCell className="font-medium">{item.name}</TableCell>
-                                        <TableCell>{formatCurrency(item.price)}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency(item.price)}</TableCell>
                                         <TableCell>
                                             <Input 
                                                 type="number" 
-                                                className="w-20" 
+                                                className="w-20 mx-auto text-center" 
                                                 value={item.quantity}
                                                 onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value))}
                                                 min={1}
                                             />
                                         </TableCell>
-                                        <TableCell>{formatCurrency(item.price * item.quantity)}</TableCell>
-                                        <TableCell>
+                                        <TableCell className="text-right">{formatCurrency(item.price * item.quantity)}</TableCell>
+                                        <TableCell className="text-right">
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveItem(item.id)}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -340,10 +342,10 @@ export default function CreateOrderPage() {
             </div>
             
             {/* Totals and Installments */}
-            <div className="grid md:grid-cols-2 gap-8 items-start">
-                <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Resumo Financeiro</h3>
-                    <div className="p-4 bg-muted rounded-lg">
+            <div className="grid md:grid-cols-2 gap-8 items-start pt-6 border-t">
+                <div>
+                    <FormLabel>Resumo Financeiro</FormLabel>
+                    <div className="p-4 bg-muted rounded-lg mt-2">
                         <div className="flex justify-between items-center text-xl font-bold">
                             <span>TOTAL DO PEDIDO</span>
                             <span>{formatCurrency(total)}</span>
