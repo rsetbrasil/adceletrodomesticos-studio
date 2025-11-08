@@ -58,19 +58,31 @@ export default function CreateOrderPage() {
 
   const customers = useMemo(() => {
     if (!orders) return [];
-    const customerMap = new Map<string, CustomerInfo>();
+    
+    // Get the most recent order for each customer to ensure we have the latest customer data
+    const latestOrdersByCustomer = new Map<string, Order>();
     orders.forEach(order => {
-      if (order.customer.cpf && !customerMap.has(order.customer.cpf.replace(/\D/g, ''))) {
-        customerMap.set(order.customer.cpf.replace(/\D/g, ''), order.customer);
-      }
+        const cpf = order.customer.cpf.replace(/\D/g, '');
+        if (!latestOrdersByCustomer.has(cpf) || new Date(order.date) > new Date(latestOrdersByCustomer.get(cpf)!.date)) {
+            latestOrdersByCustomer.set(cpf, order);
+        }
     });
-    return Array.from(customerMap.values()).sort((a,b) => a.name.localeCompare(b.name));
+
+    return Array.from(latestOrdersByCustomer.values())
+        .map(order => order.customer)
+        .sort((a,b) => a.name.localeCompare(b.name));
+
   }, [orders]);
   
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return customers;
-    return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()));
+    const lowercasedQuery = customerSearch.toLowerCase();
+    return customers.filter(c => 
+        c.name.toLowerCase().includes(lowercasedQuery) ||
+        c.cpf.replace(/\D/g, '').includes(lowercasedQuery)
+    );
   }, [customers, customerSearch]);
+
 
   const sellers = useMemo(() => {
     return users.filter(u => u.role === 'vendedor' || u.role === 'admin' || u.role === 'gerente');
@@ -88,6 +100,7 @@ export default function CreateOrderPage() {
   
   const handleAddItem = (product: Product) => {
     setProductSearch('');
+    setOpenProductPopover(false);
 
     const existingItem = selectedItems.find(item => item.id === product.id);
     let newItems;
@@ -107,7 +120,6 @@ export default function CreateOrderPage() {
     }
     setSelectedItems(newItems);
     form.setValue('items', newItems, { shouldValidate: true });
-    setOpenProductPopover(false);
   };
   
   const handleQuantityChange = (productId: string, quantity: number) => {
@@ -237,7 +249,7 @@ export default function CreateOrderPage() {
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                         <Command>
                           <CommandInput 
-                            placeholder="Buscar cliente por nome..."
+                            placeholder="Buscar cliente por nome ou CPF..."
                             value={customerSearch}
                             onValueChange={setCustomerSearch}
                           />
