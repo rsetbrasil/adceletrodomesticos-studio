@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useCart } from '@/context/CartContext';
 import type { Product, Category } from '@/lib/types';
 import ProductCard from '@/components/ProductCard';
 import ProductFilters from '@/components/ProductFilters';

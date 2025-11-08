@@ -44,7 +44,7 @@ const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style
 
 export default function CreateOrderPage() {
   const { addOrder } = useAdmin();
-  const { orders, products } = useData();
+  const { orders, products, customers } = useData();
   const { user, users } = useAuth();
   const { logAction } = useAudit();
   const router = useRouter();
@@ -55,24 +55,6 @@ export default function CreateOrderPage() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [openProductPopover, setOpenProductPopover] = useState(false);
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
-
-  const customers = useMemo(() => {
-    if (!orders) return [];
-    const customerMap = new Map<string, CustomerInfo>();
-    
-    // Sort orders by date descending to process the most recent ones first
-    const sortedOrders = [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    sortedOrders.forEach(order => {
-        const cpf = order.customer.cpf.replace(/\D/g, '');
-        if (!customerMap.has(cpf)) {
-            customerMap.set(cpf, order.customer);
-        }
-    });
-
-    return Array.from(customerMap.values())
-        .sort((a, b) => a.name.localeCompare(b.name));
-  }, [orders]);
   
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return customers;

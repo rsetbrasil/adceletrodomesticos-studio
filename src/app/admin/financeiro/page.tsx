@@ -35,94 +35,14 @@ type SellerCommissionDetails = {
 
 export default function FinanceiroPage() {
   const { payCommissions } = useAdmin();
-  const { orders, products } = useData();
+  const { orders, financialSummary, commissionSummary } = useData();
   const { settings } = useSettings();
   const { users } = useAuth();
   const router = useRouter();
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<SellerCommissionDetails | null>(null);
   const [printTitle, setPrintTitle] = useState('');
-
-  const financialSummary = useMemo(() => {
-    if (!orders || !products) {
-      return { totalVendido: 0, totalRecebido: 0, totalPendente: 0, lucroBruto: 0, monthlyData: [] };
-    }
-
-    let totalVendido = 0;
-    let totalRecebido = 0;
-    let totalPendente = 0;
-    let lucroBruto = 0;
-    const monthlySales: { [key: string]: number } = {};
-
-    orders.forEach(order => {
-      if (order.status !== 'Cancelado' && order.status !== 'Excluído') {
-        totalVendido += order.total;
-
-        order.items.forEach(item => {
-            const product = products.find(p => p.id === item.id);
-            const cost = product?.cost || 0;
-            const itemRevenue = item.price * item.quantity;
-            const itemCost = cost * item.quantity;
-            lucroBruto += (itemRevenue - itemCost);
-        });
-
-        const monthKey = format(parseISO(order.date), 'MMM/yy', { locale: ptBR });
-        if (!monthlySales[monthKey]) {
-          monthlySales[monthKey] = 0;
-        }
-        monthlySales[monthKey] += order.total;
-
-        if (order.paymentMethod === 'Crediário') {
-            (order.installmentDetails || []).forEach(inst => {
-            if (inst.status === 'Pago') {
-                totalRecebido += inst.paidAmount || inst.amount;
-            } else {
-                totalRecebido += inst.paidAmount || 0;
-                totalPendente += inst.amount - (inst.paidAmount || 0);
-            }
-            });
-        } else {
-            // Consider PIX/Dinheiro as fully paid
-            totalRecebido += order.total;
-        }
-      }
-    });
-    
-    const monthlyData = Object.entries(monthlySales).map(([name, total]) => ({ name, total })).reverse();
-
-    return { totalVendido, totalRecebido, totalPendente, lucroBruto, monthlyData };
-  }, [orders, products]);
-
-  const commissionSummary = useMemo(() => {
-    if (!orders || !users) {
-        return { totalPendingCommission: 0, commissionsBySeller: [] };
-    }
-
-    const sellerCommissions = new Map<string, { name: string; total: number; count: number; orderIds: string[] }>();
-
-    orders.forEach(order => {
-        // Only include commissions from delivered and unpaid orders
-        if (order.status === 'Entregue' && order.sellerId && typeof order.commission === 'number' && order.commission > 0 && !order.commissionPaid) {
-            const sellerId = order.sellerId;
-            const sellerName = order.sellerName || users.find(u => u.id === sellerId)?.name || 'Vendedor Desconhecido';
-            
-            const current = sellerCommissions.get(sellerId) || { name: sellerName, total: 0, count: 0, orderIds: [] };
-            current.total += order.commission;
-            current.count += 1;
-            current.orderIds.push(order.id);
-            sellerCommissions.set(sellerId, current);
-        }
-    });
-
-    const commissionsBySeller: SellerCommissionDetails[] = Array.from(sellerCommissions.entries())
-      .map(([id, data]) => ({ id, ...data }))
-      .sort((a,b) => b.total - a.total);
-
-    const totalPendingCommission = commissionsBySeller.reduce((acc, seller) => acc + seller.total, 0);
-
-    return { totalPendingCommission, commissionsBySeller };
-  }, [orders, users]);
-
+  
   const deliveredOrders = useMemo(() => {
     if (!orders) return [];
     return orders.filter(o => o.status === 'Entregue').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

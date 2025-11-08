@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent, useRef } from 'react';
@@ -77,7 +78,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 
 export default function CustomersAdminPage() {
   const { updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers } = useAdmin();
-  const { orders } = useData();
+  const { orders, customers, customerOrders, customerFinancials } = useData();
   const { user } = useAuth();
   const { logAction } = useAudit();
   const { toast } = useToast();
@@ -117,55 +118,25 @@ export default function CustomersAdminPage() {
     }
   };
 
-  const customers = useMemo(() => {
-    if (!orders) return [];
-    const customerMap = new Map<string, CustomerInfo>();
-    orders.forEach(order => {
-      if (!customerMap.has(order.customer.cpf)) {
-        customerMap.set(order.customer.cpf, order.customer);
-      } else {
-        // Garante que estamos pegando a info mais recente (com senha, se houver)
-        const existing = customerMap.get(order.customer.cpf)!;
-        if (!existing.password && order.customer.password) {
-             customerMap.set(order.customer.cpf, order.customer);
-        }
-      }
-    });
+  const filteredCustomers = useMemo(() => {
+    if (!customers) return [];
+    if (!searchQuery) return customers;
 
-    const allCustomers = Array.from(customerMap.values());
-    if (!searchQuery) {
-        return allCustomers;
-    }
     const lowercasedQuery = searchQuery.toLowerCase();
-    return allCustomers.filter(customer => 
-        customer.name.toLowerCase().includes(lowercasedQuery) || 
+    return customers.filter(customer =>
+        customer.name.toLowerCase().includes(lowercasedQuery) ||
         customer.cpf.replace(/\D/g, '').includes(lowercasedQuery)
     );
-  }, [orders, searchQuery]);
+  }, [customers, searchQuery]);
   
-  const customerOrders = useMemo(() => {
-      if (!selectedCustomer || !orders) return [];
-      return orders
-        .filter(o => o.customer.cpf === selectedCustomer.cpf && o.status !== 'Cancelado' && o.status !== 'Excluído')
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [selectedCustomer, orders]);
-
-  const customerFinancials = useMemo(() => {
-      if (!selectedCustomer) {
-          return { totalComprado: 0, totalPago: 0, saldoDevedor: 0 };
-      }
-      
-      const allInstallments = customerOrders.flatMap(order => 
-        (order.installmentDetails || [])
-      );
-      
-      const totalComprado = customerOrders.reduce((acc, order) => acc + order.total, 0);
-      const totalPago = allInstallments.reduce((sum, inst) => sum + (inst.paidAmount || 0), 0);
-      const saldoDevedor = totalComprado - totalPago;
-
-      return { totalComprado, totalPago, saldoDevedor };
-
+  const ordersForSelectedCustomer = useMemo(() => {
+      return customerOrders[selectedCustomer?.cpf || ''] || [];
   }, [selectedCustomer, customerOrders]);
+
+  const financialsForSelectedCustomer = useMemo(() => {
+      return customerFinancials[selectedCustomer?.cpf || ''] || { totalComprado: 0, totalPago: 0, saldoDevedor: 0 };
+  }, [selectedCustomer, customerFinancials]);
+
   
   const handleOpenPaymentDialog = (order: Order, installment: Installment) => {
     setOrderForPayment(order);
@@ -426,9 +397,9 @@ export default function CustomersAdminPage() {
                     </Button>
                 )}
             </div>
-            {customers.length > 0 ? (
+            {filteredCustomers.length > 0 ? (
                 <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-2">
-                {customers.map((customer) => (
+                {filteredCustomers.map((customer) => (
                     <Button
                     key={customer.cpf}
                     variant={selectedCustomer?.cpf === customer.cpf ? 'secondary' : 'ghost'}
@@ -514,7 +485,7 @@ export default function CustomersAdminPage() {
                                 <CardTitle className="text-sm font-medium">Total Comprado</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-xl font-bold">{formatCurrency(customerFinancials.totalComprado)}</p>
+                                <p className="text-xl font-bold">{formatCurrency(financialsForSelectedCustomer.totalComprado)}</p>
                             </CardContent>
                         </Card>
                         <Card className="bg-green-500/10 border-green-500/20">
@@ -522,7 +493,7 @@ export default function CustomersAdminPage() {
                                 <CardTitle className="text-sm font-medium">Total Pago</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-xl font-bold text-green-600">{formatCurrency(customerFinancials.totalPago)}</p>
+                                <p className="text-xl font-bold text-green-600">{formatCurrency(financialsForSelectedCustomer.totalPago)}</p>
                             </CardContent>
                         </Card>
                         <Card className="bg-amber-500/10 border-amber-500/20">
@@ -530,13 +501,13 @@ export default function CustomersAdminPage() {
                                 <CardTitle className="text-sm font-medium">Saldo Devedor</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-xl font-bold text-amber-600">{formatCurrency(customerFinancials.saldoDevedor)}</p>
+                                <p className="text-xl font-bold text-amber-600">{formatCurrency(financialsForSelectedCustomer.saldoDevedor)}</p>
                             </CardContent>
                         </Card>
                     </div>
-                    {customerOrders.length > 0 ? (
+                    {ordersForSelectedCustomer.length > 0 ? (
                     <Accordion type="single" collapsible className="w-full space-y-2">
-                        {customerOrders.map((order) => {
+                        {ordersForSelectedCustomer.map((order) => {
                             const isCrediario = !order.paymentMethod || order.paymentMethod === 'Crediário';
                             const allInstallmentsPaid = isCrediario &&
                                 order.installmentDetails &&
