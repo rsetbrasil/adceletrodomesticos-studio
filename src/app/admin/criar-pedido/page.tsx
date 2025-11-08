@@ -53,7 +53,6 @@ export default function CreateOrderPage() {
   const [selectedItems, setSelectedItems] = useState<CartItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
-  const [openProductPopover, setOpenProductPopover] = useState(false);
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
   
   const filteredCustomers = useMemo(() => {
@@ -81,7 +80,7 @@ export default function CreateOrderPage() {
   }, [products]);
   
   const filteredProducts = useMemo(() => {
-    if (!productSearch) return uniqueProducts.filter(p => p.stock > 0);
+    if (!productSearch) return [];
     const lowercasedQuery = productSearch.toLowerCase();
     return uniqueProducts.filter(p => p.stock > 0 && p.name.toLowerCase().includes(lowercasedQuery));
   }, [productSearch, uniqueProducts]);
@@ -99,7 +98,6 @@ export default function CreateOrderPage() {
   
   const handleAddItem = (product: Product) => {
     setProductSearch('');
-    setOpenProductPopover(false);
 
     const existingItem = selectedItems.find(item => item.id === product.id);
     let newItems;
@@ -354,40 +352,36 @@ export default function CreateOrderPage() {
                     </Table>
                 </div>
                 <div className="mt-4 flex flex-col md:flex-row gap-4 items-start md:items-center">
-                   <Popover open={openProductPopover} onOpenChange={setOpenProductPopover}>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                className="w-full md:w-[300px] justify-between"
-                            >
-                                Adicionar produto...
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command shouldFilter={false}>
-                                <CommandInput placeholder="Buscar produto..." value={productSearch} onValueChange={setProductSearch}/>
-                                <CommandList>
-                                    <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
-                                    <CommandGroup>
-                                    {filteredProducts.map(p => (
-                                        <CommandItem key={p.id} onSelect={() => handleAddItem(p)} value={p.name}>
-                                            <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
-                                            {p.name}
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
+                    <Command shouldFilter={false} className="w-full md:w-[300px] overflow-visible">
+                        <CommandInput 
+                            placeholder="Digite para buscar um produto..." 
+                            value={productSearch}
+                            onValueChange={setProductSearch}
+                        />
+                        <div className="relative mt-1">
+                            {filteredProducts.length > 0 && productSearch.length > 0 && (
+                                <div className="absolute top-0 w-full rounded-xl bg-card border shadow-md z-10">
+                                    <CommandList>
+                                        <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
+                                        <CommandGroup>
+                                        {filteredProducts.map(p => (
+                                            <CommandItem key={p.id} onSelect={() => handleAddItem(p)} value={p.name}>
+                                                <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
+                                                {p.name}
+                                            </CommandItem>
+                                        ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </div>
+                            )}
+                        </div>
+                    </Command>
                     <FormMessage>{form.formState.errors.items?.message || form.formState.errors.items?.root?.message}</FormMessage>
                 </div>
             </div>
             
             <div className="grid md:grid-cols-2 gap-8 items-start pt-6 border-t">
-                <div>
+                <div className='flex flex-col'>
                     <FormLabel>Resumo Financeiro</FormLabel>
                     <div className="p-4 bg-muted rounded-lg mt-2">
                         <div className="flex justify-between items-center text-xl font-bold">
