@@ -1,5 +1,6 @@
 
 
+
 export type Product = {
   id: string;
   name: string;
@@ -132,6 +133,7 @@ export type AuditLog = {
 
 export type AppSection = 
     | 'pedidos' 
+    | 'criar-pedido'
     | 'clientes' 
     | 'produtos' 
     | 'categorias' 

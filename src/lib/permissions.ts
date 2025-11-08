@@ -4,6 +4,7 @@ import type { UserRole, AppSection, RolePermissions } from './types';
 
 export const ALL_SECTIONS: { id: AppSection, label: string }[] = [
     { id: 'pedidos', label: 'Pedidos' },
+    { id: 'criar-pedido', label: 'Criar Pedido' },
     { id: 'clientes', label: 'Clientes' },
     { id: 'produtos', label: 'Produtos' },
     { id: 'categorias', label: 'Categorias' },
@@ -18,6 +19,7 @@ export const ALL_SECTIONS: { id: AppSection, label: string }[] = [
 export const initialPermissions: RolePermissions = {
     vendedor: [
         'pedidos',
+        'criar-pedido',
         'clientes',
         'produtos',
         'minhas-comissoes',
@@ -25,6 +27,7 @@ export const initialPermissions: RolePermissions = {
     ],
     gerente: [
         'pedidos',
+        'criar-pedido',
         'clientes',
         'produtos',
         'categorias',
@@ -36,6 +39,7 @@ export const initialPermissions: RolePermissions = {
     ],
     admin: [
         'pedidos',
+        'criar-pedido',
         'clientes',
         'produtos',
         'categorias',
