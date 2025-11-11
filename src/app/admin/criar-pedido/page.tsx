@@ -419,14 +419,15 @@ export default function CreateOrderPage() {
                 <div className="mt-4 flex flex-wrap gap-4 items-center">
                    <Popover open={openProductPopover} onOpenChange={setOpenProductPopover}>
                         <PopoverTrigger asChild>
-                             <Command className="relative w-full md:w-[300px] overflow-visible">
-                                <CommandInput 
-                                    placeholder="Digite para buscar um produto..." 
-                                    value={productSearch}
-                                    onValueChange={setProductSearch}
-                                    onFocus={() => setOpenProductPopover(true)}
-                                />
-                             </Command>
+                            <div className="relative w-full md:w-[300px]">
+                                <Command>
+                                    <CommandInput 
+                                        placeholder="Digite para buscar um produto..." 
+                                        value={productSearch}
+                                        onValueChange={setProductSearch}
+                                    />
+                                </Command>
+                            </div>
                         </PopoverTrigger>
                         <PopoverContent 
                             className="w-[--radix-popover-trigger-width] p-0" 
@@ -448,7 +449,7 @@ export default function CreateOrderPage() {
                                         ))}
                                     </CommandGroup>
                                 </CommandList>
-                            </Command>>
+                            </Command>
                         </PopoverContent>
                     </Popover>
                     <CustomProductForm onAdd={handleAddItem} />
