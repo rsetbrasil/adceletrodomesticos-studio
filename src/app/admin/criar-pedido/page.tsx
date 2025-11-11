@@ -147,7 +147,7 @@ export default function CreateOrderPage() {
   }, [allProducts]);
   
   const filteredProducts = useMemo(() => {
-    if (!productSearch) return [];
+    if (!productSearch) return uniqueProducts.filter(p => p.stock > 0);
     const lowercasedQuery = productSearch.toLowerCase();
     return uniqueProducts.filter(p => p.stock > 0 && p.name.toLowerCase().includes(lowercasedQuery));
   }, [productSearch, uniqueProducts]);
@@ -419,41 +419,36 @@ export default function CreateOrderPage() {
                 <div className="mt-4 flex flex-wrap gap-4 items-center">
                    <Popover open={openProductPopover} onOpenChange={setOpenProductPopover}>
                         <PopoverTrigger asChild>
-                            <div className="relative w-full md:w-[300px]">
-                                <Command className="overflow-visible">
-                                    <CommandInput 
-                                        placeholder="Digite para buscar um produto..." 
-                                        value={productSearch}
-                                        onValueChange={setProductSearch}
-                                        onFocus={() => setOpenProductPopover(true)}
-                                    />
-                                </Command>
-                            </div>
+                             <Command className="relative w-full md:w-[300px] overflow-visible">
+                                <CommandInput 
+                                    placeholder="Digite para buscar um produto..." 
+                                    value={productSearch}
+                                    onValueChange={setProductSearch}
+                                    onFocus={() => setOpenProductPopover(true)}
+                                />
+                             </Command>
                         </PopoverTrigger>
                         <PopoverContent 
                             className="w-[--radix-popover-trigger-width] p-0" 
                             onOpenAutoFocus={(e) => e.preventDefault()}
                         >
-                            {productSearch && (
-                                <Command>
-                                    <CommandList>
-                                        <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
-                                        <CommandGroup>
-                                            {filteredProducts.map(p => (
-                                                <Button 
-                                                    key={p.id} 
-                                                    variant="ghost"
-                                                    onClick={() => handleAddItem(p)} 
-                                                    className="w-full justify-start h-auto"
-                                                >
-                                                    <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
-                                                    {p.name}
-                                                </Button>
-                                            ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            )}
+                            <Command>
+                                <CommandList>
+                                    <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
+                                    <CommandGroup>
+                                        {filteredProducts.map(p => (
+                                            <CommandItem
+                                                key={p.id} 
+                                                onSelect={() => handleAddItem(p)}
+                                                className="cursor-pointer"
+                                            >
+                                                <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
+                                                {p.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>>
                         </PopoverContent>
                     </Popover>
                     <CustomProductForm onAdd={handleAddItem} />
@@ -488,7 +483,7 @@ export default function CreateOrderPage() {
             </div>
             
             <Button type="submit" size="lg" className="w-full md:w-auto" disabled={form.formState.isSubmitting}>
-                <ShoppingCart className="mr-2 h-5 w-5" />
+                <ShoppingCart className="mr-5 h-5 w-5" />
                 Criar Pedido
             </Button>
           </form>
