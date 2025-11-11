@@ -325,7 +325,7 @@ export default function CreateOrderPage() {
                               {filteredCustomers.map(c => (
                                 <CommandItem
                                   key={c.cpf}
-                                  value={`${c.name} ${c.cpf}`}
+                                  value={c.name}
                                   onSelect={() => {
                                     form.setValue("customerId", c.cpf, { shouldValidate: true });
                                     setOpenCustomerPopover(false);
