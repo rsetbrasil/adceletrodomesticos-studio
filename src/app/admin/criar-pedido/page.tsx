@@ -118,8 +118,9 @@ export default function CreateOrderPage() {
 
   const [selectedItems, setSelectedItems] = useState<CartItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
-  const [customerSearch, setCustomerSearch] = useState('');
   const [openProductPopover, setOpenProductPopover] = useState(false);
+  
+  const [customerSearch, setCustomerSearch] = useState('');
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
   
   const filteredCustomers = useMemo(() => {
@@ -312,7 +313,7 @@ export default function CreateOrderPage() {
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
+                        <Command shouldFilter={false}>
                            <CommandInput 
                             placeholder="Buscar cliente por nome ou CPF..."
                             value={customerSearch}
