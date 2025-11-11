@@ -430,7 +430,8 @@ export default function CreateOrderPage() {
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent 
-                            className="w-[300px] p-0" 
+                            className="w-[300px] p-0"
+                            onCloseAutoFocus={(e) => e.preventDefault()}
                         >
                             <Command shouldFilter={false}>
                                 <CommandInput 
