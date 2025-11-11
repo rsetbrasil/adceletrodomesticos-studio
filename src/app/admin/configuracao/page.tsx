@@ -12,7 +12,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
-import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock, History, User, Calendar, Shield, Image as ImageIcon } from 'lucide-react';
+import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock, History, User, Calendar, Shield, Image as ImageIcon, Clock } from 'lucide-react';
 import type { StoreSettings } from '@/context/SettingsContext';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Image from 'next/image';
+import { Switch } from '@/components/ui/switch';
 
 const settingsSchema = z.object({
   storeName: z.string().min(3, 'O nome da loja é obrigatório.'),
@@ -36,6 +37,9 @@ const settingsSchema = z.object({
   pixKey: z.string().min(1, 'A chave PIX é obrigatória.'),
   storePhone: z.string().min(10, 'O telefone da loja é obrigatório.'),
   logoUrl: z.string().optional(),
+  accessControlEnabled: z.boolean().optional(),
+  commercialHourStart: z.string().optional(),
+  commercialHourEnd: z.string().optional(),
 });
 
 function AuditLogCard() {
@@ -146,6 +150,9 @@ export default function ConfiguracaoPage() {
         pixKey: '',
         storePhone: '',
         logoUrl: '',
+        accessControlEnabled: false,
+        commercialHourStart: '08:00',
+        commercialHourEnd: '18:00',
     },
   });
 
@@ -279,8 +286,8 @@ export default function ConfiguracaoPage() {
     return <p>Carregando configurações...</p>;
   }
 
-  const isVendedorPermission = (sectionId: AppSection) => localPermissions?.vendedor.includes(sectionId);
   const logoPreview = form.watch('logoUrl');
+  const accessControlEnabled = form.watch('accessControlEnabled');
 
 
   return (
@@ -332,11 +339,11 @@ export default function ConfiguracaoPage() {
                     <FormLabel className="flex items-center gap-2"><ImageIcon /> Logo da Loja</FormLabel>
                      <div className="flex items-center gap-4">
                         {logoPreview ? (
-                            <div className="relative h-20 w-32 rounded-md border p-1 bg-muted">
-                                <Image src={logoPreview} alt="Preview do Logo" fill className="object-contain" />
+                            <div className="relative w-32 h-14 rounded-md border p-1 bg-muted">
+                                <Image src={logoPreview} alt="Preview do Logo" fill className="object-contain" sizes="130px"/>
                             </div>
                         ) : (
-                            <div className="flex items-center justify-center h-20 w-32 rounded-md border border-dashed bg-muted/50 text-muted-foreground">
+                            <div className="flex items-center justify-center h-14 w-32 rounded-md border border-dashed bg-muted/50 text-muted-foreground">
                                 <ImageIcon className="h-8 w-8" />
                             </div>
                         )}
@@ -403,6 +410,82 @@ export default function ConfiguracaoPage() {
           </Form>
         </CardContent>
       </Card>
+
+      {user?.role === 'admin' && (
+        <Card className="max-w-4xl">
+           <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-6 w-6" />
+                Controle de Acesso por Horário
+              </CardTitle>
+              <CardDescription>
+                Restrinja o acesso de vendedores ao sistema para um horário comercial específico. Gerentes e admins não são afetados.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <FormField
+                            control={form.control}
+                            name="accessControlEnabled"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                    <FormLabel className="text-base">
+                                    Ativar controle de acesso por horário
+                                    </FormLabel>
+                                    <FormDescription>
+                                    Se ativado, vendedores só poderão acessar o painel no horário definido.
+                                    </FormDescription>
+                                </div>
+                                <FormControl>
+                                    <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                         {accessControlEnabled && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                                <FormField
+                                    control={form.control}
+                                    name="commercialHourStart"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Início do Horário Comercial</FormLabel>
+                                        <FormControl>
+                                            <Input type="time" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="commercialHourEnd"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Fim do Horário Comercial</FormLabel>
+                                        <FormControl>
+                                            <Input type="time" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        )}
+                        <Button type="submit">
+                            <Save className="mr-2 h-4 w-4" />
+                            Salvar Controle de Acesso
+                        </Button>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+      )}
       
       {user?.role === 'admin' && (
         <Card className="max-w-4xl">
@@ -567,5 +650,7 @@ export default function ConfiguracaoPage() {
     </div>
   );
 }
+
+    
 
     

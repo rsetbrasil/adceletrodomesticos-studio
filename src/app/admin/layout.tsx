@@ -3,8 +3,9 @@
 
 import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut, Shield, Store, KeyRound, ChevronDown } from 'lucide-react';
+import { LogOut, Shield, Store, KeyRound, ChevronDown, Clock } from 'lucide-react';
 import AdminNav from "@/components/AdminNav";
 import { Button } from "@/components/ui/button";
 import { hasAccess, type AppSection } from "@/lib/permissions";
@@ -46,9 +47,23 @@ const pathToSectionMap: { [key: string]: AppSection } = {
     '/admin/usuarios': 'usuarios',
 };
 
+const isWithinCommercialHours = (start: string, end: string) => {
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+
+    const [startHour, startMinute] = start.split(':').map(Number);
+    const startTime = startHour * 60 + startMinute;
+
+    const [endHour, endMinute] = end.split(':').map(Number);
+    const endTime = endHour * 60 + endMinute;
+
+    return currentTime >= startTime && currentTime <= endTime;
+};
+
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const { user, isAuthenticated, isLoading, logout, changeMyPassword } = useAuth();
     const { permissions, isLoading: permissionsLoading } = usePermissions();
+    const { settings, isLoading: settingsLoading } = useSettings();
     const router = useRouter();
     const pathname = usePathname();
     const { toast } = useToast();
@@ -64,14 +79,31 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     });
 
     useEffect(() => {
-        const totalLoading = isLoading || permissionsLoading;
+        const totalLoading = isLoading || permissionsLoading || settingsLoading;
         if (!totalLoading && !isAuthenticated) {
             router.push('/login');
             return;
         }
 
-        if (!totalLoading && isAuthenticated && user && permissions) {
-            // Find the most specific matching path
+        if (!totalLoading && isAuthenticated && user) {
+            // Check for commercial hours access
+            if (
+                settings.accessControlEnabled && 
+                user.role === 'vendedor' && 
+                !isWithinCommercialHours(settings.commercialHourStart, settings.commercialHourEnd)
+            ) {
+                 toast({
+                    title: "Acesso Fora do Horário",
+                    description: `O acesso para vendedores está disponível apenas entre ${settings.commercialHourStart} e ${settings.commercialHourEnd}.`,
+                    variant: "destructive",
+                    duration: Infinity,
+                });
+                logout();
+                return;
+            }
+
+
+            // Check for page access permission
             const currentSection = Object.entries(pathToSectionMap)
                 .filter(([path]) => pathname.startsWith(path))
                 .sort((a,b) => b[0].length - a[0].length)[0]?.[1];
@@ -85,7 +117,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 router.push('/admin/pedidos');
             }
         }
-    }, [isLoading, permissionsLoading, isAuthenticated, user, permissions, router, pathname, toast]);
+    }, [isLoading, permissionsLoading, settingsLoading, isAuthenticated, user, permissions, settings, router, pathname, toast, logout]);
 
     const handlePasswordChange = async (values: z.infer<typeof changePasswordSchema>) => {
         const success = await changeMyPassword(values.currentPassword, values.newPassword);
@@ -95,7 +127,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }
     };
 
-    if (isLoading || permissionsLoading || !isAuthenticated || !user) {
+    if (isLoading || permissionsLoading || settingsLoading || !isAuthenticated || !user) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-background">
                 <p>Verificando autenticação e permissões...</p>
@@ -205,3 +237,5 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </>
     );
 }
+
+    

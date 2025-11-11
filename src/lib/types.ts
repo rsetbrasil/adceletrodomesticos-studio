@@ -1,6 +1,7 @@
 
 
 
+
 export type Product = {
   id: string;
   name: string;
@@ -175,4 +176,6 @@ export type Avaria = {
   productName: string;
   description: string;
 };
+    
+
     

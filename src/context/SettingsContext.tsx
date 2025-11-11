@@ -17,6 +17,9 @@ export type StoreSettings = {
     pixKey: string;
     storePhone: string;
     logoUrl?: string;
+    accessControlEnabled?: boolean;
+    commercialHourStart?: string;
+    commercialHourEnd?: string;
 };
 
 const initialSettings: StoreSettings = {
@@ -26,6 +29,9 @@ const initialSettings: StoreSettings = {
     pixKey: 'fb43228c-4740-4c16-a217-21706a782496', // Example key
     storePhone: '11999999999', // Example phone
     logoUrl: '',
+    accessControlEnabled: false,
+    commercialHourStart: '08:00',
+    commercialHourEnd: '18:00',
 };
 
 interface SettingsContextType {
@@ -74,7 +80,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         try {
             const { db } = getClientFirebase();
             const settingsRef = doc(db, 'config', 'storeSettings');
-            await setDoc(settingsRef, newSettings);
+            await setDoc(settingsRef, newSettings, { merge: true });
             // Real-time listener will update state
             logAction('Atualização de Configurações', `Configurações da loja foram alteradas.`, user);
             toast({
@@ -111,3 +117,5 @@ export const useSettings = () => {
     }
     return context;
 };
+
+    
