@@ -12,7 +12,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
-import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock, History, User, Calendar, Shield } from 'lucide-react';
+import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock, History, User, Calendar, Shield, Image as ImageIcon } from 'lucide-react';
 import type { StoreSettings } from '@/context/SettingsContext';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import Image from 'next/image';
 
 const settingsSchema = z.object({
   storeName: z.string().min(3, 'O nome da loja é obrigatório.'),
@@ -34,6 +35,7 @@ const settingsSchema = z.object({
   storeCity: z.string().min(3, 'A cidade da loja é obrigatória.'),
   pixKey: z.string().min(1, 'A chave PIX é obrigatória.'),
   storePhone: z.string().min(10, 'O telefone da loja é obrigatório.'),
+  logoUrl: z.string().optional(),
 });
 
 function AuditLogCard() {
@@ -143,6 +145,7 @@ export default function ConfiguracaoPage() {
         storeAddress: '',
         pixKey: '',
         storePhone: '',
+        logoUrl: '',
     },
   });
 
@@ -157,6 +160,18 @@ export default function ConfiguracaoPage() {
         setLocalPermissions(JSON.parse(JSON.stringify(permissions)));
     }
   }, [permissionsLoading, permissions]);
+
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        form.setValue('logoUrl', reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
 
   const handleBackup = () => {
     const backupData = {
@@ -265,6 +280,8 @@ export default function ConfiguracaoPage() {
   }
 
   const isVendedorPermission = (sectionId: AppSection) => localPermissions?.vendedor.includes(sectionId);
+  const logoPreview = form.watch('logoUrl');
+
 
   return (
     <div className="space-y-8">
@@ -303,6 +320,30 @@ export default function ConfiguracaoPage() {
                     <FormControl>
                       <Textarea placeholder="Ex: Rua da Loja, 123 - Centro, São Paulo/SP" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="logoUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2"><ImageIcon /> Logo da Loja</FormLabel>
+                     <div className="flex items-center gap-4">
+                        {logoPreview ? (
+                            <div className="relative h-20 w-20 rounded-md border p-1 bg-muted">
+                                <Image src={logoPreview} alt="Preview do Logo" fill className="object-contain" />
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center h-20 w-20 rounded-md border border-dashed bg-muted/50 text-muted-foreground">
+                                <ImageIcon className="h-8 w-8" />
+                            </div>
+                        )}
+                        <FormControl>
+                            <Input type="file" accept="image/*" onChange={handleLogoUpload} className="max-w-xs" />
+                        </FormControl>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -16,6 +16,7 @@ export type StoreSettings = {
     storeAddress: string;
     pixKey: string;
     storePhone: string;
+    logoUrl?: string;
 };
 
 const initialSettings: StoreSettings = {
@@ -24,6 +25,7 @@ const initialSettings: StoreSettings = {
     storeAddress: 'Rua da Loja, 123 - Centro, São Paulo/SP - CEP 01000-000',
     pixKey: 'fb43228c-4740-4c16-a217-21706a782496', // Example key
     storePhone: '11999999999', // Example phone
+    logoUrl: '',
 };
 
 interface SettingsContextType {
