@@ -419,21 +419,26 @@ export default function CreateOrderPage() {
                 <div className="mt-4 flex flex-wrap gap-4 items-center">
                    <Popover open={openProductPopover} onOpenChange={setOpenProductPopover}>
                         <PopoverTrigger asChild>
-                            <div className="relative w-full md:w-[300px]">
-                                <Command>
-                                    <CommandInput 
-                                        placeholder="Digite para buscar um produto..." 
-                                        value={productSearch}
-                                        onValueChange={setProductSearch}
-                                    />
-                                </Command>
-                            </div>
+                           <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openProductPopover}
+                            className="w-[300px] justify-between"
+                          >
+                            {productSearch || "Digite para buscar um produto..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
                         </PopoverTrigger>
                         <PopoverContent 
-                            className="w-[--radix-popover-trigger-width] p-0" 
+                            className="w-[300px] p-0" 
                             onOpenAutoFocus={(e) => e.preventDefault()}
                         >
-                            <Command>
+                            <Command shouldFilter={false}>
+                                <CommandInput 
+                                        placeholder="Buscar produto..."
+                                        value={productSearch}
+                                        onValueChange={setProductSearch}
+                                />
                                 <CommandList>
                                     <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
                                     <CommandGroup>
