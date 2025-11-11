@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useSettings } from '@/context/SettingsContext';
 import { useAdmin } from '@/context/AdminContext';
@@ -344,6 +344,9 @@ export default function ConfiguracaoPage() {
                             <Input type="file" accept="image/*" onChange={handleLogoUpload} className="max-w-xs" />
                         </FormControl>
                     </div>
+                    <FormDescription>
+                      Tamanho recomendado: 80px (largura) por 56px (altura).
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -564,3 +567,5 @@ export default function ConfiguracaoPage() {
     </div>
   );
 }
+
+    
