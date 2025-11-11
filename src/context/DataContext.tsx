@@ -8,6 +8,7 @@ import type { Product, Category, Order, CommissionPayment, StockAudit, Avaria, C
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from './AuthContext';
+import { products as initialProducts } from '@/lib/products';
 
 
 interface DataContextType {
@@ -28,7 +29,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
@@ -40,10 +41,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const { db } = getClientFirebase();
     const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'desc')), (snapshot) => {
-      setProducts(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
+      const fetchedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product));
+      setProducts(fetchedProducts.length > 0 ? fetchedProducts : initialProducts);
       setIsLoading(false);
     }, (error) => {
         console.error("Error fetching products:", error);
+        setProducts(initialProducts); // Fallback to initial data on error
         setIsLoading(false);
     });
 
