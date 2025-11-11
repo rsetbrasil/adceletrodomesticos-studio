@@ -322,21 +322,21 @@ export default function CreateOrderPage() {
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandGroup>
                               {filteredCustomers.map(c => (
-                                <Button
-                                    variant="ghost"
-                                    key={c.cpf}
-                                    onClick={() => {
-                                      form.setValue("customerId", c.cpf, { shouldValidate: true });
-                                      setOpenCustomerPopover(false);
-                                    }}
-                                    className="w-full justify-start h-auto"
+                                <CommandItem
+                                  key={c.cpf}
+                                  value={`${c.name} ${c.cpf}`}
+                                  onSelect={() => {
+                                    form.setValue("customerId", c.cpf, { shouldValidate: true });
+                                    setOpenCustomerPopover(false);
+                                  }}
+                                  className="cursor-pointer"
                                 >
-                                    <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
-                                    <div className="flex flex-col items-start text-left">
-                                        <span>{c.name}</span>
-                                        <span className="text-xs text-muted-foreground">{c.cpf}</span>
-                                    </div>
-                                </Button>
+                                  <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
+                                  <div className="flex flex-col items-start text-left">
+                                      <span>{c.name}</span>
+                                      <span className="text-xs text-muted-foreground">{c.cpf}</span>
+                                  </div>
+                                </CommandItem>
                               ))}
                             </CommandGroup>
                           </CommandList>
