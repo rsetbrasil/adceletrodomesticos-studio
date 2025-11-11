@@ -36,13 +36,13 @@ const Logo = () => {
 
     if (settings.logoUrl) {
         return (
-            <div className="relative w-20 h-14">
+            <div className="relative w-32 h-14">
                 <Image 
                     src={settings.logoUrl} 
                     alt={settings.storeName} 
                     fill
                     className="object-contain" 
-                    sizes="100px"
+                    sizes="130px"
                 />
             </div>
         );

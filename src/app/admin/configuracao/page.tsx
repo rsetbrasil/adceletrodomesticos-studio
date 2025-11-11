@@ -332,11 +332,11 @@ export default function ConfiguracaoPage() {
                     <FormLabel className="flex items-center gap-2"><ImageIcon /> Logo da Loja</FormLabel>
                      <div className="flex items-center gap-4">
                         {logoPreview ? (
-                            <div className="relative h-20 w-20 rounded-md border p-1 bg-muted">
+                            <div className="relative h-20 w-32 rounded-md border p-1 bg-muted">
                                 <Image src={logoPreview} alt="Preview do Logo" fill className="object-contain" />
                             </div>
                         ) : (
-                            <div className="flex items-center justify-center h-20 w-20 rounded-md border border-dashed bg-muted/50 text-muted-foreground">
+                            <div className="flex items-center justify-center h-20 w-32 rounded-md border border-dashed bg-muted/50 text-muted-foreground">
                                 <ImageIcon className="h-8 w-8" />
                             </div>
                         )}
@@ -345,7 +345,7 @@ export default function ConfiguracaoPage() {
                         </FormControl>
                     </div>
                     <FormDescription>
-                      Tamanho recomendado: 80px (largura) por 56px (altura).
+                      Tamanho recomendado: 130px (largura) por 56px (altura).
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
