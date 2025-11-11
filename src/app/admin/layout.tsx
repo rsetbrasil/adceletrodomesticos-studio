@@ -90,7 +90,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             if (
                 settings.accessControlEnabled && 
                 user.role === 'vendedor' && 
-                !isWithinCommercialHours(settings.commercialHourStart, settings.commercialHourEnd)
+                !isWithinCommercialHours(settings.commercialHourStart || '00:00', settings.commercialHourEnd || '23:59')
             ) {
                  toast({
                     title: "Acesso Fora do Horário",
@@ -114,7 +114,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     description: "Você não tem permissão para acessar esta página.",
                     variant: "destructive"
                 });
-                router.push('/admin/pedidos');
+                router.push('/admin');
             }
         }
     }, [isLoading, permissionsLoading, settingsLoading, isAuthenticated, user, permissions, settings, router, pathname, toast, logout]);
@@ -135,6 +135,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         );
     }
     
+    // Do not render nav etc if it's the root redirect page
+    if (pathname === '/admin') {
+        return <main>{children}</main>;
+    }
+
     return (
         <>
             <div className="container mx-auto px-4 py-8 print:p-0">
@@ -237,5 +242,3 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </>
     );
 }
-
-    
