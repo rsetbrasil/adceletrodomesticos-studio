@@ -329,7 +329,6 @@ export default function CreateOrderPage() {
                                     form.setValue("customerId", c.cpf, { shouldValidate: true });
                                     setOpenCustomerPopover(false);
                                   }}
-                                  className="cursor-pointer"
                                 >
                                   <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
                                   <div className="flex flex-col items-start text-left">
@@ -425,13 +424,12 @@ export default function CreateOrderPage() {
                             aria-expanded={openProductPopover}
                             className="w-[300px] justify-between"
                           >
-                            {productSearch || "Digite para buscar um produto..."}
+                            {"Selecione um produto..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent 
                             className="w-[300px] p-0" 
-                            onOpenAutoFocus={(e) => e.preventDefault()}
                         >
                             <Command shouldFilter={false}>
                                 <CommandInput 
@@ -446,7 +444,7 @@ export default function CreateOrderPage() {
                                             <CommandItem
                                                 key={p.id} 
                                                 onSelect={() => handleAddItem(p)}
-                                                className="cursor-pointer"
+                                                value={p.name}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
                                                 {p.name}
