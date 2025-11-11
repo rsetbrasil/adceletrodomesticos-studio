@@ -158,7 +158,11 @@ export default function ConfiguracaoPage() {
 
   useEffect(() => {
     if (!settingsLoading && settings) {
-      form.reset(settings);
+      form.reset({
+          ...settings,
+          commercialHourStart: settings.commercialHourStart || '08:00',
+          commercialHourEnd: settings.commercialHourEnd || '18:00',
+      });
     }
   }, [settingsLoading, settings, form]);
 
@@ -456,7 +460,7 @@ export default function ConfiguracaoPage() {
                                         <FormItem>
                                         <FormLabel>Início do Horário Comercial</FormLabel>
                                         <FormControl>
-                                            <Input type="time" {...field} />
+                                            <Input type="time" {...field} value={field.value || '08:00'} />
                                         </FormControl>
                                         <FormMessage />
                                         </FormItem>
@@ -469,7 +473,7 @@ export default function ConfiguracaoPage() {
                                         <FormItem>
                                         <FormLabel>Fim do Horário Comercial</FormLabel>
                                         <FormControl>
-                                            <Input type="time" {...field} />
+                                            <Input type="time" {...field} value={field.value || '18:00'} />
                                         </FormControl>
                                         <FormMessage />
                                         </FormItem>
@@ -650,7 +654,5 @@ export default function ConfiguracaoPage() {
     </div>
   );
 }
-
-    
 
     
