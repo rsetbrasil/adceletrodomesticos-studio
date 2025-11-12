@@ -62,7 +62,7 @@ interface AdminContextType {
   payCommissions: (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string, logAction: LogAction, user: User | null) => Promise<string | null>;
   reverseCommissionPayment: (paymentId: string, logAction: LogAction, user: User | null) => Promise<void>;
   restoreAdminData: (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => Promise<void>;
-  resetOrders: (logAction: LogAction, user: User | null) => Promise<void>;
+  resetOrdersAndCustomers: (logAction: LogAction, user: User | null) => Promise<void>;
   resetAllAdminData: (logAction: LogAction, user: User | null) => Promise<void>;
   saveStockAudit: (audit: StockAudit, logAction: LogAction, user: User | null) => Promise<void>;
   addAvaria: (avariaData: Omit<Avaria, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>, logAction: LogAction, user: User | null) => Promise<void>;
@@ -99,13 +99,13 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [products, orders, categories, toast]);
 
-  const resetOrders = useCallback(async (logAction: LogAction, user: User | null) => {
+  const resetOrdersAndCustomers = useCallback(async (logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
     const batch = writeBatch(db);
     orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
     
     batch.commit().then(() => {
-        logAction('Reset de Pedidos', 'Todos os pedidos e clientes foram zerados.', user);
+        logAction('Reset de Pedidos e Clientes', 'Todos os pedidos e dados de clientes foram zerados.', user);
     }).catch(async (error) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'orders', operation: 'delete' }));
     });
@@ -1016,7 +1016,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         addProduct, updateProduct, deleteProduct,
         addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         payCommissions, reverseCommissionPayment,
-        restoreAdminData, resetOrders, resetAllAdminData,
+        restoreAdminData, resetOrdersAndCustomers, resetAllAdminData,
         saveStockAudit, addAvaria, updateAvaria, deleteAvaria
       }}
     >
@@ -1032,5 +1032,7 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
+
+    
 
     

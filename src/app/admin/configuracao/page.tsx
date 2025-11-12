@@ -131,7 +131,7 @@ function AuditLogCard() {
 
 export default function ConfiguracaoPage() {
   const { settings, updateSettings, isLoading: settingsLoading, restoreSettings, resetSettings } = useSettings();
-  const { products, orders, categories, restoreAdminData, resetOrders, resetAllAdminData } = useAdmin();
+  const { products, orders, categories, restoreAdminData, resetOrdersAndCustomers, resetAllAdminData } = useAdmin();
   const { user, users, restoreUsers, initialUsers } = useAuth();
   const { permissions, updatePermissions, isLoading: permissionsLoading, resetPermissions } = usePermissions();
   const { toast } = useToast();
@@ -240,10 +240,10 @@ export default function ConfiguracaoPage() {
     reader.readAsText(file);
   };
   
-  const handleResetOrders = async () => {
-    await resetOrders();
+  const handleResetOrdersAndCustomers = async () => {
+    await resetOrdersAndCustomers();
     setDialogOpenFor(null);
-    toast({ title: "Ação Concluída", description: "Todos os pedidos e clientes foram zerados." });
+    toast({ title: "Ação Concluída", description: "Todos os pedidos e dados de clientes foram zerados." });
   };
 
   const handleResetAll = async () => {
@@ -611,19 +611,19 @@ export default function ConfiguracaoPage() {
               <AlertDialog open={dialogOpenFor === 'resetOrders'} onOpenChange={(open) => !open && setDialogOpenFor(null)}>
                   <AlertDialogTrigger asChild>
                       <Button variant="destructive" onClick={() => setDialogOpenFor('resetOrders')}>
-                        <Trash2 className="mr-2 h-4 w-4" /> Zerar Pedidos e Clientes
+                        <Trash2 className="mr-2 h-4 w-4" /> Zerar Pedidos e Dados de Clientes
                       </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                       <AlertDialogHeader>
                           <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
                           <AlertDialogDescription>
-                              Esta ação não pode ser desfeita. Isso irá apagar permanentemente todos os pedidos e dados de clientes da sua loja.
+                              Esta ação não pode ser desfeita. Isso irá apagar permanentemente todos os pedidos e dados de clientes associados a eles.
                           </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleResetOrders}>Sim, zerar os pedidos</AlertDialogAction>
+                          <AlertDialogAction onClick={handleResetOrdersAndCustomers}>Sim, zerar os dados</AlertDialogAction>
                       </AlertDialogFooter>
                   </AlertDialogContent>
               </AlertDialog>
@@ -655,5 +655,6 @@ export default function ConfiguracaoPage() {
   );
 }
 
+    
     
     
