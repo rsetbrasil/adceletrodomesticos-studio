@@ -62,7 +62,9 @@ interface AdminContextType {
   payCommissions: (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string, logAction: LogAction, user: User | null) => Promise<string | null>;
   reverseCommissionPayment: (paymentId: string, logAction: LogAction, user: User | null) => Promise<void>;
   restoreAdminData: (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => Promise<void>;
-  resetOrdersAndCustomers: (logAction: LogAction, user: User | null) => Promise<void>;
+  resetOrders: (logAction: LogAction, user: User | null) => Promise<void>;
+  resetProducts: (logAction: LogAction, user: User | null) => Promise<void>;
+  resetFinancials: (logAction: LogAction, user: User | null) => Promise<void>;
   resetAllAdminData: (logAction: LogAction, user: User | null) => Promise<void>;
   saveStockAudit: (audit: StockAudit, logAction: LogAction, user: User | null) => Promise<void>;
   addAvaria: (avariaData: Omit<Avaria, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>, logAction: LogAction, user: User | null) => Promise<void>;
@@ -99,22 +101,47 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [products, orders, categories, toast]);
 
-  const resetOrdersAndCustomers = useCallback(async (logAction: LogAction, user: User | null) => {
+  const resetOrders = useCallback(async (logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
     const batch = writeBatch(db);
     orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
     
     batch.commit().then(() => {
-        logAction('Reset de Pedidos e Clientes', 'Todos os pedidos e dados de clientes foram zerados.', user);
+        logAction('Reset de Pedidos', 'Todos os pedidos e dados de clientes foram zerados.', user);
     }).catch(async (error) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'orders', operation: 'delete' }));
     });
   }, [orders]);
+
+  const resetProducts = useCallback(async (logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
+    const batch = writeBatch(db);
+    products.forEach(p => batch.delete(doc(db, 'products', p.id)));
+    
+    batch.commit().then(() => {
+        logAction('Reset de Produtos', 'Todos os produtos foram zerados.', user);
+    }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'products', operation: 'delete' }));
+    });
+  }, [products]);
+
+  const resetFinancials = useCallback(async (logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
+    const batch = writeBatch(db);
+    commissionPayments.forEach(p => batch.delete(doc(db, 'commissionPayments', p.id)));
+    
+    batch.commit().then(() => {
+        logAction('Reset Financeiro', 'Todos os pagamentos de comissão foram zerados.', user);
+    }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'commissionPayments', operation: 'delete' }));
+    });
+  }, [commissionPayments]);
   
   const resetAllAdminData = useCallback(async (logAction: LogAction, user: User | null) => {
     await restoreAdminData({ products: [], orders: [], categories: [] }, logAction, user);
+    await resetFinancials(logAction, user);
     logAction('Reset da Loja', 'Todos os dados da loja foram resetados para o padrão.', user);
-  }, [restoreAdminData]);
+  }, [restoreAdminData, resetFinancials]);
 
   const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => {
       const { db } = getClientFirebase();
@@ -1016,7 +1043,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         addProduct, updateProduct, deleteProduct,
         addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         payCommissions, reverseCommissionPayment,
-        restoreAdminData, resetOrdersAndCustomers, resetAllAdminData,
+        restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData,
         saveStockAudit, addAvaria, updateAvaria, deleteAvaria
       }}
     >
@@ -1032,7 +1059,3 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
-
-    
-
-    

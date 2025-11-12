@@ -12,7 +12,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
-import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock, History, User, Calendar, Shield, Image as ImageIcon, Clock } from 'lucide-react';
+import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock, History, User, Calendar, Shield, Image as ImageIcon, Clock, Package, DollarSign } from 'lucide-react';
 import type { StoreSettings } from '@/context/SettingsContext';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -131,14 +131,14 @@ function AuditLogCard() {
 
 export default function ConfiguracaoPage() {
   const { settings, updateSettings, isLoading: settingsLoading, restoreSettings, resetSettings } = useSettings();
-  const { products, orders, categories, restoreAdminData, resetOrdersAndCustomers, resetAllAdminData } = useAdmin();
+  const { products, orders, categories, restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData } = useAdmin();
   const { user, users, restoreUsers, initialUsers } = useAuth();
   const { permissions, updatePermissions, isLoading: permissionsLoading, resetPermissions } = usePermissions();
   const { toast } = useToast();
   const { logAction } = useAudit();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [dialogOpenFor, setDialogOpenFor] = useState<'resetOrders' | 'resetAll' | null>(null);
+  const [dialogOpenFor, setDialogOpenFor] = useState<'resetOrders' | 'resetProducts' | 'resetFinancials' | 'resetAll' | null>(null);
   const [localPermissions, setLocalPermissions] = useState<RolePermissions | null>(null);
 
   const form = useForm<z.infer<typeof settingsSchema>>({
@@ -240,19 +240,29 @@ export default function ConfiguracaoPage() {
     reader.readAsText(file);
   };
   
-  const handleResetOrdersAndCustomers = async () => {
-    await resetOrdersAndCustomers();
+  const handleReset = async (type: 'resetOrders' | 'resetProducts' | 'resetFinancials' | 'resetAll') => {
     setDialogOpenFor(null);
-    toast({ title: "Ação Concluída", description: "Todos os pedidos e dados de clientes foram zerados." });
-  };
-
-  const handleResetAll = async () => {
-    await resetAllAdminData();
-    await restoreUsers(initialUsers);
-    await resetSettings();
-    await resetPermissions();
-    setDialogOpenFor(null);
-    toast({ title: "Loja Resetada!", description: "Todos os dados foram restaurados para o padrão." });
+    switch (type) {
+        case 'resetOrders':
+            await resetOrders(logAction, user);
+            toast({ title: "Ação Concluída", description: "Todos os pedidos e dados de clientes foram zerados." });
+            break;
+        case 'resetProducts':
+            await resetProducts(logAction, user);
+            toast({ title: "Ação Concluída", description: "Todos os produtos foram zerados." });
+            break;
+        case 'resetFinancials':
+            await resetFinancials(logAction, user);
+            toast({ title: "Ação Concluída", description: "O histórico de pagamentos de comissão foi zerado." });
+            break;
+        case 'resetAll':
+            await resetAllAdminData(logAction, user);
+            await restoreUsers(initialUsers);
+            await resetSettings();
+            await resetPermissions();
+            toast({ title: "Loja Resetada!", description: "Todos os dados foram restaurados para o padrão." });
+            break;
+    }
   }
 
   function onSubmit(values: z.infer<typeof settingsSchema>) {
@@ -607,30 +617,68 @@ export default function ConfiguracaoPage() {
               </CardTitle>
               <CardDescription>Ações nesta área são irreversíveis. Tenha certeza do que está fazendo.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row gap-4">
+          <CardContent className="flex flex-wrap gap-4">
               <AlertDialog open={dialogOpenFor === 'resetOrders'} onOpenChange={(open) => !open && setDialogOpenFor(null)}>
                   <AlertDialogTrigger asChild>
-                      <Button variant="destructive" onClick={() => setDialogOpenFor('resetOrders')}>
-                        <Trash2 className="mr-2 h-4 w-4" /> Zerar Pedidos e Dados de Clientes
+                      <Button variant="destructive" outline onClick={() => setDialogOpenFor('resetOrders')}>
+                        <Trash2 className="mr-2 h-4 w-4" /> Zerar Pedidos
                       </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                       <AlertDialogHeader>
                           <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
                           <AlertDialogDescription>
-                              Esta ação não pode ser desfeita. Isso irá apagar permanentemente todos os pedidos e dados de clientes associados a eles.
+                              Esta ação não pode ser desfeita. Isso irá apagar permanentemente todos os pedidos e dados de clientes associados.
                           </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleResetOrdersAndCustomers}>Sim, zerar os dados</AlertDialogAction>
+                          <AlertDialogAction onClick={() => handleReset('resetOrders')}>Sim, zerar pedidos</AlertDialogAction>
+                      </AlertDialogFooter>
+                  </AlertDialogContent>
+              </AlertDialog>
+              <AlertDialog open={dialogOpenFor === 'resetProducts'} onOpenChange={(open) => !open && setDialogOpenFor(null)}>
+                  <AlertDialogTrigger asChild>
+                      <Button variant="destructive" outline onClick={() => setDialogOpenFor('resetProducts')}>
+                        <Package className="mr-2 h-4 w-4" /> Zerar Produtos
+                      </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                      <AlertDialogHeader>
+                          <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                              Esta ação não pode ser desfeita. Isso irá apagar permanentemente todos os produtos do catálogo.
+                          </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleReset('resetProducts')}>Sim, zerar produtos</AlertDialogAction>
+                      </AlertDialogFooter>
+                  </AlertDialogContent>
+              </AlertDialog>
+              <AlertDialog open={dialogOpenFor === 'resetFinancials'} onOpenChange={(open) => !open && setDialogOpenFor(null)}>
+                  <AlertDialogTrigger asChild>
+                      <Button variant="destructive" outline onClick={() => setDialogOpenFor('resetFinancials')}>
+                        <DollarSign className="mr-2 h-4 w-4" /> Zerar Financeiro
+                      </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                      <AlertDialogHeader>
+                          <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                              Esta ação não pode ser desfeita. Isso irá apagar permanentemente todo o histórico de pagamentos de comissão.
+                          </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleReset('resetFinancials')}>Sim, zerar financeiro</AlertDialogAction>
                       </AlertDialogFooter>
                   </AlertDialogContent>
               </AlertDialog>
 
                <AlertDialog open={dialogOpenFor === 'resetAll'} onOpenChange={(open) => !open && setDialogOpenFor(null)}>
                   <AlertDialogTrigger asChild>
-                      <Button variant="destructive" outline className="border-destructive text-destructive hover:bg-destructive/10" onClick={() => setDialogOpenFor('resetAll')}>
+                      <Button variant="destructive" onClick={() => setDialogOpenFor('resetAll')}>
                           <RotateCcw className="mr-2 h-4 w-4" /> Resetar Loja ao Padrão
                       </Button>
                   </AlertDialogTrigger>
@@ -643,7 +691,7 @@ export default function ConfiguracaoPage() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleResetAll}>Sim, resetar toda a loja</AlertDialogAction>
+                          <AlertDialogAction onClick={() => handleReset('resetAll')}>Sim, resetar toda a loja</AlertDialogAction>
                       </AlertDialogFooter>
                   </AlertDialogContent>
               </AlertDialog>
@@ -654,7 +702,3 @@ export default function ConfiguracaoPage() {
     </div>
   );
 }
-
-    
-    
-    
