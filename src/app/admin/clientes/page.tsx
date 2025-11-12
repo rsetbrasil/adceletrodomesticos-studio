@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User as UserIcon, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare, History, Import } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare, History, Import, UserPlus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,7 @@ import PaymentDialog from '@/components/PaymentDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
+import CustomerForm from '@/components/CustomerForm';
 
 
 const formatCurrency = (value: number) => {
@@ -77,7 +78,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 };
 
 export default function CustomersAdminPage() {
-  const { updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers } = useAdmin();
+  const { updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers, addOrder } = useAdmin();
   const { orders, customers, customerOrders, customerFinancials } = useData();
   const { user } = useAuth();
   const { logAction } = useAudit();
@@ -86,6 +87,7 @@ export default function CustomersAdminPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [imageToView, setImageToView] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAddCustomerDialogOpen, setIsAddCustomerDialogOpen] = useState(false);
   const [editedInfo, setEditedInfo] = useState<Partial<CustomerInfo>>({});
   const [openDueDatePopover, setOpenDueDatePopover] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -356,6 +358,36 @@ export default function CustomersAdminPage() {
             fileInputRef.current.value = '';
         }
     };
+    
+  const handleAddCustomer = async (customerData: CustomerInfo) => {
+    if (!user) return;
+    
+    const existingCustomer = customers.find(c => c.cpf.replace(/\D/g, '') === customerData.cpf.replace(/\D/g, ''));
+    if (existingCustomer) {
+        toast({ title: 'Erro', description: 'Um cliente com este CPF já existe.', variant: 'destructive' });
+        return;
+    }
+
+    const orderId = `REG-${customerData.cpf.replace(/\D/g, '')}`;
+    const newCustomerOrder: Partial<Order> = {
+      id: orderId,
+      customer: { ...customerData, password: customerData.cpf.substring(0, 6) },
+      items: [],
+      total: 0,
+      installments: 0,
+      installmentValue: 0,
+      date: new Date().toISOString(),
+      status: 'Excluído', // It's a registration-only "order"
+      paymentMethod: 'Dinheiro',
+      installmentDetails: [],
+      sellerId: user.id,
+      sellerName: user.name,
+    };
+
+    await addOrder(newCustomerOrder, logAction, user);
+    toast({ title: 'Cliente Cadastrado!', description: `${customerData.name} foi adicionado(a) com sucesso.` });
+    setIsAddCustomerDialogOpen(false);
+  };
 
 
   return (
@@ -363,15 +395,21 @@ export default function CustomersAdminPage() {
         <div className="grid lg:grid-cols-3 gap-8 items-start">
         <Card className="lg:col-span-1">
             <CardHeader>
-                <div className='flex justify-between items-center'>
+                <div className='flex justify-between items-center flex-wrap gap-2'>
                     <CardTitle className="flex items-center gap-2">
                         <Users className="h-5 w-5" />
                         Clientes
                     </CardTitle>
-                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                        <Import className="h-4 w-4 mr-2" />
-                        Importar Clientes
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setIsAddCustomerDialogOpen(true)}>
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Cadastrar
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                            <Import className="h-4 w-4 mr-2" />
+                            Importar
+                        </Button>
+                    </div>
                     <input
                         type="file"
                         ref={fileInputRef}
@@ -380,7 +418,7 @@ export default function CustomersAdminPage() {
                         onChange={handleImportCustomers}
                     />
                 </div>
-                <CardDescription>Selecione um cliente para ver os detalhes ou importe uma lista.</CardDescription>
+                <CardDescription>Selecione um cliente para ver os detalhes, cadastre um novo ou importe uma lista.</CardDescription>
             </CardHeader>
             <CardContent>
             <div className="relative mb-4">
@@ -885,6 +923,18 @@ export default function CustomersAdminPage() {
                     <Button variant="outline" onClick={() => setCommentDialog({ open: false })}>Cancelar</Button>
                     <Button onClick={handleCommentDialogSubmit}>Salvar</Button>
                 </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isAddCustomerDialogOpen} onOpenChange={setIsAddCustomerDialogOpen}>
+            <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                    <DialogTitle>Cadastrar Novo Cliente</DialogTitle>
+                    <DialogDescription>
+                        Preencha as informações abaixo para adicionar um novo cliente ao sistema.
+                    </DialogDescription>
+                </DialogHeader>
+                <CustomerForm onSave={handleAddCustomer} onCancel={() => setIsAddCustomerDialogOpen(false)} />
             </DialogContent>
         </Dialog>
 

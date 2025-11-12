@@ -499,8 +499,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const { db } = getClientFirebase();
     const orderToSave = {
         ...order,
-        sellerId: '',
-        sellerName: 'Não atribuído',
+        sellerId: user?.id || '',
+        sellerName: user?.name || 'Não atribuído',
         commission: 0,
         commissionPaid: false,
     } as Order;
