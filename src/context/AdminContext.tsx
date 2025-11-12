@@ -70,6 +70,7 @@ interface AdminContextType {
   addAvaria: (avariaData: Omit<Avaria, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>, logAction: LogAction, user: User | null) => Promise<void>;
   updateAvaria: (avariaId: string, avariaData: Partial<Omit<Avaria, 'id'>>, logAction: LogAction, user: User | null) => Promise<void>;
   deleteAvaria: (avariaId: string, logAction: LogAction, user: User | null) => Promise<void>;
+  emptyTrash: (logAction: LogAction, user: User | null) => Promise<void>;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -1036,6 +1037,33 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [toast]);
 
+  const emptyTrash = useCallback(async (logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
+    const batch = writeBatch(db);
+    const deletedOrders = orders.filter(o => o.status === 'Excluído');
+    
+    if (deletedOrders.length === 0) {
+      toast({ title: 'Lixeira Vazia', description: 'Não há pedidos para remover da lixeira.' });
+      return;
+    }
+
+    deletedOrders.forEach(order => {
+      const orderRef = doc(db, 'orders', order.id);
+      batch.delete(orderRef);
+    });
+
+    try {
+      await batch.commit();
+      logAction('Esvaziar Lixeira', `Todos os ${deletedOrders.length} pedidos da lixeira foram permanentemente excluídos.`, user);
+      toast({ title: 'Lixeira Esvaziada!', description: `${deletedOrders.length} pedidos foram excluídos permanentemente.` });
+    } catch (e) {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'orders',
+        operation: 'delete',
+      }));
+    }
+  }, [orders, toast]);
+
   return (
     <AdminContext.Provider
       value={{
@@ -1044,7 +1072,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         payCommissions, reverseCommissionPayment,
         restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData,
-        saveStockAudit, addAvaria, updateAvaria, deleteAvaria
+        saveStockAudit, addAvaria, updateAvaria, deleteAvaria,
+        emptyTrash
       }}
     >
       {children}
@@ -1059,3 +1088,5 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
+
+    

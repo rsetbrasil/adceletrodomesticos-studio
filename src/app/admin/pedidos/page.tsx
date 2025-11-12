@@ -73,7 +73,7 @@ const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'o
 };
 
 export default function OrdersAdminPage() {
-  const { updateOrderStatus, recordInstallmentPayment, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder, reversePayment } = useAdmin();
+  const { updateOrderStatus, recordInstallmentPayment, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder, reversePayment, emptyTrash } = useAdmin();
   const { products, orders } = useData();
   const { user, users } = useAuth();
   const { logAction } = useAudit();
@@ -317,6 +317,10 @@ export default function OrdersAdminPage() {
     updateOrderDetails(selectedOrder.id, { commission: value, isCommissionManual: true }, logAction, user);
   }
 
+  const handleEmptyTrash = () => {
+    emptyTrash(logAction, user);
+  }
+
   const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'gerente';
   const isAdmin = user?.role === 'admin';
 
@@ -461,6 +465,30 @@ export default function OrdersAdminPage() {
                     )}
                 </TabsContent>
                 <TabsContent value="deleted">
+                    <div className="mb-4">
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" disabled={deletedOrders.length === 0}>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Esvaziar Lixeira ({deletedOrders.length})
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Esvaziar a lixeira?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Esta ação não pode ser desfeita. Isso irá apagar permanentemente todos os {deletedOrders.length} pedidos na lixeira.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleEmptyTrash}>
+                                        Sim, Esvaziar Lixeira
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
                     <div className="rounded-md border">
                         <Table>
                             <TableHeader>
@@ -819,3 +847,5 @@ export default function OrdersAdminPage() {
     </>
   );
 }
+
+    
