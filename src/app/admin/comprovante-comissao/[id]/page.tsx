@@ -23,13 +23,13 @@ const formatCurrency = (value: number) => {
 export default function CommissionReceiptPage() {
   const params = useParams();
   const router = useRouter();
-  const { commissionPayments, isLoading } = useAdmin();
+  const { commissionPayments } = useData();
   const { orders } = useData();
   const { settings } = useSettings();
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const { payment, relatedOrders } = useMemo(() => {
-    if (isLoading || !commissionPayments || !orders) {
+    if (!commissionPayments || !orders) {
         return { payment: null, relatedOrders: [] };
     }
     const paymentId = params.id as string;
@@ -42,12 +42,8 @@ export default function CommissionReceiptPage() {
     const foundOrders = orders.filter(o => foundPayment.orderIds.includes(o.id));
 
     return { payment: foundPayment, relatedOrders: foundOrders };
-  }, [isLoading, commissionPayments, orders, params.id]);
+  }, [commissionPayments, orders, params.id]);
 
-
-  if (isLoading) {
-    return <div className="p-8 text-center">Carregando comprovante...</div>;
-  }
 
   if (!payment) {
     return (

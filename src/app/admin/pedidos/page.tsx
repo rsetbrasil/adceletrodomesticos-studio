@@ -48,7 +48,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import PaymentDialog from '@/components/PaymentDialog';
-import { useData } from '@/components/../../context/DataContext';
+import { useData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
 
 

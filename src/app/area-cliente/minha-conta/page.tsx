@@ -14,7 +14,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
-import { useAdmin } from '@/context/AdminContext';
+import { useData } from '@/context/DataContext';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -22,7 +22,7 @@ const formatCurrency = (value: number) => {
 
 export default function MyAccountPage() {
   const { customer, logout, isAuthenticated, isLoading: authLoading } = useCustomerAuth();
-  const { orders: allOrders, isLoading: ordersLoading } = useAdmin();
+  const { orders: allOrders, isLoading: ordersLoading } = useData();
   const router = useRouter();
 
   useEffect(() => {
