@@ -48,7 +48,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import PaymentDialog from '@/components/PaymentDialog';
-import { useData } from '@/context/DataContext';
+import { useData } from '@/components/../../context/DataContext';
 import { useAudit } from '@/context/AuditContext';
 
 
@@ -126,7 +126,10 @@ export default function OrdersAdminPage() {
     }
     
     filtered.forEach(order => {
-      if (order.status === 'Excluído') {
+      // Exclude registration-only orders from the main active view
+      if (order.status === 'Excluído' && order.items.length === 0) {
+        // This is a registration-only record, don't show in active or trash
+      } else if (order.status === 'Excluído') {
         deleted.push(order);
       } else {
         active.push(order);

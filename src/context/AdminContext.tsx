@@ -105,10 +105,15 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const resetOrders = useCallback(async (logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
     const batch = writeBatch(db);
-    orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
+    // Only delete orders that are NOT registration-only orders
+    orders.forEach(o => {
+        if (o.items.length > 0) {
+            batch.delete(doc(db, 'orders', o.id));
+        }
+    });
     
     batch.commit().then(() => {
-        logAction('Reset de Pedidos', 'Todos os pedidos e dados de clientes foram zerados.', user);
+        logAction('Reset de Pedidos', 'Todos os pedidos de compra foram zerados.', user);
     }).catch(async (error) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'orders', operation: 'delete' }));
     });
@@ -1040,10 +1045,10 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const emptyTrash = useCallback(async (logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
     const batch = writeBatch(db);
-    const deletedOrders = orders.filter(o => o.status === 'Excluído');
+    const deletedOrders = orders.filter(o => o.status === 'Excluído' && o.items.length > 0);
     
     if (deletedOrders.length === 0) {
-      toast({ title: 'Lixeira Vazia', description: 'Não há pedidos para remover da lixeira.' });
+      toast({ title: 'Lixeira Vazia', description: 'Não há pedidos de compra para remover da lixeira.' });
       return;
     }
 
