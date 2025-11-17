@@ -6,8 +6,9 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PlusCircle, Edit, Users, KeyRound, UserCog, Percent } from 'lucide-react';
+import { PlusCircle, Edit, Users, KeyRound, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -51,7 +52,7 @@ const userCreateFormSchema = z.object({
 
 
 export default function ManageUsersPage() {
-    const { user: currentUser, users, updateUser, addUser, isLoading: isAuthLoading } = useAuth();
+    const { user: currentUser, users, updateUser, addUser, deleteUser, isLoading: isAuthLoading } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
 
@@ -124,7 +125,7 @@ export default function ManageUsersPage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle className="flex items-center gap-2">
-                            <UserCog className="h-6 w-6" /> Gerenciar Usuários
+                            <Users className="h-6 w-6" /> Gerenciar Usuários
                         </CardTitle>
                         <CardDescription>Crie, edite as informações e senhas dos usuários do sistema.</CardDescription>
                     </div>
@@ -153,10 +154,34 @@ export default function ManageUsersPage() {
                                             <Badge variant="secondary" className="capitalize">{user.role}</Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(user)}>
-                                                <Edit className="mr-2 h-4 w-4" />
-                                                Editar
-                                            </Button>
+                                            <div className="flex gap-2 justify-end">
+                                                <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(user)}>
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    Editar
+                                                </Button>
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="destructive" outline size="sm" disabled={currentUser?.id === user.id}>
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Excluir
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Confirmar Exclusão?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Esta ação não pode ser desfeita. Isso irá apagar permanentemente o usuário <span className="font-bold">{user.name}</span>.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => deleteUser(user.id)}>
+                                                                Sim, Excluir
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}

@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { User } from '@/lib/types';
 import { initialUsers } from '@/lib/users';
 import { getClientFirebase } from '@/lib/firebase-client';
-import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where, getDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { useAudit } from './AuditContext';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -21,6 +21,7 @@ interface AuthContextType {
   logout: () => void;
   addUser: (data: Omit<User, 'id'>) => Promise<boolean>;
   updateUser: (userId: string, data: Partial<Omit<User, 'id'>>) => Promise<void>;
+  deleteUser: (userId: string) => Promise<void>;
   changeMyPassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -192,6 +193,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const deleteUser = async (userId: string) => {
+    if (user?.id === userId) {
+      toast({
+        title: 'Ação não permitida',
+        description: 'Você não pode excluir seu próprio usuário.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const { db } = getClientFirebase();
+    const userRef = doc(db, 'users', userId);
+    const userToDelete = users.find(u => u.id === userId);
+
+    deleteDoc(userRef).then(() => {
+      if (userToDelete) {
+        logAction('Exclusão de Usuário', `Usuário "${userToDelete.name}" foi excluído.`, user);
+      }
+      toast({
+        title: 'Usuário Excluído!',
+        description: 'O usuário foi removido do sistema.',
+        variant: 'destructive',
+      });
+    }).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: userRef.path,
+        operation: 'delete',
+      }));
+    });
+  };
+
   const changeMyPassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
       const { db } = getClientFirebase();
       if (!user) {
@@ -238,7 +269,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, users, initialUsers, login, logout, addUser, updateUser, changeMyPassword, isLoading, isAuthenticated: !!user, restoreUsers }}>
+    <AuthContext.Provider value={{ user, users, initialUsers, login, logout, addUser, updateUser, deleteUser, changeMyPassword, isLoading, isAuthenticated: !!user, restoreUsers }}>
       {children}
     </AuthContext.Provider>
   );
