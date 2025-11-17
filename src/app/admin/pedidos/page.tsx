@@ -736,7 +736,7 @@ export default function OrdersAdminPage() {
                                                                         </Button>
                                                                     </PopoverTrigger>
                                                                     <PopoverContent className="w-auto p-0">
-                                                                        <Calendar mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)} initialFocus/>
+                                                                        <Calendar locale={ptBR} mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)} initialFocus/>
                                                                     </PopoverContent>
                                                                 </Popover>
                                                             </TableCell>
@@ -850,5 +850,3 @@ export default function OrdersAdminPage() {
     </>
   );
 }
-
-    
