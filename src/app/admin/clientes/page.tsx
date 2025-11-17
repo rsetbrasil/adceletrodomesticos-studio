@@ -30,6 +30,7 @@ import { useAudit } from '@/context/AuditContext';
 import CustomerForm from '@/components/CustomerForm';
 import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { useSettings } from '@/context/SettingsContext';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 
 const formatCurrency = (value: number) => {
@@ -86,6 +87,9 @@ export default function CustomersAdminPage() {
   const { settings } = useSettings();
   const { logAction } = useAudit();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [imageToView, setImageToView] = useState<string | null>(null);
@@ -108,6 +112,19 @@ export default function CustomersAdminPage() {
     onSave?: (comment: string) => Promise<void>;
   }>({ open: false });
   
+  // Effect to handle selecting a customer from URL query parameter
+  useEffect(() => {
+    const cpfFromQuery = searchParams.get('cpf');
+    if (cpfFromQuery && customers.length > 0) {
+      const customerToSelect = customers.find(c => c.cpf.replace(/\D/g, '') === cpfFromQuery.replace(/\D/g, ''));
+      if (customerToSelect) {
+        setSelectedCustomer(customerToSelect);
+        // Optional: clear the query param after selection
+        router.replace('/admin/clientes', undefined);
+      }
+    }
+  }, [searchParams, customers, router]);
+
   const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'outline' | 'destructive' => {
     switch (status) {
       case 'Processando':

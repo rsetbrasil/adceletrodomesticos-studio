@@ -412,7 +412,17 @@ export default function OrdersAdminPage() {
                                     <TableRow key={order.id}>
                                         <TableCell className="font-medium">{order.id}</TableCell>
                                         <TableCell>{format(new Date(order.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</TableCell>
-                                        <TableCell>{order.customer.name}</TableCell>
+                                        <TableCell>
+                                          <div className="flex items-center gap-2">
+                                            <Link href={`/admin/clientes?cpf=${order.customer.cpf}`} passHref>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                    <UserIcon className="h-4 w-4" />
+                                                    <span className="sr-only">Ver Cliente</span>
+                                                </Button>
+                                            </Link>
+                                            <span>{order.customer.name}</span>
+                                          </div>
+                                        </TableCell>
                                         <TableCell className="text-xs max-w-[200px] truncate">{order.items.map(item => item.name).join(', ')}</TableCell>
                                         <TableCell>{order.sellerName}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
