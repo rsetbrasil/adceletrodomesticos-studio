@@ -204,6 +204,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             title: 'Produto Excluído!',
             description: 'O produto foi removido do catálogo.',
             variant: 'destructive',
+            duration: 5000,
         });
       }).catch(async (error) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -288,7 +289,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const categoryRef = doc(db, 'categories', categoryId);
     deleteDoc(categoryRef).then(() => {
         logAction('Exclusão de Categoria', `Categoria "${categoryToDelete.name}" foi excluída.`, user);
-        toast({ title: "Categoria Excluída!", variant: "destructive" });
+        toast({ title: "Categoria Excluída!", variant: "destructive", duration: 5000 });
     }).catch(async(e) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: categoryRef.path,
@@ -365,7 +366,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const categoryRef = doc(db, 'categories', categoryId);
     updateDoc(categoryRef, { subcategories: newSubcategories }).then(() => {
         logAction('Exclusão de Subcategoria', `Subcategoria "${subcategoryName}" foi excluída da categoria "${category.name}".`, user);
-        toast({ title: "Subcategoria Excluída!", variant: "destructive" });
+        toast({ title: "Subcategoria Excluída!", variant: "destructive", duration: 5000 });
     }).catch(async (error) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: categoryRef.path,
@@ -1033,7 +1034,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const avariaRef = doc(db, 'avarias', avariaId);
     deleteDoc(avariaRef).then(() => {
         logAction('Exclusão de Avaria', `Avaria ID ${avariaId} foi excluída.`, user);
-        toast({ title: "Avaria Excluída!", variant: "destructive" });
+        toast({ title: "Avaria Excluída!", variant: "destructive", duration: 5000 });
     }).catch(async (error) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: avariaRef.path,

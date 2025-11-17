@@ -214,6 +214,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: 'Usuário Excluído!',
         description: 'O usuário foi removido do sistema.',
         variant: 'destructive',
+        duration: 5000,
       });
     }).catch(async (error) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
