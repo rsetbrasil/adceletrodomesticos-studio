@@ -17,6 +17,7 @@ import FirebaseErrorListener from '@/components/FirebaseErrorListener';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import { DataProvider } from '@/context/DataContext';
 import { AdminProvider } from '@/context/AdminContext';
+import { ThemeProvider } from "next-themes";
 
 
 const AppContent = ({ children }: { children: React.ReactNode }) => {
@@ -65,21 +66,28 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <AuditProvider>
-          <AuthProvider>
-            <PermissionsProvider>
-              <SettingsProvider>
-                <DataProvider>
-                  <CustomerAuthProvider>
-                    <CartProvider>
-                      <AppContent>{children}</AppContent>
-                    </CartProvider>
-                  </CustomerAuthProvider>
-                </DataProvider>
-              </SettingsProvider>
-            </PermissionsProvider>
-          </AuthProvider>
-        </AuditProvider>
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+            <AuditProvider>
+            <AuthProvider>
+                <PermissionsProvider>
+                <SettingsProvider>
+                    <DataProvider>
+                    <CustomerAuthProvider>
+                        <CartProvider>
+                        <AppContent>{children}</AppContent>
+                        </CartProvider>
+                    </CustomerAuthProvider>
+                    </DataProvider>
+                </SettingsProvider>
+                </PermissionsProvider>
+            </AuthProvider>
+            </AuditProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

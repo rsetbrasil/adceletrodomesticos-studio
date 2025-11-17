@@ -5,7 +5,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut, Shield, Store, KeyRound, ChevronDown, Clock } from 'lucide-react';
+import { LogOut, Shield, Store, KeyRound, ChevronDown, Clock, Moon, Sun } from 'lucide-react';
 import AdminNav from "@/components/AdminNav";
 import { Button } from "@/components/ui/button";
 import { hasAccess, type AppSection } from "@/lib/permissions";
@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useTheme } from "next-themes";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +60,33 @@ const isWithinCommercialHours = (start: string, end: string) => {
 
     return currentTime >= startTime && currentTime <= endTime;
 };
+
+export function ModeToggle() {
+  const { setTheme } = useTheme()
+ 
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="icon">
+          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setTheme("light")}>
+          Claro
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>
+          Escuro
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")}>
+          Sistema
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const { user, isAuthenticated, isLoading, logout, changeMyPassword } = useAuth();
@@ -152,6 +180,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         </div>
                     </div>
                      <div className="flex items-center gap-4">
+                         <ModeToggle />
                         <Button variant="outline" asChild>
                             <Link href="/">
                                 <Store className="mr-2 h-4 w-4" />
