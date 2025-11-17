@@ -38,7 +38,7 @@ export default function FinanceiroPage() {
   const { payCommissions } = useAdmin();
   const { orders, financialSummary, commissionSummary } = useData();
   const { settings } = useSettings();
-  const { user, users } = useAuth();
+  const { user } = useAuth();
   const { logAction } = useAudit();
   const router = useRouter();
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -431,5 +431,3 @@ export default function FinanceiroPage() {
     </div>
   );
 }
-
-    
