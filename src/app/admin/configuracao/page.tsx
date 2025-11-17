@@ -29,6 +29,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
+import { useData } from '@/context/DataContext';
 
 const settingsSchema = z.object({
   storeName: z.string().min(3, 'O nome da loja é obrigatório.'),
@@ -131,7 +132,8 @@ function AuditLogCard() {
 
 export default function ConfiguracaoPage() {
   const { settings, updateSettings, isLoading: settingsLoading, restoreSettings, resetSettings } = useSettings();
-  const { products, orders, categories, restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData } = useAdmin();
+  const { restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData } = useAdmin();
+  const { products, orders, categories } = useData();
   const { user, users, restoreUsers, initialUsers } = useAuth();
   const { permissions, updatePermissions, isLoading: permissionsLoading, resetPermissions } = usePermissions();
   const { toast } = useToast();
@@ -219,7 +221,7 @@ export default function ConfiguracaoPage() {
 
         if (data.settings && data.products && data.orders && data.categories && data.users) {
           await restoreSettings(data.settings);
-          await restoreAdminData({ products: data.products, orders: data.orders, categories: data.categories });
+          await restoreAdminData({ products: data.products, orders: data.orders, categories: data.categories }, logAction, user);
           await restoreUsers(data.users);
           if (data.permissions) {
              await updatePermissions(data.permissions);
