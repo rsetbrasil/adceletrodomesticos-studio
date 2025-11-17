@@ -19,6 +19,7 @@ import Logo from '@/components/Logo';
 import { useSettings } from '@/context/SettingsContext';
 import { useAuth } from '@/context/AuthContext';
 import { useData } from '@/context/DataContext';
+import { useAudit } from '@/context/AuditContext';
 
 
 const formatCurrency = (value: number) => {
@@ -37,7 +38,8 @@ export default function FinanceiroPage() {
   const { payCommissions } = useAdmin();
   const { orders, financialSummary, commissionSummary } = useData();
   const { settings } = useSettings();
-  const { users } = useAuth();
+  const { user, users } = useAuth();
+  const { logAction } = useAudit();
   const router = useRouter();
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<SellerCommissionDetails | null>(null);
@@ -51,7 +53,7 @@ export default function FinanceiroPage() {
 
   const handlePayCommission = async (seller: SellerCommissionDetails) => {
       const period = format(new Date(), 'MMMM/yyyy', { locale: ptBR });
-      const paymentId = await payCommissions(seller.id, seller.name, seller.total, seller.orderIds, period);
+      const paymentId = await payCommissions(seller.id, seller.name, seller.total, seller.orderIds, period, logAction, user);
       if (paymentId) {
           router.push(`/admin/comprovante-comissao/${paymentId}`);
       }
