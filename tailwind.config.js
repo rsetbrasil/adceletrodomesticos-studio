@@ -1,8 +1,7 @@
-import type {Config} from 'tailwindcss';
-
 const plugin = require('tailwindcss/plugin')
 
-export default {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   darkMode: ['class'],
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -102,9 +101,9 @@ export default {
   },
   plugins: [
     require('tailwindcss-animate'),
-    plugin(function({ addVariant }: { addVariant: any }) {
+    plugin(function({ addVariant }) {
       addVariant('print-default', '.print-layout-default &');
       addVariant('print-a4', '.print-layout-a4 &');
     })
   ],
-} satisfies Config;
+};
