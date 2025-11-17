@@ -139,7 +139,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 .filter(([path]) => pathname.startsWith(path))
                 .sort((a,b) => b[0].length - a[0].length)[0]?.[1];
             
-            if (currentSection && !hasAccess(user.role, currentSection, permissions)) {
+            if (currentSection && !hasAccess(user.role, currentSection, permissions ?? {})) {
                 toast({
                     title: "Acesso Negado",
                     description: "Você não tem permissão para acessar esta página.",
