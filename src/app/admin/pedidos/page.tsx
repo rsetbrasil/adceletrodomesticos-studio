@@ -436,28 +436,26 @@ export default function OrdersAdminPage() {
                                                     <Pencil className="h-4 w-4" />
                                                     <span className="sr-only">Gerenciar Pedido</span>
                                                 </Button>
-                                                {isManagerOrAdmin ? (
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                                <Users className="h-4 w-4" />
-                                                                <span className="sr-only">Atribuir Vendedor</span>
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            {sellers.map(s => (
-                                                                <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
-                                                                    {s.name}
-                                                                </DropdownMenuItem>
-                                                            ))}
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                ) : (
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAssignToMe(order)}>
-                                                        <UserPlus className="h-4 w-4" />
-                                                        <span className="sr-only">Atribuir a mim</span>
-                                                    </Button>
-                                                )}
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                            <Users className="h-4 w-4" />
+                                                            <span className="sr-only">Atribuir Vendedor</span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => handleAssignToMe(order)}>
+                                                          <UserPlus className="mr-2 h-4 w-4" />
+                                                          Atribuir a mim
+                                                        </DropdownMenuItem>
+                                                        <Separator />
+                                                        {sellers.map(s => (
+                                                            <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
+                                                                {s.name}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteOrder(order.id)}>
                                                     <Trash className="h-4 w-4" />
                                                     <span className="sr-only">Excluir Pedido</span>
