@@ -39,9 +39,11 @@ const changePasswordSchema = z.object({
 
 const pathToSectionMap: { [key: string]: AppSection } = {
     '/admin/pedidos': 'pedidos',
+    '/admin/criar-pedido': 'criar-pedido',
     '/admin/clientes': 'clientes',
     '/admin/produtos': 'produtos',
     '/admin/categorias': 'categorias',
+    '/admin/avarias': 'avarias',
     '/admin/financeiro': 'financeiro',
     '/admin/minhas-comissoes': 'minhas-comissoes',
     '/admin/auditoria': 'auditoria',
