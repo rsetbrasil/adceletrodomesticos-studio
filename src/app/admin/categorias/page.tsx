@@ -14,11 +14,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { useAudit } from '@/context/AuditContext';
 
 export default function ManageCategoriesPage() {
     const { addCategory, deleteCategory, updateCategoryName, addSubcategory, deleteSubcategory, updateSubcategory, moveCategory, reorderSubcategories, moveSubcategory } = useAdmin();
     const { categories } = useData();
     const { toast } = useToast();
+    const { user } = useAuth();
+    const { logAction } = useAudit();
 
     const [dialogState, setDialogState] = useState<{
         mode: 'addCategory' | 'editCategory' | 'addSubcategory' | 'editSubcategory' | null;
@@ -48,16 +52,16 @@ export default function ManageCategoriesPage() {
 
         switch (dialogState.mode) {
             case 'addCategory':
-                addCategory(inputValue.trim());
+                addCategory(inputValue.trim(), logAction, user);
                 break;
             case 'editCategory':
-                updateCategoryName(dialogState.data.categoryId, inputValue.trim());
+                updateCategoryName(dialogState.data.categoryId, inputValue.trim(), logAction, user);
                 break;
             case 'addSubcategory':
-                addSubcategory(dialogState.data.categoryId, inputValue.trim());
+                addSubcategory(dialogState.data.categoryId, inputValue.trim(), logAction, user);
                 break;
             case 'editSubcategory':
-                updateSubcategory(dialogState.data.categoryId, dialogState.data.oldSubName, inputValue.trim());
+                updateSubcategory(dialogState.data.categoryId, dialogState.data.oldSubName, inputValue.trim(), logAction, user);
                 break;
         }
         closeDialog();
@@ -88,10 +92,10 @@ export default function ManageCategoriesPage() {
         if (draggedSub && (draggedSub.categoryId !== targetCategoryId || draggedSub.name !== targetSubName)) {
             if (draggedSub.categoryId === targetCategoryId) {
                 // Reorder within the same category
-                reorderSubcategories(draggedSub.categoryId, draggedSub.name, targetSubName);
+                reorderSubcategories(draggedSub.categoryId, draggedSub.name, targetSubName, logAction, user);
             } else {
                 // Move to another category
-                moveSubcategory(draggedSub.categoryId, draggedSub.name, targetCategoryId);
+                moveSubcategory(draggedSub.categoryId, draggedSub.name, targetCategoryId, logAction, user);
             }
         }
         handleDragEnd();
@@ -100,7 +104,7 @@ export default function ManageCategoriesPage() {
     const handleDropOnCategory = (e: React.DragEvent, targetCategoryId: string) => {
         e.preventDefault();
         if (draggedSub && draggedSub.categoryId !== targetCategoryId) {
-             moveSubcategory(draggedSub.categoryId, draggedSub.name, targetCategoryId);
+             moveSubcategory(draggedSub.categoryId, draggedSub.name, targetCategoryId, logAction, user);
         }
         handleDragEnd();
     };
@@ -132,10 +136,10 @@ export default function ManageCategoriesPage() {
                                 <Collapsible key={category.id} className="border rounded-lg" defaultOpen>
                                     <div className="flex items-center justify-between w-full p-4 hover:bg-muted/50 rounded-t-lg data-[state=open]:rounded-b-none group">
                                         <div className="flex items-center gap-2">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveCategory(category.id, 'up')} disabled={index === 0}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveCategory(category.id, 'up', logAction, user)} disabled={index === 0}>
                                                 <ArrowUp className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveCategory(category.id, 'down')} disabled={index === categories.length - 1}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveCategory(category.id, 'down', logAction, user)} disabled={index === categories.length - 1}>
                                                 <ArrowDown className="h-4 w-4" />
                                             </Button>
                                             <CollapsibleTrigger className="flex items-center gap-2">
@@ -150,7 +154,7 @@ export default function ManageCategoriesPage() {
                                             <Button variant="ghost" size="sm" onClick={() => openDialog('addSubcategory', { categoryId: category.id, categoryName: category.name })}>
                                                 <PlusCircle className="mr-2 h-4 w-4"/> Adicionar Subcategoria
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteCategory(category.id)}>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteCategory(category.id, logAction, user)}>
                                                 <Trash className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -189,7 +193,7 @@ export default function ManageCategoriesPage() {
                                                                 <Button variant="ghost" size="icon" onClick={() => openDialog('editSubcategory', { categoryId: category.id, oldSubName: sub })}>
                                                                     <Edit className="h-4 w-4"/>
                                                                 </Button>
-                                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteSubcategory(category.id, sub)}>
+                                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteSubcategory(category.id, sub, logAction, user)}>
                                                                     <Trash className="h-4 w-4" />
                                                                 </Button>
                                                             </div>
@@ -242,3 +246,5 @@ export default function ManageCategoriesPage() {
         </>
     );
 }
+
+    
