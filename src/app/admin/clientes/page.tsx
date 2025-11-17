@@ -28,6 +28,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
 import CustomerForm from '@/components/CustomerForm';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
+import { useSettings } from '@/context/SettingsContext';
 
 
 const formatCurrency = (value: number) => {
@@ -81,6 +83,7 @@ export default function CustomersAdminPage() {
   const { updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers, addOrder } = useAdmin();
   const { orders, customers, customerOrders, customerFinancials } = useData();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const { logAction } = useAudit();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
@@ -388,6 +391,19 @@ export default function CustomersAdminPage() {
     toast({ title: 'Cliente Cadastrado!', description: `${customerData.name} foi adicionado(a) com sucesso.` });
     setIsAddCustomerDialogOpen(false);
   };
+  
+  const handleSendWhatsAppReminder = (order: Order, installment: Installment) => {
+    const customerName = order.customer.name.split(' ')[0];
+    const customerPhone = order.customer.phone.replace(/\D/g, '');
+    const storeName = settings.storeName || 'sua loja';
+    const dueDate = format(parseISO(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR });
+    const amount = formatCurrency(installment.amount);
+    
+    const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}) na ${storeName}.\n\nVencimento: *${dueDate}*\nValor: *${amount}*\n\nQualquer dúvida, estamos à disposição!\nObrigado!`;
+    
+    const whatsappUrl = `https://wa.me/55${customerPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
 
 
   return (
@@ -614,6 +630,9 @@ export default function CustomersAdminPage() {
                                                                             <div className="min-w-[150px] text-right"><Badge variant={statusVariant}>{statusText}</Badge></div>
                                                                             
                                                                             <div className="flex gap-2 justify-end ml-4">
+                                                                                <Button variant="ghost" size="sm" className="bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, inst)}>
+                                                                                    <WhatsAppIcon />
+                                                                                </Button>
                                                                                 {user && (
                                                                                     <>
                                                                                         {(inst.payments && inst.payments.length > 0) && (
@@ -951,3 +970,5 @@ export default function CustomersAdminPage() {
     </>
   );
 }
+
+    
