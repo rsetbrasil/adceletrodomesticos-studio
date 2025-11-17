@@ -162,7 +162,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       imageUrls: [],
       maxInstallments: 10,
       paymentCondition: '',
-      commissionType: 'percentage',
+      commissionType: 'percentage' as 'fixed' | 'percentage',
       commissionValue: 0,
     };
     form.reset(defaultValues);
