@@ -20,15 +20,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Check, ChevronsUpDown, PlusCircle, ShoppingCart, Trash2 } from 'lucide-react';
+import { Check, ChevronsUpDown, PlusCircle, ShoppingCart, Trash2, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CustomerInfo, User, Product, CartItem, Order } from '@/lib/types';
-import { addMonths } from 'date-fns';
+import { addMonths, format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Calendar } from '@/components/ui/calendar';
 
 const createOrderSchema = z.object({
   customerId: z.string().min(1, 'É obrigatório selecionar um cliente.'),
   sellerId: z.string().min(1, 'É obrigatório selecionar um vendedor.'),
+  date: z.date({ required_error: 'A data do pedido é obrigatória.' }),
   items: z.array(z.object({
     id: z.string(),
     name: z.string(),
@@ -159,6 +162,7 @@ export default function CreateOrderPage() {
     defaultValues: {
       customerId: '',
       sellerId: user?.id || '',
+      date: new Date(),
       items: [],
       installments: 1,
     },
@@ -231,7 +235,7 @@ export default function CreateOrderPage() {
       .reduce((max, current) => Math.max(max, current), 0);
       
     const orderId = `PED-${String(lastOrderNumber + 1).padStart(4, '0')}`;
-    const orderDate = new Date();
+    const orderDate = values.date;
     
     const installmentValue = total / values.installments;
 
@@ -290,7 +294,7 @@ export default function CreateOrderPage() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid md:grid-cols-2 gap-8 items-start">
+            <div className="grid md:grid-cols-3 gap-8 items-start">
               <FormField
                 control={form.control}
                 name="customerId"
@@ -370,6 +374,48 @@ export default function CreateOrderPage() {
                     </FormItem>
                 )}
                />
+
+                <FormField
+                    control={form.control}
+                    name="date"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Data do Pedido</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-full pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                        >
+                                            {field.value ? (
+                                                format(field.value, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                                            ) : (
+                                                <span>Escolha uma data</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        disabled={(date) =>
+                                            date > new Date() || date < new Date("1900-01-01")
+                                        }
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
             </div>
             
              <div>
@@ -498,3 +544,5 @@ export default function CreateOrderPage() {
     </Card>
   );
 }
+
+    
