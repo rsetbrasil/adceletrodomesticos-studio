@@ -23,7 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Check, ChevronsUpDown, PlusCircle, ShoppingCart, Trash2, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CustomerInfo, User, Product, CartItem, Order } from '@/lib/types';
-import { addMonths, format } from 'date-fns';
+import { addMonths, format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
@@ -379,42 +379,27 @@ export default function CreateOrderPage() {
                     control={form.control}
                     name="date"
                     render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                            <FormLabel>Data do Pedido</FormLabel>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <FormControl>
-                                        <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                                "w-full pl-3 text-left font-normal",
-                                                !field.value && "text-muted-foreground"
-                                            )}
-                                        >
-                                            {field.value ? (
-                                                format(field.value, "PPP", { locale: ptBR })
-                                            ) : (
-                                                <span>Escolha uma data</span>
-                                            )}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                    </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        locale={ptBR}
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        disabled={(date) =>
-                                            date > new Date() || date < new Date("1900-01-01")
-                                        }
-                                        initialFocus
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                        </FormItem>
+                      <FormItem>
+                          <FormLabel>Data do Pedido</FormLabel>
+                          <FormControl>
+                              <Input
+                                  type="text"
+                                  placeholder="DD/MM/AAAA"
+                                  value={field.value ? format(field.value, 'dd/MM/yyyy') : ''}
+                                  onChange={(e) => {
+                                      const dateString = e.target.value;
+                                      const parsedDate = parse(dateString, 'dd/MM/yyyy', new Date());
+                                      if (!isNaN(parsedDate.getTime())) {
+                                          field.onChange(parsedDate);
+                                      } else if (dateString === '') {
+                                          // Allow clearing the input, though schema requires it
+                                          field.onChange(undefined);
+                                      }
+                                  }}
+                              />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
                     )}
                 />
             </div>
