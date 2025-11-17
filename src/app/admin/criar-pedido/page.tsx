@@ -195,17 +195,19 @@ export default function CreateOrderPage() {
 
     const existingItem = selectedItems.find(item => item.id === product.id);
     let newItems;
+    
+    const quantityToAdd = 'quantity' in product ? product.quantity : 1;
 
     if (existingItem) {
       newItems = selectedItems.map(item =>
-        item.id === product.id ? { ...item, quantity: item.quantity + (product.quantity || 1) } : item
+        item.id === product.id ? { ...item, quantity: item.quantity + quantityToAdd } : item
       );
     } else {
       newItems = [...selectedItems, {
         id: product.id,
         name: product.name,
         price: product.price,
-        quantity: product.quantity || 1,
+        quantity: quantityToAdd,
         imageUrl: 'imageUrl' in product ? product.imageUrl : (product.imageUrls?.[0] || 'https://placehold.co/100x100.png'),
       }];
     }
@@ -566,7 +568,3 @@ export default function CreateOrderPage() {
     </Card>
   );
 }
-
-    
-
-    
