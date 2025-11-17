@@ -410,9 +410,6 @@ export default function CreateOrderPage() {
                                             date > new Date() || date < new Date("1900-01-01")
                                         }
                                         initialFocus
-                                        captionLayout="dropdown-buttons"
-                                        fromYear={new Date().getFullYear() - 10}
-                                        toYear={new Date().getFullYear()}
                                     />
                                 </PopoverContent>
                             </Popover>
