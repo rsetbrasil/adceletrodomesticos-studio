@@ -9,18 +9,7 @@ import { useAudit } from './AuditContext';
 import { useAuth } from './AuthContext';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-
-export type StoreSettings = {
-    storeName: string;
-    storeCity: string;
-    storeAddress: string;
-    pixKey: string;
-    storePhone: string;
-    logoUrl?: string;
-    accessControlEnabled?: boolean;
-    commercialHourStart?: string;
-    commercialHourEnd?: string;
-};
+import type { StoreSettings } from '@/lib/types';
 
 const initialSettings: StoreSettings = {
     storeName: 'ADC MOVEIS E ELETRO',

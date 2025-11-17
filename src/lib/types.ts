@@ -1,7 +1,16 @@
 
 
-
-
+export type StoreSettings = {
+    storeName: string;
+    storeCity: string;
+    storeAddress: string;
+    pixKey: string;
+    storePhone: string;
+    logoUrl?: string;
+    accessControlEnabled?: boolean;
+    commercialHourStart?: string;
+    commercialHourEnd?: string;
+};
 
 
 export type Product = {
