@@ -1,5 +1,6 @@
 
 
+
 import type { UserRole, AppSection, RolePermissions } from './types';
 
 export const ALL_SECTIONS: { id: AppSection, label: string }[] = [
