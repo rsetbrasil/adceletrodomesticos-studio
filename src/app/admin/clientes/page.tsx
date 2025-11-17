@@ -618,7 +618,7 @@ export default function CustomersAdminPage() {
                                                         const remainingAmount = inst.amount - (inst.paidAmount || 0);
                                                         const isOverdue = inst.status === 'Pendente' && new Date(inst.dueDate) < new Date();
                                                         
-                                                        let statusText = inst.status;
+                                                        let statusText: string = inst.status;
                                                         if (inst.status === 'Pendente' && (inst.paidAmount || 0) > 0) {
                                                             statusText = `Parcial (${formatCurrency(remainingAmount)} pendente)`;
                                                         } else if (isOverdue) {
