@@ -52,9 +52,29 @@ const CustomProductForm = ({ onAdd }: { onAdd: (item: CartItem) => void }) => {
     const [quantity, setQuantity] = useState('1');
     const [isOpen, setIsOpen] = useState(false);
 
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value.replace(/\D/g, '');
+        if (!rawValue) {
+            setPrice('');
+            return;
+        }
+
+        const numericValue = parseInt(rawValue, 10);
+        
+        // Formata para o formato BRL (1.000,00)
+        const formattedValue = new Intl.NumberFormat('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(numericValue / 100);
+
+        setPrice(formattedValue);
+    };
+
     const handleAdd = () => {
-        const priceValue = parseFloat(price.replace(',', '.'));
+        // Converte o valor formatado '1.234,56' para um número 1234.56
+        const priceValue = parseFloat(price.replace(/\./g, '').replace(',', '.'));
         const quantityValue = parseInt(quantity, 10);
+
         if (name && !isNaN(priceValue) && priceValue > 0 && !isNaN(quantityValue) && quantityValue > 0) {
             onAdd({
                 id: `custom-${Date.now()}`,
@@ -69,6 +89,7 @@ const CustomProductForm = ({ onAdd }: { onAdd: (item: CartItem) => void }) => {
             setIsOpen(false);
         }
     };
+
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -97,7 +118,7 @@ const CustomProductForm = ({ onAdd }: { onAdd: (item: CartItem) => void }) => {
                         </div>
                         <div className="space-y-2">
                             <FormLabel htmlFor="custom-product-price">Preço Unitário (R$)</FormLabel>
-                            <Input id="custom-product-price" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Ex: 50,00" />
+                            <Input id="custom-product-price" value={price} onChange={handlePriceChange} placeholder="Ex: 50,00" />
                         </div>
                     </div>
                 </div>
@@ -545,5 +566,7 @@ export default function CreateOrderPage() {
     </Card>
   );
 }
+
+    
 
     
