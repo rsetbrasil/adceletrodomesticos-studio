@@ -9,7 +9,6 @@ import { LogOut, Shield, Store, KeyRound, ChevronDown, Clock, Moon, Sun } from '
 import AdminNav from "@/components/AdminNav";
 import { Button } from "@/components/ui/button";
 import { hasAccess } from "@/lib/permissions";
-import type { AppSection } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/context/PermissionsContext";
 import Link from "next/link";
@@ -27,6 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { AppSection } from "@/lib/types";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'A senha atual é obrigatória.'),
@@ -116,7 +116,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             return;
         }
 
-        if (!totalLoading && isAuthenticated && user) {
+        if (!totalLoading && isAuthenticated && user && permissions) {
             // Check for commercial hours access
             if (
                 settings.accessControlEnabled && 
@@ -139,7 +139,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 .filter(([path]) => pathname.startsWith(path))
                 .sort((a,b) => b[0].length - a[0].length)[0]?.[1];
             
-            if (currentSection && !hasAccess(user.role, currentSection, permissions ?? {})) {
+            if (currentSection && !hasAccess(user.role, currentSection, permissions)) {
                 toast({
                     title: "Acesso Negado",
                     description: "Você não tem permissão para acessar esta página.",
