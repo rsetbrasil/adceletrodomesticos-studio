@@ -392,7 +392,7 @@ export default function CreateOrderPage() {
                                             )}
                                         >
                                             {field.value ? (
-                                                format(field.value, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                                                format(field.value, "PPP", { locale: ptBR })
                                             ) : (
                                                 <span>Escolha uma data</span>
                                             )}
@@ -410,6 +410,9 @@ export default function CreateOrderPage() {
                                             date > new Date() || date < new Date("1900-01-01")
                                         }
                                         initialFocus
+                                        captionLayout="dropdown-buttons"
+                                        fromYear={new Date().getFullYear() - 10}
+                                        toYear={new Date().getFullYear()}
                                     />
                                 </PopoverContent>
                             </Popover>
