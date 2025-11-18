@@ -301,15 +301,21 @@ export default function AtendimentoPage() {
 
     const filteredSessions = useMemo(() => {
         return sessions.filter(session => {
-            const statusMatch = (
-                (filter === 'open' && (session.status === 'open' || session.unreadBySeller)) ||
-                (filter === 'active' && session.status === 'active') ||
-                (filter === 'closed' && session.status === 'closed')
-            );
-            const nameMatch = (
-                !nameFilter || 
-                session.visitorName?.toLowerCase().includes(nameFilter.toLowerCase())
-            );
+            let statusMatch = false;
+            switch(filter) {
+                case 'open':
+                    statusMatch = session.status === 'open' || session.unreadBySeller;
+                    break;
+                case 'active':
+                    statusMatch = session.status === 'active';
+                    break;
+                case 'closed':
+                    statusMatch = session.status === 'closed' || session.status === 'awaiting-feedback';
+                    break;
+            }
+
+            const nameMatch = !nameFilter || session.visitorName?.toLowerCase().includes(nameFilter.toLowerCase());
+
             return statusMatch && nameMatch;
         });
     }, [sessions, filter, nameFilter]);
