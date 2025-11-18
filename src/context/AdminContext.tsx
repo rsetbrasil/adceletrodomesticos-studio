@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, ReactNode, useCallback } from 'react';
@@ -154,12 +155,17 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => {
       const { db } = getClientFirebase();
       const newProductId = `prod-${Date.now()}`;
-      const newProduct: Product = {
+      
+      const newProduct: Partial<Product> = {
         ...productData,
         id: newProductId,
         createdAt: new Date().toISOString(),
         'data-ai-hint': productData.name.toLowerCase().split(' ').slice(0, 2).join(' '),
       };
+
+      if (!newProduct.promotionEndDate) {
+        delete newProduct.promotionEndDate;
+      }
       
       const productRef = doc(db, 'products', newProductId);
       setDoc(productRef, newProduct).then(() => {
@@ -180,7 +186,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const updateProduct = useCallback(async (updatedProduct: Product, logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
     const productRef = doc(db, 'products', updatedProduct.id);
-    const productToUpdate = { ...updatedProduct };
+    const productToUpdate: Partial<Product> = { ...updatedProduct };
+    
+    if (!productToUpdate.promotionEndDate) {
+        delete productToUpdate.promotionEndDate;
+    }
     
     setDoc(productRef, productToUpdate, { merge: true }).then(() => {
         logAction('Atualização de Produto', `Produto "${updatedProduct.name}" (ID: ${updatedProduct.id}) foi atualizado.`, user);
@@ -1139,5 +1149,3 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
-
-    

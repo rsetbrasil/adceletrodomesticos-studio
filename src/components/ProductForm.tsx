@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -222,11 +223,17 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   }
 
   function onSubmit(values: ProductFormValues) {
-    const productData = { ...values, promotionEndDate: values.promotionEndDate?.toISOString() };
-    if (productToEdit) {
-        updateProduct({ ...productToEdit, ...productData }, logAction, user);
+    const productData: Partial<ProductFormValues> = { ...values };
+    if (values.promotionEndDate) {
+        productData.promotionEndDate = values.promotionEndDate;
     } else {
-        addProduct(productData, logAction, user);
+        delete productData.promotionEndDate;
+    }
+    
+    if (productToEdit) {
+        updateProduct({ ...productToEdit, ...productData, promotionEndDate: values.promotionEndDate?.toISOString() }, logAction, user);
+    } else {
+        addProduct({ ...values, promotionEndDate: values.promotionEndDate?.toISOString() }, logAction, user);
     }
     onFinished();
   }
