@@ -34,16 +34,14 @@ export default function AtendimentoPage() {
 
     // Effect to play sound and flash title on new message
     useEffect(() => {
-        // Find sessions that have become unread for the seller since the last check
         const newUnreadSessions = sessions.filter(currentSession => {
             const previousSession = previousSessionsRef.current.find(p => p.id === currentSession.id);
-            // Notify if the session is now unread, and it either didn't exist before or wasn't unread before.
             return currentSession.unreadBySeller && (!previousSession || !previousSession.unreadBySeller);
         });
 
-        if (newUnreadSessions.length > 0 && document.hidden) {
+        if (newUnreadSessions.length > 0) {
             new Audio(notificationSound).play();
-             if (!titleIntervalRef.current) {
+            if (document.hidden && !titleIntervalRef.current) {
                 let isOriginalTitle = true;
                 titleIntervalRef.current = setInterval(() => {
                     document.title = isOriginalTitle ? `(NOVO) Atendimento` : originalTitleRef.current;
@@ -52,7 +50,6 @@ export default function AtendimentoPage() {
             }
         }
         
-        // Update the ref to the current sessions for the next render
         previousSessionsRef.current = sessions;
         
         const handleVisibilityChange = () => {
