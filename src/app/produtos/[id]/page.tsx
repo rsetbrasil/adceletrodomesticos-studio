@@ -14,6 +14,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Product } from '@/lib/types';
 import { useData } from '@/context/DataContext';
+import CountdownTimer from '@/components/CountdownTimer';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -61,6 +62,8 @@ export default function ProductDetailPage() {
   
   const maxInstallments = product.maxInstallments ?? 10;
   const installmentValue = maxInstallments > 0 ? product.price / maxInstallments : product.price;
+  const showCountdown = product.onSale && product.promotionEndDate && new Date(product.promotionEndDate) > new Date();
+
 
   return (
     <>
@@ -119,6 +122,8 @@ export default function ProductDetailPage() {
           </div>
           <h1 className="text-3xl lg:text-4xl font-bold font-headline text-primary">{product.name}</h1>
           <p className="text-muted-foreground mt-4 text-lg">{product.description}</p>
+          
+          {showCountdown && <CountdownTimer endDate={product.promotionEndDate!} />}
           
           {product.paymentCondition && (
             <Alert className="mt-4 border-accent/50 text-accent-foreground bg-accent/5">

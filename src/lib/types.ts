@@ -22,6 +22,7 @@ export type Product = {
   price: number;
   cost?: number;
   onSale?: boolean;
+  promotionEndDate?: string;
   category: string;
   subcategory?: string;
   stock: number;
@@ -222,5 +223,3 @@ export type ChatSession = {
   unreadByVisitor: boolean;
   satisfaction?: 'Ótimo' | 'Bom' | 'Ruim';
 };
-
-    

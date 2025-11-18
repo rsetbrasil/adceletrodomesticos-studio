@@ -16,6 +16,7 @@ import { Badge } from './ui/badge';
 import { useCart } from '@/context/CartContext';
 import type { Product } from '@/lib/types';
 import { ShoppingCart } from 'lucide-react';
+import CountdownTimer from './CountdownTimer';
 
 interface ProductCardProps {
   product: Product;
@@ -43,6 +44,9 @@ export default function ProductCard({ product }: ProductCardProps) {
   
   const maxInstallments = product.maxInstallments ?? 1;
   const installmentValue = maxInstallments > 1 ? product.price / maxInstallments : 0;
+  
+  const showCountdown = product.onSale && product.promotionEndDate && new Date(product.promotionEndDate) > new Date();
+
 
   return (
     <Link href={`/produtos/${product.id}`} className="block h-full" aria-label={`Ver detalhes de ${product.name}`}>
@@ -70,7 +74,8 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.subcategory && <Badge variant="outline" className="capitalize">{product.subcategory}</Badge>}
           </div>
           <CardTitle className="text-base md:text-lg font-semibold mb-2 h-14">{product.name}</CardTitle>
-          <CardDescription className="text-xs md:text-sm text-muted-foreground h-16 overflow-hidden">
+          {showCountdown && <CountdownTimer endDate={product.promotionEndDate!} />}
+          <CardDescription className="text-xs md:text-sm text-muted-foreground h-16 overflow-hidden mt-2">
             {product.description}
           </CardDescription>
         </CardContent>

@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
-import { PackagePlus, X, Percent, DollarSign } from 'lucide-react';
+import { PackagePlus, X, Percent, DollarSign, CalendarIcon } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import type { Product, Category } from '@/lib/types';
@@ -28,6 +28,11 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Checkbox } from './ui/checkbox';
 import { useData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { Calendar } from './ui/calendar';
+import { ptBR } from 'date-fns/locale';
 
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto é obrigatório.'),
@@ -52,6 +57,7 @@ const productSchema = z.object({
     z.coerce.number({ invalid_type_error: 'Custo inválido.' }).min(0, 'O custo não pode ser negativo.').optional()
   ),
   onSale: z.boolean().optional(),
+  promotionEndDate: z.date().optional(),
   category: z.string().min(1, 'A categoria é obrigatória.'),
   subcategory: z.string().optional(),
   stock: z.coerce.number().int().min(0, 'O estoque não pode ser negativo.'),
@@ -111,6 +117,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         price: productToEdit.price || 0,
         cost: productToEdit.cost || 0,
         onSale: productToEdit.onSale ?? false,
+        promotionEndDate: productToEdit.promotionEndDate ? new Date(productToEdit.promotionEndDate) : undefined,
         stock: productToEdit.stock || 0,
         maxInstallments: productToEdit.maxInstallments || 10,
         subcategory: productToEdit.subcategory || '',
@@ -125,6 +132,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       price: 0,
       cost: 0,
       onSale: false,
+      promotionEndDate: undefined,
       category: categories.length > 0 ? categories[0].name : '',
       subcategory: '',
       stock: 0,
@@ -142,6 +150,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
         price: productToEdit.price || 0,
         cost: productToEdit.cost || 0,
         onSale: productToEdit.onSale ?? false,
+        promotionEndDate: productToEdit.promotionEndDate ? new Date(productToEdit.promotionEndDate) : undefined,
         stock: productToEdit.stock || 0,
         maxInstallments: productToEdit.maxInstallments || 10,
         subcategory: productToEdit.subcategory || '',
@@ -156,6 +165,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
       price: 0,
       cost: 0,
       onSale: false,
+      promotionEndDate: undefined,
       category: categories.length > 0 ? categories[0].name : '',
       subcategory: '',
       stock: 0,
@@ -174,6 +184,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   const maxInstallments = form.watch('maxInstallments');
   const selectedCategoryName = form.watch('category');
   const commissionType = form.watch('commissionType');
+  const onSale = form.watch('onSale');
   const canEditCommission = user?.role === 'admin';
 
   const installmentValue = (price || 0) > 0 && (maxInstallments || 0) > 0 ? (price || 0) / (maxInstallments || 1) : 0;
@@ -211,7 +222,7 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
   }
 
   function onSubmit(values: ProductFormValues) {
-    const productData = { ...values };
+    const productData = { ...values, promotionEndDate: values.promotionEndDate?.toISOString() };
     if (productToEdit) {
         updateProduct({ ...productToEdit, ...productData }, logAction, user);
     } else {
@@ -413,12 +424,74 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                             <FormControl>
                                 <Checkbox
                                     checked={field.value}
-                                    onCheckedChange={field.onChange}
+                                    onCheckedChange={(checked) => {
+                                        field.onChange(checked);
+                                        if (!checked) {
+                                            form.setValue('promotionEndDate', undefined);
+                                        }
+                                    }}
                                 />
                             </FormControl>
                         </FormItem>
                     )}
                  />
+                 {onSale && (
+                     <FormField
+                        control={form.control}
+                        name="promotionEndDate"
+                        render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Data de Fim da Promoção (Opcional)</FormLabel>
+                            <Popover>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                    )}
+                                >
+                                    {field.value ? (
+                                    format(field.value, "PPP 'às' HH:mm", {locale: ptBR})
+                                    ) : (
+                                    <span>Escolha uma data</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                initialFocus
+                                locale={ptBR}
+                                />
+                                <div className="p-3 border-t border-border">
+                                    <Input
+                                        type="time"
+                                        defaultValue={field.value ? format(field.value, 'HH:mm') : '23:59'}
+                                        onChange={(e) => {
+                                            const time = e.target.value;
+                                            const [hours, minutes] = time.split(':').map(Number);
+                                            const newDate = field.value || new Date();
+                                            newDate.setHours(hours, minutes);
+                                            field.onChange(newDate);
+                                        }}
+                                    />
+                                </div>
+                            </PopoverContent>
+                            </Popover>
+                            <FormDescription>
+                            Deixe em branco para uma promoção sem data de término.
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                 )}
             </div>
 
             <div className="space-y-4">
