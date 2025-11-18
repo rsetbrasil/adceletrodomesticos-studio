@@ -153,44 +153,10 @@ export default function AtendimentoPage() {
         await updateDoc(sessionRef, updates);
     };
 
-    const handleSendMessage = async (text: string, file?: File) => {
+    const handleSendMessage = async (text: string, attachment: ChatAttachment | null) => {
         if (!selectedSession || !user) return;
-        if (text.trim() === '' && !file) return;
-    
-        let attachment: ChatAttachment | null = null;
-        if (file) {
-            try {
-                let fileType: 'image' | 'pdf' | null = null;
-                if (file.type.startsWith('image/')) {
-                    fileType = 'image';
-                } else if (file.type === 'application/pdf') {
-                    fileType = 'pdf';
-                } else {
-                    toast({ title: "Tipo de arquivo não suportado", description: "Por favor, envie apenas imagens ou arquivos PDF.", variant: "destructive" });
-                    return;
-                }
-
-                const url = await new Promise<string>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target?.result as string);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                });
-                
-                attachment = {
-                    name: file.name,
-                    type: fileType,
-                    url: url,
-                };
-
-            } catch (error) {
-                console.error("Error processing file:", error);
-                toast({ title: "Erro ao processar arquivo", variant: "destructive" });
-                return;
-            }
-        }
-    
         const messageText = text || (attachment ? attachment.name : '');
+        if (messageText.trim() === '') return;
     
         const messageData: Partial<ChatMessage> = {
             text: messageText,
@@ -218,13 +184,44 @@ export default function AtendimentoPage() {
             fileInputRef.current.value = '';
         }
     };
+    
+    const processAndUploadFile = (file: File) => {
+        let fileType: 'image' | 'pdf' | null = null;
+        if (file.type.startsWith('image/')) {
+            fileType = 'image';
+        } else if (file.type === 'application/pdf') {
+            fileType = 'pdf';
+        } else {
+            toast({ title: "Tipo de arquivo não suportado", description: "Por favor, envie apenas imagens ou arquivos PDF.", variant: "destructive" });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const url = e.target?.result as string;
+            if (url) {
+                const attachment: ChatAttachment = {
+                    name: file.name,
+                    type: fileType as 'image' | 'pdf',
+                    url: url,
+                };
+                handleSendMessage('', attachment);
+            }
+        };
+        reader.onerror = (error) => {
+            console.error("Error processing file:", error);
+            toast({ title: "Erro ao processar anexo", variant: 'destructive' });
+        };
+        reader.readAsDataURL(file);
+    };
+
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await handleSendMessage(newMessage);
+        await handleSendMessage(newMessage, null);
     };
 
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
@@ -236,8 +233,7 @@ export default function AtendimentoPage() {
             return;
         }
 
-        // Send immediately
-        await handleSendMessage('', file);
+        processAndUploadFile(file);
     };
     
     const handleCloseSession = async () => {

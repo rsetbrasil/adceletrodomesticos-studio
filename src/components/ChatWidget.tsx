@@ -129,14 +129,13 @@ export default function ChatWidget() {
         await updateDoc(sessionRef, { status: 'open' });
     };
     
-    const handleSendMessage = async (text: string, attachment?: ChatAttachment | null) => {
+    const handleSendMessage = async (text: string, attachment: ChatAttachment | null) => {
         if (!visitorId || !hasSetName) return;
-        if (text.trim() === '' && !attachment) return;
+        const messageText = text || (attachment ? attachment.name : '');
+        if (messageText.trim() === '') return;
 
         const sessionRef = doc(db, 'chatSessions', visitorId);
         const messagesRef = collection(db, 'chatSessions', visitorId, 'messages');
-    
-        const messageText = text || (attachment ? attachment.name : '');
     
         const messageData: Partial<ChatMessage> = {
             text: messageText,
@@ -193,12 +192,14 @@ export default function ChatWidget() {
         const reader = new FileReader();
         reader.onload = (e) => {
             const url = e.target?.result as string;
-            const attachment: ChatAttachment = {
-                name: file.name,
-                type: fileType as 'image' | 'pdf',
-                url: url,
-            };
-            handleSendMessage('', attachment);
+            if (url) {
+                const attachment: ChatAttachment = {
+                    name: file.name,
+                    type: fileType as 'image' | 'pdf',
+                    url: url,
+                };
+                handleSendMessage('', attachment);
+            }
         };
         reader.onerror = (error) => {
             console.error("Error processing file:", error);
@@ -209,7 +210,7 @@ export default function ChatWidget() {
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await handleSendMessage(newMessage);
+        await handleSendMessage(newMessage, null);
     };
     
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -338,7 +339,3 @@ export default function ChatWidget() {
         </>
     );
 }
-
-    
-
-    
