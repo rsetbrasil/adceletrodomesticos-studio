@@ -205,17 +205,16 @@ export default function ChatWidget() {
         }
     
         await addDoc(messagesRef, messageData);
+    };
     
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const file = fileInputRef.current?.files?.[0];
+        await handleSendMessage(newMessage, file);
         setNewMessage('');
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
-    };
-    
-    const handleFormSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const file = fileInputRef.current?.files?.[0];
-        handleSendMessage(newMessage, file);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -317,7 +316,7 @@ export default function ChatWidget() {
                                                 type="file" 
                                                 ref={fileInputRef} 
                                                 onChange={handleFileChange}
-                                                accept="image/png, image/jpeg, image/gif, image/webp, application/pdf"
+                                                accept="image/*,application/pdf"
                                                 className="hidden" 
                                             />
                                             <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
