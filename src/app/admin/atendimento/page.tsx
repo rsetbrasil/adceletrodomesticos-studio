@@ -7,7 +7,7 @@ import { getClientFirebase } from '@/lib/firebase-client';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { ChatSession, ChatMessage, ChatAttachment } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,13 +39,13 @@ export default function AtendimentoPage() {
     
     // Effect to handle notifications for new messages
     useEffect(() => {
-        // Detect new unread sessions
-        const newUnreadSessions = sessions.filter(session => {
+        const hasNewUnread = sessions.some(session => {
             const prevSession = prevSessionsRef.current.find(p => p.id === session.id);
+            // Notify if a session becomes unread, and it wasn't unread before.
             return session.unreadBySeller && (!prevSession || !prevSession.unreadBySeller);
         });
 
-        if (newUnreadSessions.length > 0) {
+        if (hasNewUnread) {
             new Audio(notificationSound).play().catch(e => console.error("Error playing sound:", e));
             
             if (document.hidden && !titleIntervalRef.current) {
@@ -57,7 +57,6 @@ export default function AtendimentoPage() {
             }
         }
         
-        // Update previous sessions ref
         prevSessionsRef.current = sessions;
 
     }, [sessions]);
@@ -216,7 +215,7 @@ export default function AtendimentoPage() {
             return sessions.filter(s => s.status === 'active' && s.sellerId === user?.id);
         }
         if (filter === 'open') {
-             return sessions.filter(s => s.status === 'open' || (s.status === 'active' && s.unreadBySeller));
+             return sessions.filter(s => s.status === 'open' || s.unreadBySeller);
         }
         return sessions.filter(s => s.status === filter);
     }, [sessions, filter, user?.id]);
@@ -335,5 +334,3 @@ export default function AtendimentoPage() {
         </div>
     );
 }
-
-    
