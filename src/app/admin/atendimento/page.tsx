@@ -212,13 +212,13 @@ export default function AtendimentoPage() {
 
     const filteredSessions = useMemo(() => {
         if (filter === 'active') {
-            return sessions.filter(s => s.status === 'active' && s.sellerId === user?.id);
+            return sessions.filter(s => s.status === 'active');
         }
         if (filter === 'open') {
              return sessions.filter(s => s.status === 'open' || s.unreadBySeller);
         }
         return sessions.filter(s => s.status === filter);
-    }, [sessions, filter, user?.id]);
+    }, [sessions, filter]);
 
     return (
         <div className="flex h-[calc(100vh-10rem)] border rounded-lg overflow-hidden">
@@ -229,7 +229,7 @@ export default function AtendimentoPage() {
                     </h2>
                      <div className="flex gap-2 mt-4">
                         <Button variant={filter === 'open' ? 'default' : 'outline'} onClick={() => setFilter('open')} size="sm">Não lidos</Button>
-                        <Button variant={filter === 'active' ? 'default' : 'outline'} onClick={() => setFilter('active')} size="sm">Meus Chats</Button>
+                        <Button variant={filter === 'active' ? 'default' : 'outline'} onClick={() => setFilter('active')} size="sm">Ativos</Button>
                         <Button variant={filter === 'closed' ? 'default' : 'outline'} onClick={() => setFilter('closed')} size="sm">Fechados</Button>
                     </div>
                 </div>
@@ -317,7 +317,7 @@ export default function AtendimentoPage() {
                                     placeholder="Digite sua resposta..."
                                     autoComplete="off"
                                 />
-                                <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+                                <Button type="submit" size="icon" disabled={!newMessage.trim() && !fileInputRef.current?.files?.length}>
                                     <Send className="h-4 w-4" />
                                 </Button>
                             </form>

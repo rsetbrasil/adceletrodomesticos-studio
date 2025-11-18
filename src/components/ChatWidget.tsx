@@ -311,7 +311,7 @@ export default function ChatWidget() {
                                                 placeholder="Digite sua mensagem..."
                                                 autoComplete="off"
                                             />
-                                            <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+                                            <Button type="submit" size="icon" disabled={!newMessage.trim() && !fileInputRef.current?.files?.length}>
                                                 <Send className="h-4 w-4" />
                                             </Button>
                                         </form>
