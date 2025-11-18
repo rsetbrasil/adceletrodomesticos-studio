@@ -13,16 +13,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Send, UserCircle, CheckCircle, Circle, Paperclip, FileText, Download } from 'lucide-react';
+import { MessageSquare, Send, UserCircle, CheckCircle, Circle, Paperclip, FileText, Download, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useAdmin } from '@/context/AdminContext';
+import { useAudit } from '@/context/AuditContext';
 
 const notificationSound = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 
 export default function AtendimentoPage() {
     const { user } = useAuth();
+    const { deleteChatSession } = useAdmin();
+    const { logAction } = useAudit();
     const [sessions, setSessions] = useState<ChatSession[]>([]);
     const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -153,8 +158,40 @@ export default function AtendimentoPage() {
         await updateDoc(sessionRef, updates);
     };
 
-    const handleSendMessage = async (text: string, attachment: ChatAttachment | null) => {
+    const handleSendMessage = async (text: string, attachmentFile: File | null) => {
         if (!selectedSession || !user) return;
+
+        let attachment: ChatAttachment | null = null;
+        if (attachmentFile) {
+            let fileType: 'image' | 'pdf' | null = null;
+            if (attachmentFile.type.startsWith('image/')) {
+                fileType = 'image';
+            } else if (attachmentFile.type === 'application/pdf') {
+                fileType = 'pdf';
+            } else {
+                toast({ title: "Tipo de arquivo não suportado", description: "Por favor, envie apenas imagens ou arquivos PDF.", variant: "destructive" });
+                return;
+            }
+
+            try {
+                const url = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target?.result as string);
+                    reader.onerror = (error) => reject(error);
+                    reader.readAsDataURL(attachmentFile);
+                });
+                attachment = {
+                    name: attachmentFile.name,
+                    type: fileType,
+                    url: url,
+                };
+            } catch (error) {
+                console.error("Error processing file:", error);
+                toast({ title: "Erro ao processar anexo", variant: 'destructive' });
+                return;
+            }
+        }
+        
         const messageText = text || (attachment ? attachment.name : '');
         if (messageText.trim() === '') return;
     
@@ -184,44 +221,14 @@ export default function AtendimentoPage() {
             fileInputRef.current.value = '';
         }
     };
-    
-    const processAndUploadFile = (file: File) => {
-        let fileType: 'image' | 'pdf' | null = null;
-        if (file.type.startsWith('image/')) {
-            fileType = 'image';
-        } else if (file.type === 'application/pdf') {
-            fileType = 'pdf';
-        } else {
-            toast({ title: "Tipo de arquivo não suportado", description: "Por favor, envie apenas imagens ou arquivos PDF.", variant: "destructive" });
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const url = e.target?.result as string;
-            if (url) {
-                const attachment: ChatAttachment = {
-                    name: file.name,
-                    type: fileType as 'image' | 'pdf',
-                    url: url,
-                };
-                handleSendMessage('', attachment);
-            }
-        };
-        reader.onerror = (error) => {
-            console.error("Error processing file:", error);
-            toast({ title: "Erro ao processar anexo", variant: 'destructive' });
-        };
-        reader.readAsDataURL(file);
-    };
-
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await handleSendMessage(newMessage, null);
+        const file = fileInputRef.current?.files?.[0];
+        await handleSendMessage(newMessage, file || null);
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
@@ -232,14 +239,21 @@ export default function AtendimentoPage() {
             }
             return;
         }
-
-        processAndUploadFile(file);
+        
+        await handleSendMessage('', file);
     };
     
     const handleCloseSession = async () => {
         if (!selectedSession) return;
         const sessionRef = doc(db, 'chatSessions', selectedSession.id);
         await updateDoc(sessionRef, { status: 'closed' });
+        setSelectedSession(null);
+    }
+    
+    const handleDeleteSession = async () => {
+        if (!selectedSession || user?.role !== 'admin') return;
+        
+        await deleteChatSession(selectedSession.id, logAction, user);
         setSelectedSession(null);
     }
 
@@ -301,7 +315,31 @@ export default function AtendimentoPage() {
                                 <CardTitle>Chat com {selectedSession.visitorName || 'Visitante'}</CardTitle>
                                 <p className="text-sm text-muted-foreground">Última mensagem: {formatDistanceToNow(new Date(selectedSession.lastMessageAt), { addSuffix: true, locale: ptBR })}</p>
                              </div>
-                             <Button variant="destructive" onClick={handleCloseSession}>Fechar Atendimento</Button>
+                             <div className="flex gap-2">
+                                <Button variant="outline" onClick={handleCloseSession}>Fechar Atendimento</Button>
+                                {user?.role === 'admin' && (
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive">
+                                                <Trash2 className="mr-2 h-4 w-4"/>
+                                                Excluir Conversa
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Esta ação não pode ser desfeita. Isso excluirá permanentemente a conversa e todas as suas mensagens.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction onClick={handleDeleteSession}>Sim, Excluir</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                )}
+                             </div>
                         </CardHeader>
                         <CardContent className="flex-grow p-0">
                             <ScrollArea className="h-[calc(100vh-20rem)]" ref={scrollAreaRef}>
@@ -354,7 +392,7 @@ export default function AtendimentoPage() {
                                     placeholder="Digite sua resposta..."
                                     autoComplete="off"
                                 />
-                                <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+                                <Button type="submit" size="icon" disabled={!newMessage.trim() && !fileInputRef.current?.files?.length}>
                                     <Send className="h-4 w-4" />
                                 </Button>
                             </form>

@@ -5,7 +5,7 @@ import React, { createContext, useContext, ReactNode, useCallback } from 'react'
 import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment, StockAudit, Avaria } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getClientFirebase } from '@/lib/firebase-client';
-import { collection, doc, writeBatch, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch, setDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useData } from './DataContext';
@@ -71,6 +71,7 @@ interface AdminContextType {
   updateAvaria: (avariaId: string, avariaData: Partial<Omit<Avaria, 'id'>>, logAction: LogAction, user: User | null) => Promise<void>;
   deleteAvaria: (avariaId: string, logAction: LogAction, user: User | null) => Promise<void>;
   emptyTrash: (logAction: LogAction, user: User | null) => Promise<void>;
+  deleteChatSession: (sessionId: string, logAction: LogAction, user: User | null) => Promise<void>;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -1069,6 +1070,33 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       }));
     }
   }, [orders, toast]);
+  
+  const deleteChatSession = useCallback(async (sessionId: string, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
+    const sessionRef = doc(db, 'chatSessions', sessionId);
+    const messagesRef = collection(db, 'chatSessions', sessionId, 'messages');
+
+    try {
+      // Delete all messages in the subcollection first
+      const messagesSnapshot = await getDocs(messagesRef);
+      const batch = writeBatch(db);
+      messagesSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+
+      // Now delete the session document
+      await deleteDoc(sessionRef);
+
+      logAction('Exclusão de Chat', `Conversa de chat ID ${sessionId} foi excluída permanentemente.`, user);
+      toast({ title: "Conversa Excluída!", description: "A conversa e todas as suas mensagens foram removidas.", variant: "destructive" });
+    } catch (e) {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: `chatSessions/${sessionId}`,
+            operation: 'delete',
+        }));
+    }
+  }, [toast]);
 
   return (
     <AdminContext.Provider
@@ -1079,7 +1107,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         payCommissions, reverseCommissionPayment,
         restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData,
         saveStockAudit, addAvaria, updateAvaria, deleteAvaria,
-        emptyTrash
+        emptyTrash, deleteChatSession
       }}
     >
       {children}
