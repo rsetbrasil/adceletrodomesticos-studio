@@ -264,5 +264,4 @@ export default function AtendimentoPage() {
             </main>
         </div>
     );
-
-    
+}
