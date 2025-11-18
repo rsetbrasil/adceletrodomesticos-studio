@@ -46,14 +46,18 @@ export default function AtendimentoPage() {
     }, []);
 
     useEffect(() => {
-        const newUnreadSessions = sessions.filter(session => {
-            const prevSession = prevSessionsRef.current.find(p => p.id === session.id);
-            return session.unreadBySeller && (!prevSession || !prevSession.unreadBySeller);
-        });
-
-        if (newUnreadSessions.length > 0) {
-            audioRef.current?.play().catch(e => console.error("Error playing sound:", e));
+        const hasUnread = sessions.some(session => session.unreadBySeller);
+        
+        if (hasUnread) {
+            const lastUnreadSession = sessions.find(session => session.unreadBySeller);
+            const prevSession = prevSessionsRef.current.find(p => p.id === lastUnreadSession?.id);
             
+            // Play sound if a session becomes unread
+            if (lastUnreadSession && (!prevSession || !prevSession.unreadBySeller)) {
+                audioRef.current?.play().catch(e => console.error("Error playing sound:", e));
+            }
+
+            // Start flashing title if tab is hidden and there are unread messages
             if (document.hidden && !titleIntervalRef.current) {
                 let isOriginalTitle = true;
                 titleIntervalRef.current = setInterval(() => {
@@ -156,17 +160,29 @@ export default function AtendimentoPage() {
         let attachment: ChatAttachment | null = null;
         if (file) {
             try {
+                let fileType: 'image' | 'pdf' | null = null;
+                if (file.type.startsWith('image/')) {
+                    fileType = 'image';
+                } else if (file.type === 'application/pdf') {
+                    fileType = 'pdf';
+                } else {
+                    toast({ title: "Tipo de arquivo não suportado", description: "Por favor, envie apenas imagens ou arquivos PDF.", variant: "destructive" });
+                    return;
+                }
+
                 const url = await new Promise<string>((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = (e) => resolve(e.target?.result as string);
                     reader.onerror = reject;
                     reader.readAsDataURL(file);
                 });
+                
                 attachment = {
                     name: file.name,
-                    type: file.type.startsWith('image/') ? 'image' : 'pdf',
+                    type: fileType,
                     url: url,
                 };
+
             } catch (error) {
                 toast({ title: "Erro ao processar arquivo", variant: "destructive" });
                 return;
@@ -196,7 +212,6 @@ export default function AtendimentoPage() {
             fileInputRef.current.value = '';
         }
     };
-    
 
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -215,7 +230,8 @@ export default function AtendimentoPage() {
             return;
         }
 
-        handleSendMessage(newMessage, file);
+        // We call handleSendMessage here. The text will be empty if the user just dropped a file.
+        handleSendMessage('', file);
     };
     
     const handleCloseSession = async () => {
@@ -320,7 +336,7 @@ export default function AtendimentoPage() {
                                     type="file" 
                                     ref={fileInputRef} 
                                     onChange={handleFileChange}
-                                    accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.gif,.webp" 
+                                    accept="image/*,application/pdf" 
                                     className="hidden" 
                                 />
                                 <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
@@ -349,5 +365,3 @@ export default function AtendimentoPage() {
         </div>
     );
 }
-
-    
