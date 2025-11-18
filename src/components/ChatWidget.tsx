@@ -159,8 +159,8 @@ export default function ChatWidget() {
                                 <X className="h-5 w-5" />
                             </Button>
                         </CardHeader>
-                        <CardContent className="flex-grow p-0">
-                            <ScrollArea className="h-full" ref={scrollAreaRef}>
+                        <CardContent className="flex-grow p-0 overflow-hidden">
+                             <ScrollArea className="h-full" ref={scrollAreaRef}>
                                 <div className="p-4 space-y-4">
                                     {messages.map((msg) => (
                                         <div key={msg.id} className={cn("flex flex-col", msg.sender === 'visitor' ? 'items-end' : 'items-start')}>
