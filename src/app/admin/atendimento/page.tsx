@@ -279,6 +279,7 @@ export default function AtendimentoPage() {
             unreadByVisitor: true,
             lastMessageAt: new Date().toISOString(),
             lastMessageText: surveyMessage.text,
+            satisfaction: null, // Reset satisfaction for the new survey
         });
         
         toast({
@@ -510,5 +511,7 @@ export default function AtendimentoPage() {
         </div>
     );
 }
+
+    
 
     

@@ -145,7 +145,7 @@ export default function ChatWidget() {
     const handleStartNewChat = async () => {
         if (!session) return;
         const sessionRef = doc(db, 'chatSessions', session.id);
-        await updateDoc(sessionRef, { status: 'open' });
+        await updateDoc(sessionRef, { status: 'open', satisfaction: null }); // Reset satisfaction
     };
     
     const handleSendMessage = async (text: string, attachment: ChatAttachment | null) => {
@@ -187,6 +187,7 @@ export default function ChatWidget() {
                 lastMessageText: messageData.text,
                 status: session.status === 'closed' ? 'open' : session.status,
                 unreadBySeller: true,
+                satisfaction: session.status === 'closed' ? null : session.satisfaction, // Reset satisfaction if starting a new chat
             });
         }
     
@@ -272,7 +273,7 @@ export default function ChatWidget() {
     };
 
     const SurveyMessage = ({ message }: { message: ChatMessage }) => {
-        const [feedbackSent, setFeedbackSent] = useState(session?.satisfaction !== undefined);
+        const [feedbackSent, setFeedbackSent] = useState(session?.satisfaction !== undefined && session?.satisfaction !== null);
         
         const handleFeedbackClick = async (rating: 'Ótimo' | 'Bom' | 'Ruim') => {
             if (feedbackSent) return;
@@ -437,3 +438,5 @@ export default function ChatWidget() {
         </>
     );
 }
+
+    
