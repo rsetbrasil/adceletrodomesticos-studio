@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, X, Send } from 'lucide-react';
+import { MessageSquare, X, Send, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getClientFirebase } from '@/lib/firebase-client';
 import { collection, doc, setDoc, onSnapshot, addDoc, query, orderBy, serverTimestamp, updateDoc } from 'firebase/firestore';
 import type { ChatMessage, ChatSession } from '@/lib/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Label } from '@/components/ui/label';
 
 const getOrCreateVisitorId = (): string => {
     if (typeof window === 'undefined') return '';
@@ -35,6 +36,19 @@ export default function ChatWidget() {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { db } = getClientFirebase();
     const previousSessionRef = useRef<ChatSession | null>(null);
+    
+    const [visitorName, setVisitorName] = useState('');
+    const [hasSetName, setHasSetName] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const storedName = localStorage.getItem('visitorName');
+            if (storedName) {
+                setVisitorName(storedName);
+                setHasSetName(true);
+            }
+        }
+    }, []);
 
     useEffect(() => {
         if (session && previousSessionRef.current) {
@@ -98,9 +112,16 @@ export default function ChatWidget() {
         });
     };
 
+    const handleStartChat = () => {
+        if (visitorName.trim()) {
+            localStorage.setItem('visitorName', visitorName);
+            setHasSetName(true);
+        }
+    };
+
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newMessage.trim() === '' || !visitorId) return;
+        if (newMessage.trim() === '' || !visitorId || !hasSetName) return;
 
         const sessionRef = doc(db, 'chatSessions', visitorId);
         const messagesRef = collection(db, 'chatSessions', visitorId, 'messages');
@@ -108,7 +129,7 @@ export default function ChatWidget() {
         const messageData: Omit<ChatMessage, 'id' | 'timestamp'> = {
             text: newMessage,
             sender: 'visitor',
-            senderName: 'Visitante',
+            senderName: visitorName,
         };
 
         const sessionPayload: Partial<ChatSession> = {
@@ -116,6 +137,7 @@ export default function ChatWidget() {
             lastMessageText: newMessage,
             status: session?.status === 'closed' ? 'open' : session?.status || 'open',
             unreadBySeller: true,
+            visitorName: visitorName,
         };
 
         if (!session) {
@@ -159,35 +181,58 @@ export default function ChatWidget() {
                                 <X className="h-5 w-5" />
                             </Button>
                         </CardHeader>
-                        <CardContent className="flex-grow p-0 overflow-hidden">
-                             <ScrollArea className="h-full" ref={scrollAreaRef}>
-                                <div className="p-4 space-y-4">
-                                    {messages.map((msg) => (
-                                        <div key={msg.id} className={cn("flex flex-col", msg.sender === 'visitor' ? 'items-end' : 'items-start')}>
-                                            <div className={cn("max-w-xs rounded-lg px-3 py-2", msg.sender === 'visitor' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
-                                                <p className="text-sm">{msg.text}</p>
-                                            </div>
-                                            <span className="text-xs text-muted-foreground mt-1">
-                                                {msg.senderName} - {format(new Date(msg.timestamp), 'HH:mm')}
-                                            </span>
-                                        </div>
-                                    ))}
+
+                        {!hasSetName ? (
+                            <div className="flex-grow flex flex-col justify-center items-center p-6 gap-4">
+                                <User className="h-12 w-12 text-muted-foreground" />
+                                <h3 className="font-semibold text-center">Como podemos te chamar?</h3>
+                                <div className="w-full space-y-2">
+                                     <Label htmlFor="visitorName">Seu nome</Label>
+                                     <Input 
+                                        id="visitorName"
+                                        placeholder="Digite seu nome aqui"
+                                        value={visitorName}
+                                        onChange={(e) => setVisitorName(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleStartChat()}
+                                    />
                                 </div>
-                            </ScrollArea>
-                        </CardContent>
-                        <CardFooter className="p-4 border-t">
-                            <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
-                                <Input
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder="Digite sua mensagem..."
-                                    autoComplete="off"
-                                />
-                                <Button type="submit" size="icon" disabled={!newMessage.trim()}>
-                                    <Send className="h-4 w-4" />
+                                <Button onClick={handleStartChat} disabled={!visitorName.trim()} className="w-full">
+                                    Iniciar Atendimento
                                 </Button>
-                            </form>
-                        </CardFooter>
+                            </div>
+                        ) : (
+                            <>
+                                <CardContent className="flex-grow p-0 overflow-hidden">
+                                    <ScrollArea className="h-full" ref={scrollAreaRef}>
+                                        <div className="p-4 space-y-4">
+                                            {messages.map((msg) => (
+                                                <div key={msg.id} className={cn("flex flex-col", msg.sender === 'visitor' ? 'items-end' : 'items-start')}>
+                                                    <div className={cn("max-w-xs rounded-lg px-3 py-2", msg.sender === 'visitor' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                                                        <p className="text-sm">{msg.text}</p>
+                                                    </div>
+                                                    <span className="text-xs text-muted-foreground mt-1">
+                                                        {msg.senderName} - {format(new Date(msg.timestamp), 'HH:mm')}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
+                                </CardContent>
+                                <CardFooter className="p-4 border-t">
+                                    <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
+                                        <Input
+                                            value={newMessage}
+                                            onChange={(e) => setNewMessage(e.target.value)}
+                                            placeholder="Digite sua mensagem..."
+                                            autoComplete="off"
+                                        />
+                                        <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+                                            <Send className="h-4 w-4" />
+                                        </Button>
+                                    </form>
+                                </CardFooter>
+                            </>
+                        )}
                     </Card>
                 </div>
             )}

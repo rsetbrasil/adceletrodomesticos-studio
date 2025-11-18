@@ -202,7 +202,7 @@ export default function AtendimentoPage() {
                             )}
                         >
                             <div className="flex justify-between items-start">
-                                <p className="font-semibold truncate">Visitante</p>
+                                <p className="font-semibold truncate">{session.visitorName || 'Visitante'}</p>
                                 {session.unreadBySeller && <Badge variant="destructive" className="animate-pulse">Novo</Badge>}
                             </div>
                             <p className="text-sm text-muted-foreground truncate">{session.lastMessageText}</p>
@@ -219,7 +219,7 @@ export default function AtendimentoPage() {
                     <>
                         <CardHeader className="flex-row justify-between items-center border-b">
                              <div>
-                                <CardTitle>Chat com Visitante</CardTitle>
+                                <CardTitle>Chat com {selectedSession.visitorName || 'Visitante'}</CardTitle>
                                 <p className="text-sm text-muted-foreground">Última mensagem: {formatDistanceToNow(new Date(selectedSession.lastMessageAt), { addSuffix: true, locale: ptBR })}</p>
                              </div>
                              <Button variant="destructive" onClick={handleCloseSession}>Fechar Atendimento</Button>

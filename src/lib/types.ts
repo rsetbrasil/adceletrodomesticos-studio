@@ -202,6 +202,7 @@ export type ChatMessage = {
 export type ChatSession = {
   id: string; // Corresponds to visitorId
   visitorId: string;
+  visitorName?: string;
   status: 'open' | 'active' | 'closed';
   createdAt: string; // ISO String
   lastMessageAt: string; // ISO String
@@ -211,6 +212,4 @@ export type ChatSession = {
   unreadBySeller: boolean;
   unreadByVisitor: boolean;
 };
-    
-
     
