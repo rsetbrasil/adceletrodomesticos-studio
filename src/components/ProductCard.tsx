@@ -66,8 +66,8 @@ export default function ProductCard({ product }: ProductCardProps) {
             <Badge variant="secondary" className="capitalize">{product.category}</Badge>
             {product.subcategory && <Badge variant="outline" className="capitalize">{product.subcategory}</Badge>}
           </div>
-          <CardTitle className="text-lg font-semibold mb-2 h-14">{product.name}</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground h-16 overflow-hidden">
+          <CardTitle className="text-base md:text-lg font-semibold mb-2 h-14">{product.name}</CardTitle>
+          <CardDescription className="text-xs md:text-sm text-muted-foreground h-16 overflow-hidden">
             {product.description}
           </CardDescription>
         </CardContent>

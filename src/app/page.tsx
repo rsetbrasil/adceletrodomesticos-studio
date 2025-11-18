@@ -122,9 +122,9 @@ export default function Home() {
                     <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
                       <div className="p-1 h-full">
                         <Link href={`/produtos/${product.id}`} className="block h-full">
-                          <Card className="h-full overflow-hidden flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                            <CardContent className="flex flex-col items-center text-center p-6 gap-4">
-                               <div className="relative w-48 h-48">
+                          <Card className="h-full overflow-hidden flex flex-col md:flex-row justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                            <CardContent className="flex flex-col md:flex-row items-center text-center md:text-left p-6 gap-4">
+                               <div className="relative w-40 h-40 md:w-48 md:h-48 flex-shrink-0">
                                 <Badge className="absolute top-0 left-0 z-10 bg-destructive text-destructive-foreground hover:bg-destructive/80">
                                   Promoção
                                 </Badge>

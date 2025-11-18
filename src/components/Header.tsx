@@ -30,14 +30,14 @@ export default function Header() {
           <Logo />
         </Link>
         <div className="flex items-center gap-2">
-            <Link href={customerLink} className={cn(buttonVariants({ variant: "ghost" }))}>
-                <User className="mr-2" />
-                Área do Cliente
+            <Link href={customerLink} className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "sm:w-auto sm:px-4")}>
+                <User className="sm:mr-2" />
+                <span className="hidden sm:inline">Área do Cliente</span>
             </Link>
             <CartSheet>
-                <Button variant="ghost">
-                    <ShoppingBag className="mr-2" />
-                    Carrinho
+                <Button variant="ghost" className="relative sm:w-auto sm:px-4">
+                    <ShoppingBag className="sm:mr-2" />
+                     <span className="hidden sm:inline">Carrinho</span>
                     {cartCount > 0 && (
                         <span className="absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold leading-none text-primary-foreground transform translate-x-1/2 -translate-y-1/2 bg-accent rounded-full">
                         {cartCount}
