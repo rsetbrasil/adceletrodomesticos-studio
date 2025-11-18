@@ -215,6 +215,9 @@ export default function AtendimentoPage() {
         if (filter === 'active') {
             return sessions.filter(s => s.status === 'active' && s.sellerId === user?.id);
         }
+        if (filter === 'open') {
+             return sessions.filter(s => s.status === 'open' || (s.status === 'active' && s.unreadBySeller));
+        }
         return sessions.filter(s => s.status === filter);
     }, [sessions, filter, user?.id]);
 
@@ -226,7 +229,7 @@ export default function AtendimentoPage() {
                         <MessageSquare /> Atendimento
                     </h2>
                      <div className="flex gap-2 mt-4">
-                        <Button variant={filter === 'open' ? 'default' : 'outline'} onClick={() => setFilter('open')} size="sm">Abertos</Button>
+                        <Button variant={filter === 'open' ? 'default' : 'outline'} onClick={() => setFilter('open')} size="sm">Não lidos</Button>
                         <Button variant={filter === 'active' ? 'default' : 'outline'} onClick={() => setFilter('active')} size="sm">Meus Chats</Button>
                         <Button variant={filter === 'closed' ? 'default' : 'outline'} onClick={() => setFilter('closed')} size="sm">Fechados</Button>
                     </div>
@@ -325,10 +328,12 @@ export default function AtendimentoPage() {
                     <div className="flex-grow flex flex-col items-center justify-center text-center text-muted-foreground">
                         <MessageSquare className="w-24 h-24 mb-4" />
                         <p className="text-lg font-semibold">Selecione um chat para começar.</p>
-                        <p className="text-sm">Os chats abertos aparecerão na lista ao lado.</p>
+                        <p className="text-sm">Os chats não lidos aparecerão na lista ao lado.</p>
                     </div>
                 )}
             </main>
         </div>
     );
 }
+
+    
