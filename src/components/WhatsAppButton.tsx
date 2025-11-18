@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useSettings } from '@/context/SettingsContext';
@@ -7,13 +6,15 @@ import { Button } from '@/components/ui/button';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
 export default function WhatsAppButton() {
-  const { settings } = useSettings();
+  const { settings, isLoading } = useSettings();
 
-  if (!settings.storePhone || !settings.showWhatsAppButton) return null;
+  if (isLoading || !settings.storePhone || !settings.showWhatsAppButton) {
+    return null;
+  }
 
   const phoneNumber = settings.storePhone.replace(/\D/g, '');
   const message = encodeURIComponent(`Olá! Gostaria de mais informações sobre os produtos.`);
-  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+  const whatsappUrl = `https://wa.me/55${phoneNumber}?text=${message}`;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 print-hidden">
