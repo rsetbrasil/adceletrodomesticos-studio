@@ -75,7 +75,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
           <CardTitle className="text-base md:text-lg font-semibold mb-2 h-14">{product.name}</CardTitle>
           {showCountdown && <CountdownTimer endDate={product.promotionEndDate!} />}
-          <CardDescription className="text-xs md:text-sm text-muted-foreground h-16 overflow-hidden mt-2">
+          <CardDescription className="text-xs md:text-sm text-muted-foreground h-16 overflow-hidden">
             {product.description}
           </CardDescription>
         </CardContent>
