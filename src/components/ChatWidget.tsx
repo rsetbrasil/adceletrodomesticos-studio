@@ -128,42 +128,10 @@ export default function ChatWidget() {
         const sessionRef = doc(db, 'chatSessions', session.id);
         await updateDoc(sessionRef, { status: 'open' });
     };
-
-    const handleSendMessage = async (text: string, file?: File) => {
+    
+    const handleSendMessage = async (text: string, attachment?: ChatAttachment | null) => {
         if (!visitorId || !hasSetName) return;
-        if (text.trim() === '' && !file) return;
-
-        let attachment: ChatAttachment | null = null;
-        if (file) {
-            try {
-                let fileType: 'image' | 'pdf' | null = null;
-                if (file.type.startsWith('image/')) {
-                    fileType = 'image';
-                } else if (file.type === 'application/pdf') {
-                    fileType = 'pdf';
-                } else {
-                    toast({ title: "Tipo de arquivo não suportado", description: "Por favor, envie apenas imagens ou arquivos PDF.", variant: "destructive" });
-                    return;
-                }
-
-                const url = await new Promise<string>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target?.result as string);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                });
-                
-                attachment = {
-                    name: file.name,
-                    type: fileType,
-                    url: url,
-                };
-            } catch (error) {
-                console.error("Error processing file:", error);
-                toast({ title: "Erro ao processar anexo", variant: 'destructive' });
-                return;
-            }
-        }
+        if (text.trim() === '' && !attachment) return;
 
         const sessionRef = doc(db, 'chatSessions', visitorId);
         const messagesRef = collection(db, 'chatSessions', visitorId, 'messages');
@@ -211,13 +179,40 @@ export default function ChatWidget() {
         }
     };
     
-    const handleFormSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const file = fileInputRef.current?.files?.[0];
-        await handleSendMessage(newMessage, file);
+    const processAndUploadFile = (file: File) => {
+        let fileType: 'image' | 'pdf' | null = null;
+        if (file.type.startsWith('image/')) {
+            fileType = 'image';
+        } else if (file.type === 'application/pdf') {
+            fileType = 'pdf';
+        } else {
+            toast({ title: "Tipo de arquivo não suportado", description: "Por favor, envie apenas imagens ou arquivos PDF.", variant: "destructive" });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const url = e.target?.result as string;
+            const attachment: ChatAttachment = {
+                name: file.name,
+                type: fileType as 'image' | 'pdf',
+                url: url,
+            };
+            handleSendMessage('', attachment);
+        };
+        reader.onerror = (error) => {
+            console.error("Error processing file:", error);
+            toast({ title: "Erro ao processar anexo", variant: 'destructive' });
+        };
+        reader.readAsDataURL(file);
     };
 
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await handleSendMessage(newMessage);
+    };
+    
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
@@ -228,7 +223,7 @@ export default function ChatWidget() {
             }
             return;
         }
-        await handleSendMessage('', file);
+        processAndUploadFile(file);
     };
 
     return (
@@ -317,7 +312,7 @@ export default function ChatWidget() {
                                                 type="file" 
                                                 ref={fileInputRef} 
                                                 onChange={handleFileChange}
-                                                accept="image/png, image/jpeg, image/gif, image/webp, application/pdf"
+                                                accept="image/*,application/pdf"
                                                 className="hidden" 
                                             />
                                             <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
@@ -343,5 +338,7 @@ export default function ChatWidget() {
         </>
     );
 }
+
+    
 
     
