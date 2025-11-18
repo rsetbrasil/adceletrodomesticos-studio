@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import './globals.css';
@@ -15,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { AuditProvider } from '@/context/AuditContext';
 import FirebaseErrorListener from '@/components/FirebaseErrorListener';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import ChatWidget from '@/components/ChatWidget';
 import { DataProvider } from '@/context/DataContext';
 import { AdminProvider } from '@/context/AdminContext';
 import { ThemeProvider } from "next-themes";
@@ -38,6 +40,7 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
           <main className={cn("flex-1", isHomePage ? '' : 'pb-20')}>{children}</main>
           <Footer />
           <WhatsAppButton />
+          <ChatWidget />
         </div>
       )}
       <Toaster />

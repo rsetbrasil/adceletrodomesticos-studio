@@ -154,7 +154,8 @@ export type AppSection =
     | 'auditoria'
     | 'configuracao'
     | 'usuarios'
-    | 'avarias';
+    | 'avarias'
+    | 'atendimento';
 
 export type RolePermissions = Record<UserRole, AppSection[]>;
 
@@ -187,6 +188,25 @@ export type Avaria = {
   productName: string;
   description: string;
 };
-    
 
+export type ChatMessage = {
+  id: string;
+  text: string;
+  timestamp: string; // ISO String
+  sender: 'visitor' | 'seller';
+  senderName: string; // "Visitante" or seller's name
+};
+
+export type ChatSession = {
+  id: string; // Corresponds to visitorId
+  visitorId: string;
+  status: 'open' | 'active' | 'closed';
+  createdAt: string; // ISO String
+  lastMessageAt: string; // ISO String
+  lastMessageText: string;
+  sellerId?: string;
+  sellerName?: string;
+  unreadBySeller: boolean;
+  unreadByVisitor: boolean;
+};
     
