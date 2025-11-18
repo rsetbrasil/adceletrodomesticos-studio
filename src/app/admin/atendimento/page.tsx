@@ -235,7 +235,6 @@ export default function AtendimentoPage() {
             return;
         }
         
-        // Directly call send message now. The text from the input will be included.
         handleSendMessage(newMessage, file);
     };
     
