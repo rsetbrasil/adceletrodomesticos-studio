@@ -495,11 +495,11 @@ export default function AtendimentoPage() {
                 )}
             </main>
              <Dialog open={!!imageToView} onOpenChange={() => setImageToView(null)}>
-                <DialogContent className="max-w-4xl h-[80vh] p-2 sm:p-4">
+                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-2 sm:p-4">
                     <DialogHeader>
                         <DialogTitle>Visualizador de Imagem</DialogTitle>
                     </DialogHeader>
-                    <div className="relative w-full h-full my-4">
+                    <div className="relative flex-1 w-full my-4">
                         {imageToView && (
                             <Image src={imageToView} alt="Visualização do anexo" fill className="object-contain" />
                         )}
