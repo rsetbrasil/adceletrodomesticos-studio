@@ -193,7 +193,7 @@ export default function AtendimentoPage() {
         }
         
         const messageText = text || (attachment ? attachment.name : '');
-        if (messageText.trim() === '') return;
+        if (messageText.trim() === '' && !attachment) return;
     
         const messageData: Partial<ChatMessage> = {
             text: messageText,
@@ -350,9 +350,12 @@ export default function AtendimentoPage() {
                                                 {msg.attachment ? (
                                                     <div className="space-y-2">
                                                         {msg.attachment.type === 'image' ? (
-                                                             <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="block relative w-48 h-48">
+                                                            <div 
+                                                                className="block relative w-48 h-48 cursor-pointer"
+                                                                onClick={() => window.open(msg.attachment?.url, '_blank')}
+                                                            >
                                                                 <Image src={msg.attachment.url} alt={msg.attachment.name} layout="fill" className="object-cover rounded-md" />
-                                                            </a>
+                                                            </div>
                                                         ) : (
                                                             <a href={msg.attachment.url} download={msg.attachment.name} className="flex items-center gap-2 p-2 rounded-md bg-background/20 hover:bg-background/40">
                                                                 <FileText className="h-6 w-6" />
