@@ -38,13 +38,13 @@ export default function ChatWidget() {
 
     useEffect(() => {
         if (session && previousSessionRef.current) {
-            // Play sound if a new unread message arrives for the visitor
-            if (session.unreadByVisitor && !previousSessionRef.current.unreadByVisitor) {
+            // Play sound if a new unread message arrives for the visitor and the chat is closed
+            if (session.unreadByVisitor && !previousSessionRef.current.unreadByVisitor && !isOpen) {
                 new Audio(notificationSound).play();
             }
         }
         previousSessionRef.current = session;
-    }, [session]);
+    }, [session, isOpen]);
 
     useEffect(() => {
         if (!visitorId) return;

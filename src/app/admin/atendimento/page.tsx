@@ -34,36 +34,45 @@ export default function AtendimentoPage() {
 
     // Effect to play sound and flash title on new message
     useEffect(() => {
-        const newUnreadSessions = sessions.filter(session => {
-            const previousSession = previousSessionsRef.current.find(p => p.id === session.id);
-            // Is it a new message for the seller?
-            return session.unreadBySeller && (!previousSession || !previousSession.unreadBySeller);
+        // Find sessions that have become unread for the seller since the last check
+        const newUnreadSessions = sessions.filter(currentSession => {
+            const previousSession = previousSessionsRef.current.find(p => p.id === currentSession.id);
+            // Notify if the session is now unread, and it either didn't exist before or wasn't unread before.
+            return currentSession.unreadBySeller && (!previousSession || !previousSession.unreadBySeller);
         });
 
-        if (newUnreadSessions.length > 0) {
+        if (newUnreadSessions.length > 0 && document.hidden) {
             new Audio(notificationSound).play();
              if (!titleIntervalRef.current) {
                 let isOriginalTitle = true;
                 titleIntervalRef.current = setInterval(() => {
-                    document.title = isOriginalTitle ? '(NOVO) Atendimento' : originalTitleRef.current;
+                    document.title = isOriginalTitle ? `(NOVO) Atendimento` : originalTitleRef.current;
                     isOriginalTitle = !isOriginalTitle;
                 }, 1000);
             }
-        } else {
-             if (titleIntervalRef.current) {
-                clearInterval(titleIntervalRef.current);
-                titleIntervalRef.current = null;
-                document.title = originalTitleRef.current;
-            }
         }
         
+        // Update the ref to the current sessions for the next render
         previousSessionsRef.current = sessions;
         
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                if (titleIntervalRef.current) {
+                    clearInterval(titleIntervalRef.current);
+                    titleIntervalRef.current = null;
+                    document.title = originalTitleRef.current;
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         return () => {
             if (titleIntervalRef.current) {
                 clearInterval(titleIntervalRef.current);
                 document.title = originalTitleRef.current;
             }
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
 
     }, [sessions]);
