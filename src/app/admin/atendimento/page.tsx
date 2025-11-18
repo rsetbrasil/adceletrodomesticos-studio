@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getClientFirebase } from '@/lib/firebase-client';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-import type { ChatSession, ChatMessage, ChatAttachment } from '@/lib/types';
+import type { ChatMessage, ChatSession, ChatAttachment } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -191,14 +191,19 @@ export default function AtendimentoPage() {
     
         const messageText = attachment ? text || attachment.name : text;
     
-        const messagesRef = collection(db, 'chatSessions', selectedSession.id, 'messages');
-        await addDoc(messagesRef, {
+        const messageData: Partial<ChatMessage> = {
             text: messageText,
             sender: 'seller',
             senderName: user.name,
             timestamp: new Date().toISOString(),
-            attachment: attachment || null,
-        });
+        };
+
+        if (attachment) {
+            messageData.attachment = attachment;
+        }
+
+        const messagesRef = collection(db, 'chatSessions', selectedSession.id, 'messages');
+        await addDoc(messagesRef, messageData);
     
         const sessionRef = doc(db, 'chatSessions', selectedSession.id);
         await updateDoc(sessionRef, {
@@ -229,9 +234,9 @@ export default function AtendimentoPage() {
             }
             return;
         }
-
-        // We call handleSendMessage here. The text will be empty if the user just dropped a file.
-        handleSendMessage('', file);
+        
+        // Directly call send message now. The text from the input will be included.
+        handleSendMessage(newMessage, file);
     };
     
     const handleCloseSession = async () => {
@@ -336,7 +341,7 @@ export default function AtendimentoPage() {
                                     type="file" 
                                     ref={fileInputRef} 
                                     onChange={handleFileChange}
-                                    accept="image/png, image/jpeg, image/gif, image/webp, application/pdf" 
+                                    accept="image/*,application/pdf"
                                     className="hidden" 
                                 />
                                 <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>

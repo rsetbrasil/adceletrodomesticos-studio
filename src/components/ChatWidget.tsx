@@ -170,12 +170,16 @@ export default function ChatWidget() {
     
         const messageText = attachment ? text || attachment.name : text;
     
-        const messageData = {
+        const messageData: Partial<ChatMessage> = {
             text: messageText,
             sender: 'visitor' as const,
             senderName: visitorName,
-            attachment: attachment || null,
+            timestamp: new Date().toISOString(),
         };
+
+        if (attachment) {
+            messageData.attachment = attachment;
+        }
     
         const timestamp = new Date().toISOString();
     
@@ -204,10 +208,7 @@ export default function ChatWidget() {
             await updateDoc(sessionRef, sessionPayload);
         }
     
-        await addDoc(messagesRef, {
-            ...messageData,
-            timestamp: timestamp,
-        });
+        await addDoc(messagesRef, messageData);
     
         setNewMessage('');
         if (fileInputRef.current) {
@@ -232,8 +233,7 @@ export default function ChatWidget() {
             return;
         }
 
-        // We call handleSendMessage here. The text will be empty if the user just dropped a file.
-        handleSendMessage('', file);
+        handleSendMessage(newMessage, file);
     };
 
     return (
@@ -322,7 +322,7 @@ export default function ChatWidget() {
                                                 type="file" 
                                                 ref={fileInputRef} 
                                                 onChange={handleFileChange}
-                                                accept="image/png, image/jpeg, image/gif, image/webp, application/pdf"
+                                                accept="image/*,application/pdf"
                                                 className="hidden" 
                                             />
                                             <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
