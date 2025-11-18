@@ -32,31 +32,36 @@ export default function AtendimentoPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { db } = getClientFirebase();
     const { toast } = useToast();
+    const prevSessionsRef = useRef<ChatSession[]>([]);
 
     const originalTitleRef = useRef(typeof document !== 'undefined' ? document.title : '');
     const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
     
     // Effect to handle notifications for new messages
     useEffect(() => {
-        const latestMessage = messages[messages.length - 1];
-        if (!latestMessage) return;
+        // Detect new unread sessions
+        const newUnreadSessions = sessions.filter(session => {
+            const prevSession = prevSessionsRef.current.find(p => p.id === session.id);
+            return session.unreadBySeller && (!prevSession || !prevSession.unreadBySeller);
+        });
 
-        const isMyMessage = latestMessage.sender === 'seller';
-        const isChatWindowOpen = selectedSession && selectedSession.id === latestMessage.sessionId;
-
-        if (!isMyMessage && (!isChatWindowOpen || document.hidden)) {
+        if (newUnreadSessions.length > 0) {
             new Audio(notificationSound).play().catch(e => console.error("Error playing sound:", e));
+            
+            if (document.hidden && !titleIntervalRef.current) {
+                let isOriginalTitle = true;
+                titleIntervalRef.current = setInterval(() => {
+                    document.title = isOriginalTitle ? `(NOVO) Atendimento` : originalTitleRef.current;
+                    isOriginalTitle = !isOriginalTitle;
+                }, 1000);
+            }
         }
         
-        if (document.hidden && !isMyMessage && !titleIntervalRef.current) {
-            let isOriginalTitle = true;
-            titleIntervalRef.current = setInterval(() => {
-                document.title = isOriginalTitle ? `(NOVO) Atendimento` : originalTitleRef.current;
-                isOriginalTitle = !isOriginalTitle;
-            }, 1000);
-        }
+        // Update previous sessions ref
+        prevSessionsRef.current = sessions;
 
-    }, [messages, selectedSession]);
+    }, [sessions]);
+
 
     // Effect to clear title flashing when tab is visible
     useEffect(() => {
@@ -207,13 +212,11 @@ export default function AtendimentoPage() {
     }
 
     const filteredSessions = useMemo(() => {
-        return sessions.filter(s => {
-            if (filter === 'active') {
-                return s.status === 'active' && s.sellerId === user?.id;
-            }
-            return s.status === filter;
-        });
-    }, [sessions, filter, user]);
+        if (filter === 'active') {
+            return sessions.filter(s => s.status === 'active' && s.sellerId === user?.id);
+        }
+        return sessions.filter(s => s.status === filter);
+    }, [sessions, filter, user?.id]);
 
     return (
         <div className="flex h-[calc(100vh-10rem)] border rounded-lg overflow-hidden">
