@@ -48,10 +48,11 @@ export default function AtendimentoPage() {
     const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [hasInteracted, setHasInteracted] = useState(false);
     const [imageToView, setImageToView] = useState<string | null>(null);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && !audioRef.current) {
             audioRef.current = new Audio(notificationSound);
         }
     }, []);
@@ -63,8 +64,8 @@ export default function AtendimentoPage() {
             const lastUnreadSession = sessions.find(session => session.unreadBySeller);
             const prevSession = prevSessionsRef.current.find(p => p.id === lastUnreadSession?.id);
             
-            // Play sound if a session becomes unread
-            if (lastUnreadSession && (!prevSession || !prevSession.unreadBySeller)) {
+            // Play sound if a session becomes unread and user has interacted
+            if (hasInteracted && lastUnreadSession && (!prevSession || !prevSession.unreadBySeller)) {
                 audioRef.current?.play().catch(e => console.error("Error playing sound:", e));
             }
 
@@ -80,7 +81,7 @@ export default function AtendimentoPage() {
         
         prevSessionsRef.current = sessions;
 
-    }, [sessions]);
+    }, [sessions, hasInteracted]);
 
 
     // Effect to clear title flashing when tab is visible
@@ -152,6 +153,11 @@ export default function AtendimentoPage() {
     }, [messages]);
 
     const handleSelectSession = async (session: ChatSession) => {
+        if (!hasInteracted) {
+          audioRef.current?.load();
+          setHasInteracted(true);
+        }
+
         setSelectedSession(session);
         setIsEditingName(false);
         const sessionRef = doc(db, 'chatSessions', session.id);
@@ -406,7 +412,7 @@ export default function AtendimentoPage() {
                                                     <div className="space-y-2">
                                                         {msg.attachment.type === 'image' ? (
                                                             <div 
-                                                                className="block relative w-48 h-48 cursor-pointer"
+                                                                className="relative w-48 h-48 cursor-pointer"
                                                                 onClick={() => setImageToView(msg.attachment?.url || null)}
                                                             >
                                                                 <Image src={msg.attachment.url} alt={msg.attachment.name} layout="fill" className="object-cover rounded-md" />
@@ -484,3 +490,6 @@ export default function AtendimentoPage() {
 
     
 
+
+
+    

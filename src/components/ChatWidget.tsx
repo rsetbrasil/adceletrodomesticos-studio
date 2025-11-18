@@ -45,6 +45,14 @@ export default function ChatWidget() {
     const [hasSetName, setHasSetName] = useState(false);
     const [imageToView, setImageToView] = useState<string | null>(null);
 
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [hasInteracted, setHasInteracted] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !audioRef.current) {
+          audioRef.current = new Audio(notificationSound);
+        }
+    }, []);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -59,11 +67,13 @@ export default function ChatWidget() {
     useEffect(() => {
         if (session && previousSessionRef.current) {
             if (session.unreadByVisitor && !previousSessionRef.current.unreadByVisitor && !isOpen) {
-                new Audio(notificationSound).play();
+                if (hasInteracted) {
+                    audioRef.current?.play().catch(e => console.error("Error playing sound:", e));
+                }
             }
         }
         previousSessionRef.current = session;
-    }, [session, isOpen]);
+    }, [session, isOpen, hasInteracted]);
 
     useEffect(() => {
         if (!visitorId) return;
@@ -121,6 +131,10 @@ export default function ChatWidget() {
 
     const handleStartChat = () => {
         if (visitorName.trim()) {
+            if (!hasInteracted) {
+                audioRef.current?.load();
+                setHasInteracted(true);
+            }
             localStorage.setItem('visitorName', visitorName);
             setHasSetName(true);
         }
@@ -357,3 +371,5 @@ export default function ChatWidget() {
         </>
     );
 }
+
+    
