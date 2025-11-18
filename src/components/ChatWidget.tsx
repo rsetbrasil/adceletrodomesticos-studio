@@ -129,9 +129,30 @@ export default function ChatWidget() {
         await updateDoc(sessionRef, { status: 'open' });
     };
 
-    const handleSendMessage = async (text: string, attachment?: ChatAttachment) => {
+    const handleSendMessage = async (text: string, file?: File) => {
         if (!visitorId || !hasSetName) return;
-        if (text.trim() === '' && !attachment) return;
+        if (text.trim() === '' && !file) return;
+
+        let attachment: ChatAttachment | null = null;
+        if (file) {
+            try {
+                 const url = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target?.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                attachment = {
+                    name: file.name,
+                    type: file.type.startsWith('image/') ? 'image' : 'pdf',
+                    url: url,
+                };
+            } catch(error) {
+                toast({ title: "Erro ao processar anexo", variant: 'destructive'});
+                return;
+            }
+        }
+
 
         const sessionRef = doc(db, 'chatSessions', visitorId);
         const messagesRef = collection(db, 'chatSessions', visitorId, 'messages');
@@ -142,7 +163,7 @@ export default function ChatWidget() {
             text: messageText,
             sender: 'visitor' as const,
             senderName: visitorName,
-            attachment: attachment || null,
+            attachment: attachment,
         };
 
         const sessionPayload: Partial<ChatSession> = {
@@ -158,12 +179,12 @@ export default function ChatWidget() {
                 id: visitorId,
                 visitorId: visitorId,
                 createdAt: new Date().toISOString(),
-                ...sessionPayload,
                 status: 'open',
                 unreadBySeller: true,
                 unreadByVisitor: false,
                 lastMessageText: messageText,
                 lastMessageAt: new Date().toISOString(),
+                 ...sessionPayload,
             };
             await setDoc(sessionRef, newSession);
         } else {
@@ -176,11 +197,15 @@ export default function ChatWidget() {
         });
 
         setNewMessage('');
+         if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
     
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        handleSendMessage(newMessage);
+        const file = fileInputRef.current?.files?.[0];
+        handleSendMessage(newMessage, file);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -189,26 +214,14 @@ export default function ChatWidget() {
 
         if (file.size > 5 * 1024 * 1024) { // 5MB limit
             toast({ title: "Arquivo muito grande", description: "O tamanho máximo do arquivo é 5MB.", variant: "destructive" });
+             if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const url = e.target?.result as string;
-            const attachment: ChatAttachment = {
-                name: file.name,
-                type: file.type.startsWith('image/') ? 'image' : 'pdf',
-                url,
-            };
-            handleSendMessage(newMessage, attachment);
-        };
-        reader.onerror = () => {
-            toast({ title: "Erro ao ler arquivo", description: "Não foi possível processar o anexo.", variant: "destructive" });
-        };
-        reader.readAsDataURL(file);
-        
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
+        if (!newMessage.trim()) {
+            handleSendMessage('', file);
         }
     };
 
@@ -254,8 +267,8 @@ export default function ChatWidget() {
                                 <CardContent className="flex-grow p-0 overflow-hidden">
                                     <ScrollArea className="h-full" ref={scrollAreaRef}>
                                         <div className="p-4 space-y-4">
-                                            {messages.map((msg) => (
-                                                <div key={msg.id} className={cn("flex flex-col", msg.sender === 'visitor' ? 'items-end' : 'items-start')}>
+                                            {messages.map((msg, index) => (
+                                                <div key={`${msg.id}-${index}`} className={cn("flex flex-col", msg.sender === 'visitor' ? 'items-end' : 'items-start')}>
                                                     <div className={cn("max-w-xs rounded-lg px-3 py-2", msg.sender === 'visitor' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
                                                         {msg.attachment ? (
                                                             <div className="space-y-2">

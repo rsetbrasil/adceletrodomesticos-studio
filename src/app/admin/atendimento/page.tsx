@@ -36,17 +36,23 @@ export default function AtendimentoPage() {
 
     const originalTitleRef = useRef(typeof document !== 'undefined' ? document.title : '');
     const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
-    
-    // Effect to handle notifications for new messages
+
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
     useEffect(() => {
-        const hasNewUnread = sessions.some(session => {
+        if (typeof window !== 'undefined') {
+            audioRef.current = new Audio(notificationSound);
+        }
+    }, []);
+
+    useEffect(() => {
+        const newUnreadSessions = sessions.filter(session => {
             const prevSession = prevSessionsRef.current.find(p => p.id === session.id);
-            // Notify if a session becomes unread, and it wasn't unread before.
             return session.unreadBySeller && (!prevSession || !prevSession.unreadBySeller);
         });
 
-        if (hasNewUnread) {
-            new Audio(notificationSound).play().catch(e => console.error("Error playing sound:", e));
+        if (newUnreadSessions.length > 0) {
+            audioRef.current?.play().catch(e => console.error("Error playing sound:", e));
             
             if (document.hidden && !titleIntervalRef.current) {
                 let isOriginalTitle = true;
@@ -143,9 +149,29 @@ export default function AtendimentoPage() {
         await updateDoc(sessionRef, updates);
     };
 
-    const handleSendMessage = async (text: string, attachment?: ChatAttachment) => {
+    const handleSendMessage = async (text: string, file?: File) => {
         if (!selectedSession || !user) return;
-        if (text.trim() === '' && !attachment) return;
+        if (text.trim() === '' && !file) return;
+
+        let attachment: ChatAttachment | null = null;
+        if (file) {
+            try {
+                const url = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target?.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                attachment = {
+                    name: file.name,
+                    type: file.type.startsWith('image/') ? 'image' : 'pdf',
+                    url: url,
+                };
+            } catch (error) {
+                toast({ title: "Erro ao processar arquivo", variant: "destructive" });
+                return;
+            }
+        }
         
         const messageText = attachment ? text || attachment.name : text;
 
@@ -155,7 +181,7 @@ export default function AtendimentoPage() {
             sender: 'seller',
             senderName: user.name,
             timestamp: new Date().toISOString(),
-            attachment: attachment || null,
+            attachment: attachment,
         });
 
         const sessionRef = doc(db, 'chatSessions', selectedSession.id);
@@ -166,40 +192,32 @@ export default function AtendimentoPage() {
         });
 
         setNewMessage('');
+         if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
 
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        handleSendMessage(newMessage);
+        const file = fileInputRef.current?.files?.[0];
+        handleSendMessage(newMessage, file);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-
+        
         if (file.size > 5 * 1024 * 1024) { // 5MB limit
             toast({ title: "Arquivo muito grande", description: "O tamanho máximo do arquivo é 5MB.", variant: "destructive" });
+             if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
             return;
         }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const url = e.target?.result as string;
-            const attachment: ChatAttachment = {
-                name: file.name,
-                type: file.type.startsWith('image/') ? 'image' : 'pdf',
-                url,
-            };
-            handleSendMessage(newMessage, attachment);
-        };
-        reader.onerror = () => {
-            toast({ title: "Erro ao ler arquivo", description: "Não foi possível processar o anexo.", variant: "destructive" });
-        };
-        reader.readAsDataURL(file);
-
-        // Reset file input
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
+        
+        // Se houver texto, envia junto. Se não, dispara o envio só com o anexo.
+        if (!newMessage.trim()) {
+            handleSendMessage('', file);
         }
     };
     
@@ -269,8 +287,8 @@ export default function AtendimentoPage() {
                         <CardContent className="flex-grow p-0">
                             <ScrollArea className="h-[calc(100vh-20rem)]" ref={scrollAreaRef}>
                                 <div className="p-6 space-y-4">
-                                     {messages.map((msg) => (
-                                        <div key={msg.id} className={cn("flex flex-col", msg.sender === 'seller' ? 'items-end' : 'items-start')}>
+                                     {messages.map((msg, index) => (
+                                        <div key={`${msg.id}-${index}`} className={cn("flex flex-col", msg.sender === 'seller' ? 'items-end' : 'items-start')}>
                                             <div className={cn("max-w-lg rounded-lg px-3 py-2", msg.sender === 'seller' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
                                                 {msg.attachment ? (
                                                     <div className="space-y-2">
