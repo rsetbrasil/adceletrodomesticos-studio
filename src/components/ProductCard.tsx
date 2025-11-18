@@ -68,17 +68,17 @@ export default function ProductCard({ product }: ProductCardProps) {
             />
           </div>
         </CardHeader>
-        <CardContent className="p-4 flex-grow flex flex-col">
-          <div className="flex items-center gap-1 mb-2">
+        <CardContent className="p-4 flex flex-col flex-grow">
+          <div className="flex items-center gap-1 mb-1">
             <Badge variant="secondary" className="capitalize">{product.category}</Badge>
             {product.subcategory && <Badge variant="outline" className="capitalize">{product.subcategory}</Badge>}
           </div>
           <CardTitle className="text-base md:text-lg font-semibold min-h-[40px]">{product.name}</CardTitle>
           {showCountdown && <CountdownTimer endDate={product.promotionEndDate!} />}
-          <CardDescription className="text-xs md:text-sm text-muted-foreground min-h-[48px] overflow-hidden">
+          <CardDescription className="text-xs md:text-sm text-muted-foreground min-h-[32px] overflow-hidden">
             {product.description}
           </CardDescription>
-          <div className="mt-auto pt-2">
+          <div className="mt-2">
             <p className="text-2xl font-bold text-primary">
                 {formatCurrency(product.price)}
             </p>
@@ -89,7 +89,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
         </CardContent>
-        <CardFooter className="p-4 pt-0">
+        <CardFooter className="p-4 pt-0 mt-auto">
           {product.stock > 0 ? (
             <Button onClick={handleAddToCart} className="w-full bg-accent hover:bg-accent/90">
               <ShoppingCart className="mr-2 h-4 w-4" />
