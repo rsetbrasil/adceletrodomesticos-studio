@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode, useCallback } from 'react';
-import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment, StockAudit, Avaria } from '@/lib/types';
+import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment, StockAudit, Avaria, ChatSession } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getClientFirebase } from '@/lib/firebase-client';
 import { collection, doc, writeBatch, setDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
@@ -72,6 +72,7 @@ interface AdminContextType {
   deleteAvaria: (avariaId: string, logAction: LogAction, user: User | null) => Promise<void>;
   emptyTrash: (logAction: LogAction, user: User | null) => Promise<void>;
   deleteChatSession: (sessionId: string, logAction: LogAction, user: User | null) => Promise<void>;
+  updateChatSession: (sessionId: string, data: Partial<ChatSession>, logAction: LogAction, user: User | null) => Promise<void>;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -1098,6 +1099,22 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [toast]);
 
+  const updateChatSession = useCallback(async (sessionId: string, data: Partial<ChatSession>, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
+    const sessionRef = doc(db, 'chatSessions', sessionId);
+    
+    updateDoc(sessionRef, data).then(() => {
+        logAction('Atualização de Chat', `Sessão de chat ${sessionId} foi atualizada.`, user);
+        toast({ title: 'Nome do visitante atualizado!' });
+    }).catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: sessionRef.path,
+            operation: 'update',
+            requestResourceData: data,
+        }));
+    });
+  }, [toast]);
+
   return (
     <AdminContext.Provider
       value={{
@@ -1107,7 +1124,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         payCommissions, reverseCommissionPayment,
         restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData,
         saveStockAudit, addAvaria, updateAvaria, deleteAvaria,
-        emptyTrash, deleteChatSession
+        emptyTrash, deleteChatSession, updateChatSession
       }}
     >
       {children}
@@ -1122,3 +1139,5 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
+
+    

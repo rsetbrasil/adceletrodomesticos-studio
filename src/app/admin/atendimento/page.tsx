@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Send, UserCircle, CheckCircle, Circle, Paperclip, FileText, Download, Trash2 } from 'lucide-react';
+import { MessageSquare, Send, UserCircle, CheckCircle, Circle, Paperclip, FileText, Download, Trash2, Pencil, Save, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
@@ -26,7 +26,7 @@ const notificationSound = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAE
 
 export default function AtendimentoPage() {
     const { user } = useAuth();
-    const { deleteChatSession } = useAdmin();
+    const { deleteChatSession, updateChatSession } = useAdmin();
     const { logAction } = useAudit();
     const [sessions, setSessions] = useState<ChatSession[]>([]);
     const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
@@ -38,6 +38,9 @@ export default function AtendimentoPage() {
     const { db } = getClientFirebase();
     const { toast } = useToast();
     const prevSessionsRef = useRef<ChatSession[]>([]);
+
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editingNameValue, setEditingNameValue] = useState('');
 
     const originalTitleRef = useRef(typeof document !== 'undefined' ? document.title : '');
     const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -147,6 +150,7 @@ export default function AtendimentoPage() {
 
     const handleSelectSession = async (session: ChatSession) => {
         setSelectedSession(session);
+        setIsEditingName(false);
         const sessionRef = doc(db, 'chatSessions', session.id);
 
         const updates: Partial<ChatSession> = { unreadBySeller: false };
@@ -226,6 +230,10 @@ export default function AtendimentoPage() {
         e.preventDefault();
         const file = fileInputRef.current?.files?.[0];
         await handleSendMessage(newMessage, file || null);
+        setNewMessage('');
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -256,6 +264,14 @@ export default function AtendimentoPage() {
         await deleteChatSession(selectedSession.id, logAction, user);
         setSelectedSession(null);
     }
+
+    const handleSaveName = async () => {
+        if (!selectedSession || !editingNameValue.trim()) return;
+
+        await updateChatSession(selectedSession.id, { visitorName: editingNameValue.trim() }, logAction, user);
+        setIsEditingName(false);
+    };
+
 
     const filteredSessions = useMemo(() => {
         let sessionsToShow = sessions;
@@ -311,9 +327,35 @@ export default function AtendimentoPage() {
                 {selectedSession ? (
                     <>
                         <CardHeader className="flex-row justify-between items-center border-b">
-                             <div>
-                                <CardTitle>Chat com {selectedSession.visitorName || 'Visitante'}</CardTitle>
-                                <p className="text-sm text-muted-foreground">Última mensagem: {formatDistanceToNow(new Date(selectedSession.lastMessageAt), { addSuffix: true, locale: ptBR })}</p>
+                             <div className="flex items-center gap-2">
+                                {isEditingName ? (
+                                    <div className="flex items-center gap-2">
+                                        <Input 
+                                            value={editingNameValue}
+                                            onChange={(e) => setEditingNameValue(e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName() }}
+                                            className="h-9"
+                                        />
+                                        <Button size="icon" className="h-9 w-9" onClick={handleSaveName}><Save className="h-4 w-4" /></Button>
+                                        <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setIsEditingName(false)}><X className="h-4 w-4" /></Button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <CardTitle>Chat com {selectedSession.visitorName || 'Visitante'}</CardTitle>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-8 w-8"
+                                            onClick={() => {
+                                                setEditingNameValue(selectedSession.visitorName || '');
+                                                setIsEditingName(true);
+                                            }}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                    </>
+                                )}
+                                
                              </div>
                              <div className="flex gap-2">
                                 <Button variant="outline" onClick={handleCloseSession}>Fechar Atendimento</Button>
@@ -412,3 +454,5 @@ export default function AtendimentoPage() {
         </div>
     );
 }
+
+    
