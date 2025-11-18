@@ -131,8 +131,10 @@ export default function ChatWidget() {
 
     const handleStartChat = () => {
         if (visitorName.trim()) {
-            if (!hasInteracted) {
-                audioRef.current?.load();
+            if (!hasInteracted && audioRef.current) {
+                audioRef.current.play().catch(() => {});
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
                 setHasInteracted(true);
             }
             localStorage.setItem('visitorName', visitorName);
@@ -371,5 +373,7 @@ export default function ChatWidget() {
         </>
     );
 }
+
+    
 
     

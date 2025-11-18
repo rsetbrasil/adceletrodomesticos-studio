@@ -153,8 +153,10 @@ export default function AtendimentoPage() {
     }, [messages]);
 
     const handleSelectSession = async (session: ChatSession) => {
-        if (!hasInteracted) {
-          audioRef.current?.load();
+        if (!hasInteracted && audioRef.current) {
+          audioRef.current.play().catch(() => {});
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
           setHasInteracted(true);
         }
 
@@ -491,5 +493,7 @@ export default function AtendimentoPage() {
     
 
 
+
+    
 
     
