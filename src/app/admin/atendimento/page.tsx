@@ -28,19 +28,27 @@ export default function AtendimentoPage() {
     const [filter, setFilter] = useState<'open' | 'active' | 'closed'>('open');
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { db } = getClientFirebase();
-    const previousSessionsRef = useRef<ChatSession[]>([]);
     const originalTitleRef = useRef(typeof document !== 'undefined' ? document.title : '');
     const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const lastPlayedSoundTimeRef = useRef(0);
 
-    // Effect to play sound and flash title on new message
+    // Effect to handle notifications for new messages
     useEffect(() => {
-        const newUnreadSessions = sessions.filter(currentSession => {
-            const previousSession = previousSessionsRef.current.find(p => p.id === currentSession.id);
-            return currentSession.unreadBySeller && (!previousSession || !previousSession.unreadBySeller);
-        });
+        const latestMessage = messages[messages.length - 1];
+        if (!latestMessage) return;
 
-        if (newUnreadSessions.length > 0) {
-            new Audio(notificationSound).play();
+        const isMyMessage = latestMessage.sender === 'seller';
+        const isChatWindowOpen = selectedSession && selectedSession.id === latestMessage.sessionId;
+
+        // If the message is not from the current seller and the chat window isn't open for that session, or the tab is hidden
+        if (!isMyMessage && (!isChatWindowOpen || document.hidden)) {
+            const now = Date.now();
+            // Throttle sound to prevent multiple plays in a short time
+            if (now - lastPlayedSoundTimeRef.current > 2000) {
+                 new Audio(notificationSound).play().catch(e => console.error("Error playing sound:", e));
+                 lastPlayedSoundTimeRef.current = now;
+            }
+
             if (document.hidden && !titleIntervalRef.current) {
                 let isOriginalTitle = true;
                 titleIntervalRef.current = setInterval(() => {
@@ -49,9 +57,10 @@ export default function AtendimentoPage() {
                 }, 1000);
             }
         }
-        
-        previousSessionsRef.current = sessions;
-        
+    }, [messages, selectedSession]);
+
+    // Effect to clear title flashing when tab is visible
+    useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden) {
                 if (titleIntervalRef.current) {
@@ -65,14 +74,13 @@ export default function AtendimentoPage() {
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             if (titleIntervalRef.current) {
                 clearInterval(titleIntervalRef.current);
                 document.title = originalTitleRef.current;
             }
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-
-    }, [sessions]);
+    }, []);
 
 
     useEffect(() => {
@@ -102,7 +110,7 @@ export default function AtendimentoPage() {
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedMessages: ChatMessage[] = [];
             snapshot.forEach(doc => {
-                fetchedMessages.push({ id: doc.id, ...doc.data() } as ChatMessage);
+                fetchedMessages.push({ sessionId: selectedSession.id, ...doc.data() } as ChatMessage);
             });
             setMessages(fetchedMessages);
         });
@@ -256,4 +264,5 @@ export default function AtendimentoPage() {
             </main>
         </div>
     );
-}
+
+    

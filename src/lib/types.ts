@@ -196,6 +196,7 @@ export type ChatMessage = {
   timestamp: string; // ISO String
   sender: 'visitor' | 'seller';
   senderName: string; // "Visitante" or seller's name
+  sessionId: string;
 };
 
 export type ChatSession = {
@@ -210,4 +211,6 @@ export type ChatSession = {
   unreadBySeller: boolean;
   unreadByVisitor: boolean;
 };
+    
+
     
