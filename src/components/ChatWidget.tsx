@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, X, Send, User } from 'lucide-react';
+import { MessageSquare, X, Send, User, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getClientFirebase } from '@/lib/firebase-client';
 import { collection, doc, setDoc, onSnapshot, addDoc, query, orderBy, serverTimestamp, updateDoc } from 'firebase/firestore';
@@ -67,11 +67,13 @@ export default function ChatWidget() {
 
         const unsubscribeSession = onSnapshot(sessionRef, (docSnap) => {
             if (docSnap.exists()) {
-                const sessionData = docSnap.data() as ChatSession;
+                const sessionData = { id: docSnap.id, ...docSnap.data() } as ChatSession;
                 setSession(sessionData);
                 if (isOpen && sessionData.unreadByVisitor) {
                     updateDoc(sessionRef, { unreadByVisitor: false });
                 }
+            } else {
+                setSession(null);
             }
         });
         
@@ -81,7 +83,7 @@ export default function ChatWidget() {
         const unsubscribeMessages = onSnapshot(q, (querySnapshot) => {
             const fetchedMessages: ChatMessage[] = [];
             querySnapshot.forEach((doc) => {
-                fetchedMessages.push({ id: doc.id, ...doc.data() } as ChatMessage);
+                fetchedMessages.push({ id: doc.id, ...doc.data(), sessionId: visitorId } as ChatMessage);
             });
             setMessages(fetchedMessages);
         });
@@ -118,6 +120,12 @@ export default function ChatWidget() {
             setHasSetName(true);
         }
     };
+    
+    const handleStartNewChat = async () => {
+        if (!session) return;
+        const sessionRef = doc(db, 'chatSessions', session.id);
+        await updateDoc(sessionRef, { status: 'open' });
+    };
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -126,7 +134,7 @@ export default function ChatWidget() {
         const sessionRef = doc(db, 'chatSessions', visitorId);
         const messagesRef = collection(db, 'chatSessions', visitorId, 'messages');
 
-        const messageData: Omit<ChatMessage, 'id' | 'timestamp'> = {
+        const messageData: Omit<ChatMessage, 'id' | 'timestamp' | 'sessionId'> = {
             text: newMessage,
             sender: 'visitor',
             senderName: visitorName,
@@ -218,19 +226,29 @@ export default function ChatWidget() {
                                         </div>
                                     </ScrollArea>
                                 </CardContent>
-                                <CardFooter className="p-4 border-t">
-                                    <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
-                                        <Input
-                                            value={newMessage}
-                                            onChange={(e) => setNewMessage(e.target.value)}
-                                            placeholder="Digite sua mensagem..."
-                                            autoComplete="off"
-                                        />
-                                        <Button type="submit" size="icon" disabled={!newMessage.trim()}>
-                                            <Send className="h-4 w-4" />
+                                {session?.status === 'closed' ? (
+                                    <CardFooter className="p-4 border-t flex flex-col items-center justify-center gap-4">
+                                        <p className="text-sm text-muted-foreground text-center">Atendimento encerrado pelo nosso vendedor.</p>
+                                        <Button onClick={handleStartNewChat}>
+                                            <RotateCcw className="mr-2 h-4 w-4" />
+                                            Iniciar Novo Atendimento
                                         </Button>
-                                    </form>
-                                </CardFooter>
+                                    </CardFooter>
+                                ) : (
+                                    <CardFooter className="p-4 border-t">
+                                        <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
+                                            <Input
+                                                value={newMessage}
+                                                onChange={(e) => setNewMessage(e.target.value)}
+                                                placeholder="Digite sua mensagem..."
+                                                autoComplete="off"
+                                            />
+                                            <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+                                                <Send className="h-4 w-4" />
+                                            </Button>
+                                        </form>
+                                    </CardFooter>
+                                )}
                             </>
                         )}
                     </Card>
