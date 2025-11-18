@@ -64,12 +64,10 @@ export default function AtendimentoPage() {
             const lastUnreadSession = sessions.find(session => session.unreadBySeller);
             const prevSession = prevSessionsRef.current.find(p => p.id === lastUnreadSession?.id);
             
-            // Play sound if a session becomes unread and user has interacted
             if (hasInteracted && lastUnreadSession && (!prevSession || !prevSession.unreadBySeller)) {
                 audioRef.current?.play().catch(e => console.error("Error playing sound:", e));
             }
 
-            // Start flashing title if tab is hidden and there are unread messages
             if (document.hidden && !titleIntervalRef.current) {
                 let isOriginalTitle = true;
                 titleIntervalRef.current = setInterval(() => {
@@ -84,7 +82,6 @@ export default function AtendimentoPage() {
     }, [sessions, hasInteracted]);
 
 
-    // Effect to clear title flashing when tab is visible
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden) {
@@ -279,7 +276,7 @@ export default function AtendimentoPage() {
             unreadByVisitor: true,
             lastMessageAt: new Date().toISOString(),
             lastMessageText: surveyMessage.text,
-            satisfaction: null, // Reset satisfaction for the new survey
+            satisfaction: null,
         });
         
         toast({
@@ -302,24 +299,19 @@ export default function AtendimentoPage() {
         setIsEditingName(false);
     };
 
-
     const filteredSessions = useMemo(() => {
-        let sessionsToShow = sessions;
-        if (filter === 'active') {
-            sessionsToShow = sessions.filter(s => s.status === 'active');
-        }
-        if (filter === 'open') {
-             sessionsToShow = sessions.filter(s => s.status === 'open' || s.unreadBySeller);
-        }
-        if (filter === 'closed') {
-            sessionsToShow = sessions.filter(s => s.status === 'closed');
-        }
-        if (nameFilter) {
-            sessionsToShow = sessionsToShow.filter(s => 
-                s.visitorName?.toLowerCase().includes(nameFilter.toLowerCase())
+        return sessions.filter(session => {
+            const statusMatch = (
+                (filter === 'open' && (session.status === 'open' || session.unreadBySeller)) ||
+                (filter === 'active' && session.status === 'active') ||
+                (filter === 'closed' && session.status === 'closed')
             );
-        }
-        return sessionsToShow;
+            const nameMatch = (
+                !nameFilter || 
+                session.visitorName?.toLowerCase().includes(nameFilter.toLowerCase())
+            );
+            return statusMatch && nameMatch;
+        });
     }, [sessions, filter, nameFilter]);
 
     return (
@@ -511,7 +503,5 @@ export default function AtendimentoPage() {
         </div>
     );
 }
-
-    
 
     
