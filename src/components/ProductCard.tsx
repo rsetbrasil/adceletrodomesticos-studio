@@ -68,28 +68,28 @@ export default function ProductCard({ product }: ProductCardProps) {
             />
           </div>
         </CardHeader>
-        <CardContent className="p-4 flex-grow">
+        <CardContent className="p-4 flex-grow flex flex-col">
           <div className="flex items-center gap-1 mb-2">
             <Badge variant="secondary" className="capitalize">{product.category}</Badge>
             {product.subcategory && <Badge variant="outline" className="capitalize">{product.subcategory}</Badge>}
           </div>
-          <CardTitle className="text-base md:text-lg font-semibold mb-2 h-14">{product.name}</CardTitle>
+          <CardTitle className="text-base md:text-lg font-semibold min-h-[40px]">{product.name}</CardTitle>
           {showCountdown && <CountdownTimer endDate={product.promotionEndDate!} />}
-          <CardDescription className="text-xs md:text-sm text-muted-foreground h-16 overflow-hidden">
+          <CardDescription className="text-xs md:text-sm text-muted-foreground min-h-[48px] overflow-hidden">
             {product.description}
           </CardDescription>
-        </CardContent>
-        <CardFooter className="p-4 pt-0 flex flex-col items-start">
-            <div className="mb-4">
-                <p className="text-2xl font-bold text-primary">
-                    {formatCurrency(product.price)}
+          <div className="mt-auto pt-2">
+            <p className="text-2xl font-bold text-primary">
+                {formatCurrency(product.price)}
+            </p>
+            {installmentValue > 0 && (
+                <p className="text-sm text-accent font-semibold -mt-1">
+                    ou {maxInstallments}x de {formatCurrency(installmentValue)} sem juros
                 </p>
-                {installmentValue > 0 && (
-                    <p className="text-sm text-accent font-semibold -mt-1">
-                        ou {maxInstallments}x de {formatCurrency(installmentValue)} sem juros
-                    </p>
-                )}
-            </div>
+            )}
+          </div>
+        </CardContent>
+        <CardFooter className="p-4 pt-0">
           {product.stock > 0 ? (
             <Button onClick={handleAddToCart} className="w-full bg-accent hover:bg-accent/90">
               <ShoppingCart className="mr-2 h-4 w-4" />
