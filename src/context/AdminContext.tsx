@@ -776,7 +776,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         state: ['estado', 'uf'],
     };
 
-    const headerMap: { [key in keyof Omit<CustomerInfo, 'password'>]?: number } = {};
+    const headerMap: { [key: string]: number } = {};
 
     for (const key in possibleMappings) {
         const typedKey = key as keyof Omit<CustomerInfo, 'password'>;
@@ -802,7 +802,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const customer: Partial<CustomerInfo> = {};
         for (const key in headerMap) {
             const typedKey = key as keyof CustomerInfo;
-            const colIndex = headerMap[typedKey];
+            const colIndex = headerMap[key];
             if (colIndex !== undefined && colIndex < data.length) {
                 customer[typedKey] = data[colIndex]?.trim().replace(/["']/g, '') || '';
             }
@@ -1094,5 +1094,3 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
-
-    
