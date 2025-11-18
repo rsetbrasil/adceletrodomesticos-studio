@@ -205,19 +205,18 @@ export default function ChatWidget() {
         }
     
         await addDoc(messagesRef, messageData);
-    };
-    
-    const handleFormSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const file = fileInputRef.current?.files?.[0];
-        await handleSendMessage(newMessage, file);
         setNewMessage('');
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
     };
+    
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await handleSendMessage(newMessage);
+    };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
@@ -228,6 +227,7 @@ export default function ChatWidget() {
             }
             return;
         }
+        await handleSendMessage('', file);
     };
 
     return (
@@ -316,7 +316,7 @@ export default function ChatWidget() {
                                                 type="file" 
                                                 ref={fileInputRef} 
                                                 onChange={handleFileChange}
-                                                accept="image/*,application/pdf"
+                                                accept="image/png, image/jpeg, image/gif, image/webp, application/pdf"
                                                 className="hidden" 
                                             />
                                             <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
@@ -328,7 +328,7 @@ export default function ChatWidget() {
                                                 placeholder="Digite sua mensagem..."
                                                 autoComplete="off"
                                             />
-                                            <Button type="submit" size="icon" disabled={!newMessage.trim() && !(fileInputRef.current?.files && fileInputRef.current.files.length > 0)}>
+                                            <Button type="submit" size="icon" disabled={!newMessage.trim()}>
                                                 <Send className="h-4 w-4" />
                                             </Button>
                                         </form>

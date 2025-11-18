@@ -212,19 +212,19 @@ export default function AtendimentoPage() {
             lastMessageText: attachment ? `Anexo: ${attachment.name}` : messageText,
             unreadByVisitor: true,
         });
-    };
 
-    const handleFormSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const file = fileInputRef.current?.files?.[0];
-        await handleSendMessage(newMessage, file);
         setNewMessage('');
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await handleSendMessage(newMessage);
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
@@ -235,6 +235,9 @@ export default function AtendimentoPage() {
             }
             return;
         }
+
+        // Send immediately
+        await handleSendMessage('', file);
     };
     
     const handleCloseSession = async () => {
@@ -343,7 +346,7 @@ export default function AtendimentoPage() {
                                     type="file" 
                                     ref={fileInputRef} 
                                     onChange={handleFileChange}
-                                    accept="image/*,application/pdf"
+                                    accept="image/png, image/jpeg, image/gif, image/webp, application/pdf"
                                     className="hidden" 
                                 />
                                 <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
@@ -355,7 +358,7 @@ export default function AtendimentoPage() {
                                     placeholder="Digite sua resposta..."
                                     autoComplete="off"
                                 />
-                                <Button type="submit" size="icon" disabled={!newMessage.trim() && !(fileInputRef.current?.files && fileInputRef.current.files.length > 0)}>
+                                <Button type="submit" size="icon" disabled={!newMessage.trim()}>
                                     <Send className="h-4 w-4" />
                                 </Button>
                             </form>
