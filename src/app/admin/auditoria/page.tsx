@@ -145,23 +145,23 @@ function StockAuditTab() {
                                     Realize a contagem física dos produtos e compare com o estoque do sistema.
                                 </CardDescription>
                             </div>
-                            <div className="flex gap-2">
-                                <Button variant="outline" onClick={handleSaveAudit} disabled={Object.keys(stockCounts).length === 0}>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                                <Button className="w-1/2 sm:w-auto" variant="outline" onClick={handleSaveAudit} disabled={Object.keys(stockCounts).length === 0}>
                                     <Save className="mr-2 h-4 w-4" />
-                                    Salvar Auditoria
+                                    Salvar
                                 </Button>
-                                <Button onClick={() => window.print()}>
+                                <Button className="w-1/2 sm:w-auto" onClick={() => window.print()}>
                                     <Printer className="mr-2 h-4 w-4" />
-                                    Imprimir Relatório
+                                    Imprimir
                                 </Button>
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-4 p-4 border rounded-lg bg-muted/50">
-                            <h3 className="font-semibold">Período da Auditoria:</h3>
+                            <h3 className="font-semibold text-sm sm:text-base">Período:</h3>
                             <div className="flex items-center gap-2">
                                 <label htmlFor="mes-auditoria" className="text-sm font-medium">Mês:</label>
                                 <Select value={mes} onValueChange={handleMonthChange}>
-                                    <SelectTrigger id="mes-auditoria" className="w-[180px]">
+                                    <SelectTrigger id="mes-auditoria" className="w-full sm:w-[180px]">
                                         <SelectValue placeholder="Selecione o Mês" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -172,7 +172,7 @@ function StockAuditTab() {
                             <div className="flex items-center gap-2">
                                 <label htmlFor="ano-auditoria" className="text-sm font-medium">Ano:</label>
                                 <Select value={ano} onValueChange={handleYearChange}>
-                                    <SelectTrigger id="ano-auditoria" className="w-[120px]">
+                                    <SelectTrigger id="ano-auditoria" className="w-full sm:w-[120px]">
                                         <SelectValue placeholder="Selecione o Ano" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -183,7 +183,7 @@ function StockAuditTab() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="rounded-md border">
+                        <div className="overflow-x-auto rounded-md border">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -296,3 +296,5 @@ export default function AuditoriaPage() {
         <StockAuditTab />
     );
 }
+
+      

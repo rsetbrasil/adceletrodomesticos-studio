@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, parseISO, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -353,7 +353,7 @@ export default function OrdersAdminPage() {
                     <div className="flex flex-wrap gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
                         <div className="flex-grow min-w-[200px]">
                             <Input 
-                                placeholder="Buscar por ID do pedido ou cliente..."
+                                placeholder="Buscar por ID ou cliente..."
                                 value={filters.search}
                                 onChange={(e) => handleFilterChange('search', e.target.value)}
                             />
@@ -387,12 +387,12 @@ export default function OrdersAdminPage() {
                         </div>
                         <Button variant="ghost" onClick={clearFilters}>
                             <X className="mr-2 h-4 w-4"/>
-                            Limpar Filtros
+                            Limpar
                         </Button>
                     </div>
 
                     {activeOrders.length > 0 ? (
-                        <div className="rounded-md border">
+                        <div className="rounded-md border overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -411,7 +411,7 @@ export default function OrdersAdminPage() {
                                     {activeOrders.map((order) => (
                                     <TableRow key={order.id}>
                                         <TableCell className="font-medium">{order.id}</TableCell>
-                                        <TableCell>{format(new Date(order.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</TableCell>
+                                        <TableCell className="whitespace-nowrap">{format(new Date(order.date), "dd/MM/yy HH:mm")}</TableCell>
                                         <TableCell>
                                           <div className="flex items-center gap-2">
                                             <Link href={`/admin/clientes?cpf=${order.customer.cpf}`} passHref>
@@ -500,7 +500,7 @@ export default function OrdersAdminPage() {
                             </AlertDialogContent>
                         </AlertDialog>
                     </div>
-                    <div className="rounded-md border">
+                    <div className="rounded-md border overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -565,269 +565,258 @@ export default function OrdersAdminPage() {
       </Card>
 
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-          <DialogContent className="max-w-6xl h-[90vh]">
+          <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
               {selectedOrder && (
                   <>
                   <DialogHeader>
-                      <DialogTitle>Detalhes do Pedido: {selectedOrder.id}</DialogTitle>
+                      <DialogTitle>Pedido: {selectedOrder.id}</DialogTitle>
                       <DialogDescription>
-                          Gerencie o status do pedido e o faturamento das parcelas.
+                          Gerencie o status, faturamento e detalhes do pedido.
                       </DialogDescription>
                   </DialogHeader>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto p-1 pr-4">
-                      {/* Left Column: Details */}
-                      <div className="space-y-6">
-                          {/* Customer Info */}
-                            <Card>
-                              <CardHeader className="flex-row items-center gap-4 space-y-0">
-                                  <UserIcon className="w-8 h-8 text-primary" />
-                                  <CardTitle className="text-lg">Informações do Cliente</CardTitle>
-                              </CardHeader>
-                              <CardContent className="text-sm space-y-1">
-                                  <p><strong>Nome:</strong> {selectedOrder.customer.name}</p>
-                                  <p><strong>CPF:</strong> {selectedOrder.customer.cpf}</p>
-                                  <p><strong>Email:</strong> {selectedOrder.customer.email}</p>
-                                  <p><strong>Telefone:</strong> {selectedOrder.customer.phone}</p>
-                                  <p><strong>Endereço:</strong> {`${selectedOrder.customer.address}, ${selectedOrder.customer.city}, ${selectedOrder.customer.state}`}</p>
-                              </CardContent>
+                  <div className="flex-grow overflow-y-auto p-1 pr-4 -mr-4 space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <Card>
+                            <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
+                                <UserIcon className="w-8 h-8 text-primary" />
+                                <CardTitle className="text-lg">Cliente</CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-sm space-y-1">
+                                <p><strong>Nome:</strong> {selectedOrder.customer.name}</p>
+                                <p><strong>CPF:</strong> {selectedOrder.customer.cpf}</p>
+                                <p><strong>Telefone:</strong> {selectedOrder.customer.phone}</p>
+                                <p><strong>Endereço:</strong> {`${selectedOrder.customer.address}, ${selectedOrder.customer.city}`}</p>
+                            </CardContent>
                           </Card>
 
-                            {/* Order Summary */}
-                            <Card>
-                              <CardHeader className="flex-row items-center gap-4 space-y-0">
-                                  <ShoppingBag className="w-8 h-8 text-primary" />
-                                  <CardTitle className="text-lg">Resumo do Pedido</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                  <p className="text-sm text-muted-foreground mb-4">
-                                      Produtos: {selectedOrder.items.map(item => item.name).join(', ')}
-                                    </p>
-                                  <div className="space-y-2">
-                                      {selectedOrder.items.map(item => (
-                                          <div key={item.id} className="flex justify-between items-center text-sm">
-                                              <span>{item.name} x {item.quantity}</span>
-                                              <span>{formatCurrency(item.price * item.quantity)}</span>
-                                          </div>
-                                      ))}
-                                  </div>
-                                  <Separator className="my-3" />
-                                  <div className="flex justify-between font-bold text-base">
-                                      <span>TOTAL</span>
-                                      <span>{formatCurrency(selectedOrder.total)}</span>
-                                  </div>
-                                  <div className="flex justify-between text-sm mt-2">
-                                      <span>Vendedor:</span>
-                                      <span>{selectedOrder.sellerName}</span>
-                                  </div>
-                                  <Separator className="my-3" />
-
-                                   <div className="flex justify-between text-base items-center">
-                                      <span className="font-semibold text-green-600 flex items-center gap-2"><Percent />Comissão:</span>
-                                      {isAdmin ? (
-                                        <div className="flex gap-2 items-center">
-                                          <span className="text-sm">R$</span>
-                                           <Input
-                                                type="text"
-                                                value={commissionInput}
-                                                onChange={(e) => setCommissionInput(e.target.value)}
-                                                onKeyDown={(e) => { if (e.key === 'Enter') handleUpdateCommission() }}
-                                                className="w-24 h-8 text-right"
-                                            />
-                                            <Button size="sm" variant="outline" onClick={handleUpdateCommission}>
-                                                <Save className="h-4 w-4" />
-                                            </Button>
+                          <Card>
+                            <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
+                                <ShoppingBag className="w-8 h-8 text-primary" />
+                                <CardTitle className="text-lg">Resumo</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-2 text-sm">
+                                    {selectedOrder.items.map(item => (
+                                        <div key={item.id} className="flex justify-between items-center">
+                                            <span>{item.name} x {item.quantity}</span>
+                                            <span>{formatCurrency(item.price * item.quantity)}</span>
                                         </div>
-                                      ) : (
-                                         <span className="font-bold text-green-600">{formatCurrency(selectedOrder.commission || 0)}</span>
-                                      )}
-                                  </div>
-                                  {selectedOrder.isCommissionManual && <p className="text-xs text-muted-foreground text-right">Valor de comissão manual</p>}
-                              </CardContent>
+                                    ))}
+                                </div>
+                                <Separator className="my-3" />
+                                <div className="flex justify-between font-bold text-base">
+                                    <span>TOTAL</span>
+                                    <span>{formatCurrency(selectedOrder.total)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm mt-2">
+                                    <span>Vendedor:</span>
+                                    <span>{selectedOrder.sellerName}</span>
+                                </div>
+                                <Separator className="my-3" />
+
+                                 <div className="flex justify-between text-base items-center">
+                                    <span className="font-semibold text-green-600 flex items-center gap-2"><Percent />Comissão:</span>
+                                    {isAdmin ? (
+                                      <div className="flex gap-2 items-center">
+                                        <span className="text-sm">R$</span>
+                                         <Input
+                                              type="text"
+                                              value={commissionInput}
+                                              onChange={(e) => setCommissionInput(e.target.value)}
+                                              onKeyDown={(e) => { if (e.key === 'Enter') handleUpdateCommission() }}
+                                              className="w-24 h-8 text-right"
+                                          />
+                                          <Button size="sm" variant="outline" onClick={handleUpdateCommission}>
+                                              <Save className="h-4 w-4" />
+                                          </Button>
+                                      </div>
+                                    ) : (
+                                       <span className="font-bold text-green-600">{formatCurrency(selectedOrder.commission || 0)}</span>
+                                    )}
+                                </div>
+                                {selectedOrder.isCommissionManual && <p className="text-xs text-muted-foreground text-right">Valor de comissão manual</p>}
+                            </CardContent>
                           </Card>
                       </div>
 
-                      {/* Right Column: Invoicing */}
-                      <div className="space-y-6">
-                            {/* Payment Info */}
-                          <Card>
-                              <CardHeader className="flex-row items-center gap-4 space-y-0">
-                                  <CreditCard className="w-8 h-8 text-primary" />
-                                  <CardTitle className="text-lg">Faturamento e Status</CardTitle>
-                              </CardHeader>
-                              <CardContent className="space-y-6">
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                                        <div className="flex-grow">
-                                            <label className="text-sm font-medium">Forma de Pagamento</label>
-                                            <Select value={selectedOrder.paymentMethod} onValueChange={(value) => handleUpdatePaymentMethod(value as PaymentMethod)}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Alterar forma de pagamento" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="Crediário">Crediário</SelectItem>
-                                                    <SelectItem value="Pix">Pix</SelectItem>
-                                                    <SelectItem value="Dinheiro">Dinheiro</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                      {selectedOrder.paymentMethod === 'Crediário' && (
-                                          <div>
-                                              <label className="text-sm font-medium">Parcelas (Max: {maxAllowedInstallmentsForSelectedOrder})</label>
-                                              <div className="flex gap-2">
-                                                  <Input 
-                                                      type="number" 
-                                                      value={installmentsInput} 
-                                                      onChange={(e) => setInstallmentsInput(Number(e.target.value))}
-                                                      min="1" max={maxAllowedInstallmentsForSelectedOrder}
-                                                      className="w-24"
-                                                      onKeyDown={(e) => e.key === 'Enter' && handleUpdateInstallments()}
-                                                  />
-                                                  <Button size="sm" onClick={handleUpdateInstallments}>
-                                                    <Save className="mr-2 h-4 w-4" /> Salvar
-                                                  </Button>
-                                              </div>
+                      <Card>
+                          <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
+                              <CreditCard className="w-8 h-8 text-primary" />
+                              <CardTitle className="text-lg">Faturamento e Status</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-6">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                                    <div className="flex-grow">
+                                        <label className="text-sm font-medium">Forma de Pagamento</label>
+                                        <Select value={selectedOrder.paymentMethod} onValueChange={(value) => handleUpdatePaymentMethod(value as PaymentMethod)}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Alterar forma de pagamento" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Crediário">Crediário</SelectItem>
+                                                <SelectItem value="Pix">Pix</SelectItem>
+                                                <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                  {selectedOrder.paymentMethod === 'Crediário' && (
+                                      <div>
+                                          <label className="text-sm font-medium">Parcelas (Max: {maxAllowedInstallmentsForSelectedOrder})</label>
+                                          <div className="flex gap-2">
+                                              <Input 
+                                                  type="number" 
+                                                  value={installmentsInput} 
+                                                  onChange={(e) => setInstallmentsInput(Number(e.target.value))}
+                                                  min="1" max={maxAllowedInstallmentsForSelectedOrder}
+                                                  className="w-24"
+                                                  onKeyDown={(e) => e.key === 'Enter' && handleUpdateInstallments()}
+                                              />
+                                              <Button size="sm" onClick={handleUpdateInstallments}>
+                                                <Save className="mr-2 h-4 w-4" /> Salvar
+                                              </Button>
                                           </div>
-                                      )}
-                                  </div>
-                                  <div className="flex items-end gap-4">
-                                      <div className="flex-grow">
-                                          <label className="text-sm font-medium">Status do Pedido</label>
-                                          <Select value={selectedOrder.status} onValueChange={(status) => handleUpdateOrderStatus(status as Order['status'])}>
-                                              <SelectTrigger>
-                                                  <SelectValue placeholder="Alterar status" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                  <SelectItem value="Processando">Processando</SelectItem>
-                                                  <SelectItem value="Enviado">Enviado</SelectItem>
-                                                  <SelectItem value="Entregue">Entregue</SelectItem>
-                                                  <SelectItem value="Cancelado">Cancelado</SelectItem>
-                                              </SelectContent>
-                                          </Select>
                                       </div>
-                                      <Badge variant={getStatusVariant(selectedOrder.status)} className="h-10 text-sm">{selectedOrder.status}</Badge>
+                                  )}
+                              </div>
+                              <div className="flex items-end gap-4">
+                                  <div className="flex-grow">
+                                      <label className="text-sm font-medium">Status do Pedido</label>
+                                      <Select value={selectedOrder.status} onValueChange={(status) => handleUpdateOrderStatus(status as Order['status'])}>
+                                          <SelectTrigger>
+                                              <SelectValue placeholder="Alterar status" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                              <SelectItem value="Processando">Processando</SelectItem>
+                                              <SelectItem value="Enviado">Enviado</SelectItem>
+                                              <SelectItem value="Entregue">Entregue</SelectItem>
+                                              <SelectItem value="Cancelado">Cancelado</SelectItem>
+                                          </SelectContent>
+                                      </Select>
                                   </div>
-                              </CardContent>
-                          </Card>
-                          
-                          {selectedOrder.paymentMethod === 'Crediário' && (
-                            <Card>
-                                <CardHeader className="flex-row items-center gap-4 space-y-0">
-                                    <FileText className="w-8 h-8 text-primary" />
-                                    <CardTitle className="text-lg">Carnê de Pagamento</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Table>
-                                        <TableBody>
-                                            {(selectedOrder.installmentDetails || []).map((inst) => {
-                                                const uniqueKey = `${selectedOrder.id}-${inst.installmentNumber}`;
-                                                const isExpanded = expandedHistory === uniqueKey;
-                                                const remainingAmount = inst.amount - (inst.paidAmount || 0);
-                                                const isOverdue = inst.status === 'Pendente' && new Date(inst.dueDate) < new Date();
-                                                
-                                                let statusText: string = inst.status;
-                                                if (inst.status === 'Pendente' && (inst.paidAmount || 0) > 0) {
-                                                    statusText = `Parcial (${formatCurrency(remainingAmount)} pendente)`;
-                                                } else if (isOverdue) {
-                                                    statusText = 'Atrasado';
-                                                }
-                                                const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
-                                                
-                                                return (
-                                                    <React.Fragment key={uniqueKey}>
-                                                        <TableRow>
-                                                            <TableCell className="font-medium">{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
-                                                            <TableCell>
-                                                                <Popover open={openDueDatePopover === uniqueKey} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? uniqueKey : null)}>
-                                                                    <PopoverTrigger asChild>
-                                                                        <Button variant={"outline"} className="w-[150px] justify-start text-left font-normal text-xs" disabled={inst.status === 'Pago'}>
-                                                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                            Venc: {format(new Date(inst.dueDate), 'dd/MM/yyyy')}
-                                                                        </Button>
-                                                                    </PopoverTrigger>
-                                                                    <PopoverContent className="w-auto p-0">
-                                                                        <Calendar locale={ptBR} mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)} initialFocus/>
-                                                                    </PopoverContent>
-                                                                </Popover>
-                                                            </TableCell>
-                                                            <TableCell>{formatCurrency(inst.amount)}</TableCell>
-                                                            <TableCell><Badge variant={statusVariant}>{statusText}</Badge></TableCell>
-                                                            <TableCell className="text-right">
-                                                                <div className="flex items-center justify-end gap-1">
-                                                                    {user && (
-                                                                        <>
-                                                                            {(inst.payments && inst.payments.length > 0) && (
-                                                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedHistory(isExpanded ? null : uniqueKey)}>
-                                                                                    <History className="h-4 w-4" />
-                                                                                </Button>
-                                                                            )}
-                                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenPaymentDialog(inst)} disabled={inst.status === 'Pago'}>
-                                                                                <CheckCircle className="h-4 w-4 text-green-600"/>
-                                                                            </Button>
-                                                                        </>
-                                                                    )}
-                                                                    <Button variant="outline" size="icon" className="h-8 w-8" asChild>
-                                                                        <Link href={`/carnet/${selectedOrder.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
-                                                                            <Printer className="h-4 w-4" />
-                                                                        </Link>
+                                  <Badge variant={getStatusVariant(selectedOrder.status)} className="h-10 text-sm">{selectedOrder.status}</Badge>
+                              </div>
+                          </CardContent>
+                      </Card>
+                      
+                      {selectedOrder.paymentMethod === 'Crediário' && (
+                        <Card>
+                            <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
+                                <FileText className="w-8 h-8 text-primary" />
+                                <CardTitle className="text-lg">Carnê de Pagamento</CardTitle>
+                            </CardHeader>
+                            <CardContent className="overflow-x-auto">
+                                <Table>
+                                    <TableBody>
+                                        {(selectedOrder.installmentDetails || []).map((inst) => {
+                                            const uniqueKey = `${selectedOrder.id}-${inst.installmentNumber}`;
+                                            const isExpanded = expandedHistory === uniqueKey;
+                                            const remainingAmount = inst.amount - (inst.paidAmount || 0);
+                                            const isOverdue = inst.status === 'Pendente' && new Date(inst.dueDate) < new Date();
+                                            
+                                            let statusText: string = inst.status;
+                                            if (inst.status === 'Pendente' && (inst.paidAmount || 0) > 0) {
+                                                statusText = `Parcial (${formatCurrency(remainingAmount)} pendente)`;
+                                            } else if (isOverdue) {
+                                                statusText = 'Atrasado';
+                                            }
+                                            const statusVariant = inst.status === 'Pago' ? 'default' : isOverdue ? 'destructive' : 'secondary';
+                                            
+                                            return (
+                                                <React.Fragment key={uniqueKey}>
+                                                    <TableRow>
+                                                        <TableCell className="font-medium">{inst.installmentNumber}/{selectedOrder.installments}</TableCell>
+                                                        <TableCell>
+                                                            <Popover open={openDueDatePopover === uniqueKey} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? uniqueKey : null)}>
+                                                                <PopoverTrigger asChild>
+                                                                    <Button variant={"outline"} className="w-[150px] justify-start text-left font-normal text-xs" disabled={inst.status === 'Pago'}>
+                                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                        Venc: {format(new Date(inst.dueDate), 'dd/MM/yyyy')}
                                                                     </Button>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent className="w-auto p-0">
+                                                                    <Calendar locale={ptBR} mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)} initialFocus/>
+                                                                </PopoverContent>
+                                                            </Popover>
+                                                        </TableCell>
+                                                        <TableCell>{formatCurrency(inst.amount)}</TableCell>
+                                                        <TableCell><Badge variant={statusVariant}>{statusText}</Badge></TableCell>
+                                                        <TableCell className="text-right">
+                                                            <div className="flex items-center justify-end gap-1">
+                                                                {user && (
+                                                                    <>
+                                                                        {(inst.payments && inst.payments.length > 0) && (
+                                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedHistory(isExpanded ? null : uniqueKey)}>
+                                                                                <History className="h-4 w-4" />
+                                                                            </Button>
+                                                                        )}
+                                                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenPaymentDialog(inst)} disabled={inst.status === 'Pago'}>
+                                                                            <CheckCircle className="h-4 w-4 text-green-600"/>
+                                                                        </Button>
+                                                                    </>
+                                                                )}
+                                                                <Button variant="outline" size="icon" className="h-8 w-8" asChild>
+                                                                    <Link href={`/carnet/${selectedOrder.id}/${inst.installmentNumber}`} target="_blank" rel="noopener noreferrer">
+                                                                        <Printer className="h-4 w-4" />
+                                                                    </Link>
+                                                                </Button>
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                    {isExpanded && (
+                                                        <TableRow>
+                                                            <TableCell colSpan={5} className="p-0 border-none">
+                                                                <div className="p-3 bg-muted/30 border-t">
+                                                                    <h4 className="font-semibold text-sm mb-2">Histórico de Pagamentos da Parcela</h4>
+                                                                    {(inst.payments && inst.payments.length > 0) ? (
+                                                                        <Table>
+                                                                            <TableHeader>
+                                                                                <TableRow>
+                                                                                    <TableHead>Data</TableHead>
+                                                                                    <TableHead>Método</TableHead>
+                                                                                    <TableHead>Valor</TableHead>
+                                                                                    <TableHead className='text-right'>Ação</TableHead>
+                                                                                </TableRow>
+                                                                            </TableHeader>
+                                                                            <TableBody>
+                                                                                {inst.payments.map((p, index) => (
+                                                                                    <TableRow key={`${p.id}-${index}`}>
+                                                                                        <TableCell>{format(new Date(p.date), "dd/MM/yyyy 'às' HH:mm")}</TableCell>
+                                                                                        <TableCell>{p.method}</TableCell>
+                                                                                        <TableCell>{formatCurrency(p.amount)}</TableCell>
+                                                                                        <TableCell className="text-right">
+                                                                                            <AlertDialog>
+                                                                                                <AlertDialogTrigger asChild>
+                                                                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Undo2 className="h-4 w-4" /></Button>
+                                                                                                </AlertDialogTrigger>
+                                                                                                <AlertDialogContent>
+                                                                                                    <AlertDialogHeader>
+                                                                                                        <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
+                                                                                                        <AlertDialogDescription>Esta ação irá reverter o pagamento de {formatCurrency(p.amount)} feito em {format(new Date(p.date), 'dd/MM/yy')}. Isso não pode ser desfeito.</AlertDialogDescription>
+                                                                                                    </AlertDialogHeader>
+                                                                                                    <AlertDialogFooter>
+                                                                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                                                        <AlertDialogAction onClick={() => reversePayment(selectedOrder.id, inst.installmentNumber, p.id, logAction, user)}>Sim, Estornar</AlertDialogAction>
+                                                                                                    </AlertDialogFooter>
+                                                                                                </AlertDialogContent>
+                                                                                            </AlertDialog>
+                                                                                        </TableCell>
+                                                                                    </TableRow>
+                                                                                ))}
+                                                                            </TableBody>
+                                                                        </Table>
+                                                                    ) : <p className='text-xs text-muted-foreground'>Nenhum pagamento registrado para esta parcela.</p>}
                                                                 </div>
                                                             </TableCell>
                                                         </TableRow>
-                                                        {isExpanded && (
-                                                            <TableRow>
-                                                                <TableCell colSpan={5} className="p-0 border-none">
-                                                                    <div className="p-3 bg-muted/30 border-t">
-                                                                        <h4 className="font-semibold text-sm mb-2">Histórico de Pagamentos da Parcela</h4>
-                                                                        {(inst.payments && inst.payments.length > 0) ? (
-                                                                            <Table>
-                                                                                <TableHeader>
-                                                                                    <TableRow>
-                                                                                        <TableHead>Data</TableHead>
-                                                                                        <TableHead>Método</TableHead>
-                                                                                        <TableHead>Valor</TableHead>
-                                                                                        <TableHead className='text-right'>Ação</TableHead>
-                                                                                    </TableRow>
-                                                                                </TableHeader>
-                                                                                <TableBody>
-                                                                                    {inst.payments.map((p, index) => (
-                                                                                        <TableRow key={`${p.id}-${index}`}>
-                                                                                            <TableCell>{format(new Date(p.date), "dd/MM/yyyy 'às' HH:mm")}</TableCell>
-                                                                                            <TableCell>{p.method}</TableCell>
-                                                                                            <TableCell>{formatCurrency(p.amount)}</TableCell>
-                                                                                            <TableCell className="text-right">
-                                                                                                <AlertDialog>
-                                                                                                    <AlertDialogTrigger asChild>
-                                                                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Undo2 className="h-4 w-4" /></Button>
-                                                                                                    </AlertDialogTrigger>
-                                                                                                    <AlertDialogContent>
-                                                                                                        <AlertDialogHeader>
-                                                                                                            <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
-                                                                                                            <AlertDialogDescription>Esta ação irá reverter o pagamento de {formatCurrency(p.amount)} feito em {format(new Date(p.date), 'dd/MM/yy')}. Isso não pode ser desfeito.</AlertDialogDescription>
-                                                                                                        </AlertDialogHeader>
-                                                                                                        <AlertDialogFooter>
-                                                                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                                                            <AlertDialogAction onClick={() => reversePayment(selectedOrder.id, inst.installmentNumber, p.id, logAction, user)}>Sim, Estornar</AlertDialogAction>
-                                                                                                        </AlertDialogFooter>
-                                                                                                    </AlertDialogContent>
-                                                                                                </AlertDialog>
-                                                                                            </TableCell>
-                                                                                        </TableRow>
-                                                                                    ))}
-                                                                                </TableBody>
-                                                                            </Table>
-                                                                        ) : <p className='text-xs text-muted-foreground'>Nenhum pagamento registrado para esta parcela.</p>}
-                                                                    </div>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        )}
-                                                    </React.Fragment>
-                                                )
-                                            })}
-                                        </TableBody>
-                                    </Table>
-                                </CardContent>
-                              </Card>
-                          )}
-                      </div>
+                                                    )}
+                                                </React.Fragment>
+                                            )
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                          </Card>
+                      )}
                   </div>
                     <DialogFooter className="pt-4 border-t">
                       {selectedOrder.paymentMethod === 'Crediário' && (
@@ -859,8 +848,4 @@ export default function OrdersAdminPage() {
   );
 }
 
-    
-
-    
-
-    
+      

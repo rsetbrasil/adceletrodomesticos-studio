@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -62,8 +61,8 @@ export default function CommissionReceiptPage() {
             Voltar
           </Button>
           <div className="text-center">
-             <h1 className="text-2xl font-bold">Comprovante de Pagamento de Comissão</h1>
-             <p className="text-muted-foreground">ID do Pagamento: {payment.id}</p>
+             <h1 className="text-2xl font-bold">Comprovante de Pagamento</h1>
+             <p className="text-muted-foreground">ID: {payment.id}</p>
           </div>
           <Button onClick={() => window.print()}>
             <Printer className="mr-2 h-4 w-4" />
@@ -92,16 +91,16 @@ export default function CommissionReceiptPage() {
              </div>
            </div>
 
-           <div className="grid grid-cols-3 gap-4 py-6">
-               <div>
+           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-6">
+               <div className="sm:col-span-1">
                    <p className="text-xs text-muted-foreground">VENDEDOR(A)</p>
                    <p className="font-semibold text-lg">{payment.sellerName}</p>
                </div>
-               <div>
+               <div className="sm:col-span-1">
                    <p className="text-xs text-muted-foreground">PERÍODO DE REFERÊNCIA</p>
                    <p className="font-semibold text-lg capitalize">{payment.period}</p>
                </div>
-               <div className="text-right">
+               <div className="text-right sm:col-span-1">
                    <p className="text-xs text-muted-foreground">VALOR TOTAL PAGO</p>
                    <p className="font-bold text-2xl text-primary">{formatCurrency(payment.amount)}</p>
                </div>
@@ -109,21 +108,21 @@ export default function CommissionReceiptPage() {
            
             <div className="mt-6">
                 <h3 className="font-semibold mb-2">Pedidos Incluídos neste Pagamento:</h3>
-                <div className="border rounded-md print:border-none">
+                <div className="border rounded-md print:border-none overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead className="bg-muted/50 print:bg-gray-100">
                             <tr className="border-b">
-                                <th className="p-2 text-left font-medium">Data do Pedido</th>
-                                <th className="p-2 text-left font-medium">ID do Pedido</th>
+                                <th className="p-2 text-left font-medium">Data</th>
+                                <th className="p-2 text-left font-medium">Pedido</th>
                                 <th className="p-2 text-left font-medium">Cliente</th>
-                                <th className="p-2 text-left font-medium">Valor do Pedido</th>
-                                <th className="p-2 text-left font-medium">Valor da Comissão</th>
+                                <th className="p-2 text-right font-medium">Valor Pedido</th>
+                                <th className="p-2 text-right font-medium">Comissão</th>
                             </tr>
                         </thead>
                         <tbody>
                             {relatedOrders.map(order => (
                                 <tr key={order.id} className="border-b last:border-none">
-                                    <td className="p-2">{format(parseISO(order.date), 'dd/MM/yy')}</td>
+                                    <td className="p-2 whitespace-nowrap">{format(parseISO(order.date), 'dd/MM/yy')}</td>
                                     <td className="p-2 font-mono">{order.id}</td>
                                     <td className="p-2">{order.customer.name}</td>
                                     <td className="p-2 text-right">{formatCurrency(order.total)}</td>
@@ -148,3 +147,5 @@ export default function CommissionReceiptPage() {
     </div>
   );
 }
+
+      

@@ -321,8 +321,8 @@ export default function AtendimentoPage() {
     }, [sessions, filter, nameFilter]);
 
     return (
-        <div className="flex h-[calc(100vh-10rem)] border rounded-lg overflow-hidden">
-            <aside className="w-1/3 border-r flex flex-col">
+        <div className="grid grid-cols-1 md:grid-cols-3 h-[calc(100vh-10rem)] border rounded-lg overflow-hidden">
+            <aside className={cn("border-r flex-col", selectedSession && "hidden md:flex", !selectedSession && "flex col-span-1 md:col-span-1")}>
                 <div className="p-4 border-b">
                     <h2 className="text-xl font-semibold flex items-center gap-2">
                         <MessageSquare /> Atendimento
@@ -366,10 +366,10 @@ export default function AtendimentoPage() {
                     ))}
                 </ScrollArea>
             </aside>
-            <main className="w-2/3 flex flex-col">
+            <main className={cn("flex-col", selectedSession ? "flex md:col-span-2" : "hidden md:flex md:col-span-2")}>
                 {selectedSession ? (
                     <>
-                        <CardHeader className="flex-row justify-between items-center border-b">
+                        <CardHeader className="flex-col md:flex-row justify-between items-start md:items-center border-b">
                              <div className="flex items-center gap-2">
                                 {isEditingName ? (
                                     <div className="flex items-center gap-2">
@@ -384,7 +384,10 @@ export default function AtendimentoPage() {
                                     </div>
                                 ) : (
                                     <>
-                                        <CardTitle>Chat com {selectedSession.visitorName || 'Visitante'}</CardTitle>
+                                        <div className="flex items-center">
+                                            <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={() => setSelectedSession(null)}><ArrowLeft className="h-4 w-4"/></Button>
+                                            <CardTitle>Chat com {selectedSession.visitorName || 'Visitante'}</CardTitle>
+                                        </div>
                                         <Button 
                                             variant="ghost" 
                                             size="icon" 
@@ -400,14 +403,14 @@ export default function AtendimentoPage() {
                                 )}
                                 
                              </div>
-                             <div className="flex gap-2">
+                             <div className="flex gap-2 w-full md:w-auto justify-end mt-4 md:mt-0">
                                 <Button variant="outline" onClick={handleCloseSession}>Encerrar Atendimento</Button>
                                 {user?.role === 'admin' && (
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                             <Button variant="destructive">
                                                 <Trash2 className="mr-2 h-4 w-4"/>
-                                                Excluir Conversa
+                                                <span className="hidden sm:inline">Excluir Conversa</span>
                                             </Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
@@ -510,4 +513,4 @@ export default function AtendimentoPage() {
     );
 }
 
-    
+      

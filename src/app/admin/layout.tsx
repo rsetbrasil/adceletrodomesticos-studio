@@ -5,7 +5,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut, Shield, Store, KeyRound, ChevronDown, Clock, Moon, Sun } from 'lucide-react';
+import { LogOut, Shield, Store, KeyRound, ChevronDown, Clock, Moon, Sun, Menu } from 'lucide-react';
 import AdminNav from "@/components/AdminNav";
 import { Button } from "@/components/ui/button";
 import { hasAccess } from "@/lib/permissions";
@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { AppSection } from "@/lib/types";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'A senha atual é obrigatória.'),
@@ -99,6 +100,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const { toast } = useToast();
     const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+    const [isNavSheetOpen, setIsNavSheetOpen] = useState(false);
 
     const form = useForm<z.infer<typeof changePasswordSchema>>({
         resolver: zodResolver(changePasswordSchema),
@@ -149,6 +151,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             }
         }
     }, [isLoading, permissionsLoading, settingsLoading, isAuthenticated, user, permissions, settings, router, pathname, toast, logout]);
+    
+    useEffect(() => {
+        setIsNavSheetOpen(false);
+    }, [pathname]);
 
     const handlePasswordChange = async (values: z.infer<typeof changePasswordSchema>) => {
         const success = await changeMyPassword(values.currentPassword, values.newPassword);
@@ -166,7 +172,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         );
     }
     
-    // Do not render nav etc if it's the root redirect page
     if (pathname === '/admin') {
         return <main>{children}</main>;
     }
@@ -176,23 +181,33 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <div className="container mx-auto px-4 py-8 print:p-0">
                 <header className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b pb-6 print-hidden">
                     <div className="flex items-center gap-4">
-                        <Shield className="h-10 w-10 text-primary" />
+                        <Sheet open={isNavSheetOpen} onOpenChange={setIsNavSheetOpen}>
+                            <SheetTrigger asChild>
+                                <Button variant="outline" size="icon" className="md:hidden">
+                                    <Menu />
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="left" className="p-0">
+                                <AdminNav />
+                            </SheetContent>
+                        </Sheet>
+                        <Shield className="h-10 w-10 text-primary hidden sm:block" />
                         <div>
-                            <h1 className="text-3xl font-bold font-headline text-primary">Painel Administrativo</h1>
-                            <p className="text-muted-foreground">Gerencie sua loja de forma fácil e rápida.</p>
+                            <h1 className="text-xl sm:text-3xl font-bold font-headline text-primary">Painel Administrativo</h1>
+                            <p className="text-muted-foreground text-sm sm:text-base">Gerencie sua loja de forma fácil e rápida.</p>
                         </div>
                     </div>
-                     <div className="flex items-center gap-4">
+                     <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-center">
                          <ModeToggle />
-                        <Button variant="outline" asChild>
+                        <Button variant="outline" size="sm" asChild>
                             <Link href="/">
                                 <Store className="mr-2 h-4 w-4" />
-                                Voltar ao Catálogo
+                                <span className="hidden sm:inline">Voltar à Loja</span>
                             </Link>
                         </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline">
+                                <Button variant="outline" size="sm">
                                     <div className="flex flex-col items-start pr-2">
                                         <span className="font-semibold text-sm">{user.name}</span>
                                         <span className="text-xs text-muted-foreground capitalize -mt-1">{user.role}</span>
@@ -214,7 +229,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         </DropdownMenu>
                     </div>
                 </header>
-                <div className="print-hidden">
+                <div className="print-hidden hidden md:block">
                     <AdminNav />
                 </div>
                 <main>{children}</main>
@@ -274,3 +289,5 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </>
     );
 }
+
+      

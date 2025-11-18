@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -68,7 +67,7 @@ function AuditLogCard() {
                     <p>Carregando logs...</p>
                 ) : auditLogs.length > 0 ? (
                     <>
-                        <div className="rounded-md border">
+                        <div className="rounded-md border overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -81,7 +80,7 @@ function AuditLogCard() {
                                 <TableBody>
                                     {paginatedLogs.map((log) => (
                                         <TableRow key={log.id}>
-                                            <TableCell className="text-xs">
+                                            <TableCell className="text-xs whitespace-nowrap">
                                                 <div className="flex items-center gap-1">
                                                     <Calendar className="h-3 w-3" />
                                                     {format(new Date(log.timestamp), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
@@ -311,7 +310,7 @@ export default function ConfiguracaoPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="max-w-4xl">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
               <Settings className="h-6 w-6" />
@@ -453,7 +452,7 @@ export default function ConfiguracaoPage() {
       </Card>
 
       {user?.role === 'admin' && (
-        <Card className="max-w-4xl">
+        <Card>
            <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-6 w-6" />
@@ -529,7 +528,7 @@ export default function ConfiguracaoPage() {
       )}
       
       {user?.role === 'admin' && (
-        <Card className="max-w-4xl">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Lock className="h-6 w-6" />
@@ -618,7 +617,7 @@ export default function ConfiguracaoPage() {
         </Card>
       )}
 
-      <Card className="max-w-4xl">
+      <Card>
           <CardHeader>
               <CardTitle>Backup e Restauração</CardTitle>
               <CardDescription>Salve ou recupere todos os dados da sua loja (produtos, pedidos, configurações, etc).</CardDescription>
@@ -636,7 +635,7 @@ export default function ConfiguracaoPage() {
           </CardContent>
       </Card>
 
-       <Card className="max-w-4xl border-destructive/50">
+       <Card className="border-destructive/50">
           <CardHeader>
               <CardTitle className="flex items-center gap-2 text-destructive">
                   <AlertTriangle className="h-6 w-6" />
@@ -706,7 +705,7 @@ export default function ConfiguracaoPage() {
                <AlertDialog open={dialogOpenFor === 'resetAll'} onOpenChange={(open) => !open && setDialogOpenFor(null)}>
                   <AlertDialogTrigger asChild>
                       <Button variant="destructive" onClick={() => setDialogOpenFor('resetAll')}>
-                          <RotateCcw className="mr-2 h-4 w-4" /> Resetar Loja ao Padrão
+                          <RotateCcw className="mr-2 h-4 w-4" /> Resetar Loja
                       </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -729,3 +728,5 @@ export default function ConfiguracaoPage() {
     </div>
   );
 }
+
+      
