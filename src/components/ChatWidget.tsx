@@ -150,24 +150,24 @@ export default function ChatWidget() {
     
     const handleSendMessage = async (text: string, attachment: ChatAttachment | null) => {
         if (!visitorId || !hasSetName) return;
-        const messageText = text || (attachment ? attachment.name : '');
-        if (messageText.trim() === '') return;
-
-        const sessionRef = doc(db, 'chatSessions', visitorId);
-        const messagesRef = collection(db, 'chatSessions', visitorId, 'messages');
-    
-        const messageData: Partial<ChatMessage> = {
-            text: messageText,
+        
+        let messageData: Partial<ChatMessage> = {
+            text: text || (attachment ? attachment.name : ''),
             sender: 'visitor' as const,
             senderName: visitorName,
             timestamp: new Date().toISOString(),
         };
 
+        if (messageData.text?.trim() === '') return;
+
         if (attachment) {
             messageData.attachment = attachment;
         }
 
+        const sessionRef = doc(db, 'chatSessions', visitorId);
+        const messagesRef = collection(db, 'chatSessions', visitorId, 'messages');
         const timestamp = new Date().toISOString();
+
         if (!session) {
             const newSession: ChatSession = {
                 id: visitorId,
@@ -177,14 +177,14 @@ export default function ChatWidget() {
                 status: 'open',
                 unreadBySeller: true,
                 unreadByVisitor: false,
-                lastMessageText: messageText,
+                lastMessageText: messageData.text,
                 lastMessageAt: timestamp,
             };
             await setDoc(sessionRef, newSession);
         } else {
             await updateDoc(sessionRef, {
                 lastMessageAt: timestamp,
-                lastMessageText: messageText,
+                lastMessageText: messageData.text,
                 status: session.status === 'closed' ? 'open' : session.status,
                 unreadBySeller: true,
             });
@@ -272,15 +272,15 @@ export default function ChatWidget() {
     };
 
     const SurveyMessage = ({ message }: { message: ChatMessage }) => {
-        const [feedbackSent, setFeedbackSent] = useState(false);
-
+        const [feedbackSent, setFeedbackSent] = useState(session?.satisfaction !== undefined);
+        
         const handleFeedbackClick = async (rating: 'Ótimo' | 'Bom' | 'Ruim') => {
             if (feedbackSent) return;
             await handleSendFeedback(rating);
             setFeedbackSent(true);
         };
         
-        if (feedbackSent || session?.satisfaction) {
+        if (feedbackSent) {
             return (
                 <div className="text-sm text-center text-muted-foreground p-3 bg-muted rounded-md">
                     Obrigado por avaliar este atendimento!
@@ -388,7 +388,7 @@ export default function ChatWidget() {
                                             Iniciar Novo Atendimento
                                         </Button>
                                     </CardFooter>
-                                ) : session?.status === 'awaiting-feedback' ? (
+                                ) : session?.status === 'awaiting-feedback' && !session.satisfaction ? (
                                      <CardFooter className="p-4 border-t flex flex-col items-center justify-center gap-4">
                                         <p className="text-sm text-muted-foreground text-center">Aguardando sua avaliação...</p>
                                     </CardFooter>
