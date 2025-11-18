@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Send, UserCircle, CheckCircle, Circle, Paperclip, FileText, Download, Trash2, Pencil, Save, X } from 'lucide-react';
+import { MessageSquare, Send, UserCircle, CheckCircle, Circle, Paperclip, FileText, Download, Trash2, Pencil, Save, X, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +33,7 @@ export default function AtendimentoPage() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [filter, setFilter] = useState<'open' | 'active' | 'closed'>('open');
+    const [nameFilter, setNameFilter] = useState('');
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { db } = getClientFirebase();
@@ -228,12 +229,7 @@ export default function AtendimentoPage() {
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const file = fileInputRef.current?.files?.[0];
-        await handleSendMessage(newMessage, file || null);
-        setNewMessage('');
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
+        await handleSendMessage(newMessage, null);
     };
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -284,8 +280,13 @@ export default function AtendimentoPage() {
         if (filter === 'closed') {
             sessionsToShow = sessions.filter(s => s.status === 'closed');
         }
+        if (nameFilter) {
+            sessionsToShow = sessionsToShow.filter(s => 
+                s.visitorName?.toLowerCase().includes(nameFilter.toLowerCase())
+            );
+        }
         return sessionsToShow;
-    }, [sessions, filter]);
+    }, [sessions, filter, nameFilter]);
 
     return (
         <div className="flex h-[calc(100vh-10rem)] border rounded-lg overflow-hidden">
@@ -294,6 +295,16 @@ export default function AtendimentoPage() {
                     <h2 className="text-xl font-semibold flex items-center gap-2">
                         <MessageSquare /> Atendimento
                     </h2>
+                    <div className="relative mt-4">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="Buscar por nome..."
+                            className="pl-8 w-full"
+                            value={nameFilter}
+                            onChange={(e) => setNameFilter(e.target.value)}
+                        />
+                    </div>
                      <div className="flex gap-2 mt-4">
                         <Button variant={filter === 'open' ? 'default' : 'outline'} onClick={() => setFilter('open')} size="sm">Não lidos</Button>
                         <Button variant={filter === 'active' ? 'default' : 'outline'} onClick={() => setFilter('active')} size="sm">Ativos</Button>
@@ -437,7 +448,7 @@ export default function AtendimentoPage() {
                                     placeholder="Digite sua resposta..."
                                     autoComplete="off"
                                 />
-                                <Button type="submit" size="icon" disabled={!newMessage.trim() && !fileInputRef.current?.files?.length}>
+                                <Button type="submit" size="icon" disabled={!newMessage.trim()}>
                                     <Send className="h-4 w-4" />
                                 </Button>
                             </form>
@@ -454,5 +465,7 @@ export default function AtendimentoPage() {
         </div>
     );
 }
+
+    
 
     
