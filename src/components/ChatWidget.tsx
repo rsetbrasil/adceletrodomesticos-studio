@@ -213,7 +213,8 @@ export default function ChatWidget() {
     
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await handleSendMessage(newMessage);
+        const file = fileInputRef.current?.files?.[0];
+        await handleSendMessage(newMessage, file);
     };
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -342,3 +343,5 @@ export default function ChatWidget() {
         </>
     );
 }
+
+    
