@@ -190,7 +190,7 @@ export default function AtendimentoPage() {
             }
         }
     
-        const messageText = attachment ? text || attachment.name : text;
+        const messageText = text || (attachment ? attachment.name : '');
     
         const messageData: Partial<ChatMessage> = {
             text: messageText,
@@ -344,7 +344,7 @@ export default function AtendimentoPage() {
                                     type="file" 
                                     ref={fileInputRef} 
                                     onChange={handleFileChange}
-                                    accept="image/png, image/jpeg, image/gif, image/webp, application/pdf"
+                                    accept="image/*,application/pdf"
                                     className="hidden" 
                                 />
                                 <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>

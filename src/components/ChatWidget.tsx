@@ -168,7 +168,7 @@ export default function ChatWidget() {
         const sessionRef = doc(db, 'chatSessions', visitorId);
         const messagesRef = collection(db, 'chatSessions', visitorId, 'messages');
     
-        const messageText = attachment ? text || attachment.name : text;
+        const messageText = text || (attachment ? attachment.name : '');
     
         const messageData: Partial<ChatMessage> = {
             text: messageText,
@@ -317,7 +317,7 @@ export default function ChatWidget() {
                                                 type="file" 
                                                 ref={fileInputRef} 
                                                 onChange={handleFileChange}
-                                                accept="image/png, image/jpeg, image/gif, image/webp, application/pdf"
+                                                accept="image/*,application/pdf"
                                                 className="hidden" 
                                             />
                                             <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
