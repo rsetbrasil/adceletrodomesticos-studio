@@ -158,6 +158,7 @@ export default function ChatWidget() {
                 unreadBySeller: true,
                 unreadByVisitor: false,
                 lastMessageText: newMessage,
+                lastMessageAt: new Date().toISOString(), // Ensure lastMessageAt is always set
             };
             await setDoc(sessionRef, newSession);
         } else {
