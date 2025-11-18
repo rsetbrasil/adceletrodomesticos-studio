@@ -132,10 +132,10 @@ export default function ChatWidget() {
     const handleSendMessage = async (text: string, file?: File) => {
         if (!visitorId || !hasSetName) return;
         if (text.trim() === '' && !file) return;
-    
+
         let attachment: ChatAttachment | null = null;
         if (file) {
-             try {
+            try {
                 let fileType: 'image' | 'pdf' | null = null;
                 if (file.type.startsWith('image/')) {
                     fileType = 'image';
@@ -158,13 +158,13 @@ export default function ChatWidget() {
                     type: fileType,
                     url: url,
                 };
-                
-            } catch(error) {
-                toast({ title: "Erro ao processar anexo", variant: 'destructive'});
+            } catch (error) {
+                console.error("Error processing file:", error);
+                toast({ title: "Erro ao processar anexo", variant: 'destructive' });
                 return;
             }
         }
-    
+
         const sessionRef = doc(db, 'chatSessions', visitorId);
         const messagesRef = collection(db, 'chatSessions', visitorId, 'messages');
     
@@ -180,17 +180,8 @@ export default function ChatWidget() {
         if (attachment) {
             messageData.attachment = attachment;
         }
-    
+
         const timestamp = new Date().toISOString();
-    
-        const sessionPayload: Partial<ChatSession> = {
-            lastMessageAt: timestamp,
-            lastMessageText: attachment ? `Anexo: ${attachment.name}` : messageText,
-            status: session?.status === 'closed' ? 'open' : session?.status || 'open',
-            unreadBySeller: true,
-            visitorName: visitorName,
-        };
-    
         if (!session) {
             const newSession: ChatSession = {
                 id: visitorId,
@@ -205,7 +196,12 @@ export default function ChatWidget() {
             };
             await setDoc(sessionRef, newSession);
         } else {
-            await updateDoc(sessionRef, sessionPayload);
+            await updateDoc(sessionRef, {
+                lastMessageAt: timestamp,
+                lastMessageText: messageText,
+                status: session.status === 'closed' ? 'open' : session.status,
+                unreadBySeller: true,
+            });
         }
     
         await addDoc(messagesRef, messageData);
@@ -218,7 +214,8 @@ export default function ChatWidget() {
     
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        handleSendMessage(newMessage, fileInputRef.current?.files?.[0]);
+        const file = fileInputRef.current?.files?.[0];
+        handleSendMessage(newMessage, file);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -232,8 +229,6 @@ export default function ChatWidget() {
             }
             return;
         }
-
-        handleSendMessage(newMessage, file);
     };
 
     return (
@@ -322,7 +317,7 @@ export default function ChatWidget() {
                                                 type="file" 
                                                 ref={fileInputRef} 
                                                 onChange={handleFileChange}
-                                                accept="image/*,application/pdf"
+                                                accept="image/png, image/jpeg, image/gif, image/webp, application/pdf"
                                                 className="hidden" 
                                             />
                                             <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
@@ -334,7 +329,7 @@ export default function ChatWidget() {
                                                 placeholder="Digite sua mensagem..."
                                                 autoComplete="off"
                                             />
-                                            <Button type="submit" size="icon" disabled={!newMessage.trim() && !fileInputRef.current?.files?.length}>
+                                            <Button type="submit" size="icon" disabled={!newMessage.trim() && !(fileInputRef.current?.files && fileInputRef.current.files.length > 0)}>
                                                 <Send className="h-4 w-4" />
                                             </Button>
                                         </form>
@@ -348,3 +343,5 @@ export default function ChatWidget() {
         </>
     );
 }
+
+    

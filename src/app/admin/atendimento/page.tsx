@@ -184,6 +184,7 @@ export default function AtendimentoPage() {
                 };
 
             } catch (error) {
+                console.error("Error processing file:", error);
                 toast({ title: "Erro ao processar arquivo", variant: "destructive" });
                 return;
             }
@@ -220,7 +221,8 @@ export default function AtendimentoPage() {
 
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        handleSendMessage(newMessage, fileInputRef.current?.files?.[0]);
+        const file = fileInputRef.current?.files?.[0];
+        handleSendMessage(newMessage, file);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,8 +236,6 @@ export default function AtendimentoPage() {
             }
             return;
         }
-        
-        handleSendMessage(newMessage, file);
     };
     
     const handleCloseSession = async () => {
@@ -246,13 +246,17 @@ export default function AtendimentoPage() {
     }
 
     const filteredSessions = useMemo(() => {
+        let sessionsToShow = sessions;
         if (filter === 'active') {
-            return sessions.filter(s => s.status === 'active');
+            sessionsToShow = sessions.filter(s => s.status === 'active');
         }
         if (filter === 'open') {
-             return sessions.filter(s => s.status === 'open' || s.unreadBySeller);
+             sessionsToShow = sessions.filter(s => s.status === 'open' || s.unreadBySeller);
         }
-        return sessions.filter(s => s.status === filter);
+        if (filter === 'closed') {
+            sessionsToShow = sessions.filter(s => s.status === 'closed');
+        }
+        return sessionsToShow;
     }, [sessions, filter]);
 
     return (
@@ -340,7 +344,7 @@ export default function AtendimentoPage() {
                                     type="file" 
                                     ref={fileInputRef} 
                                     onChange={handleFileChange}
-                                    accept="image/*,application/pdf"
+                                    accept="image/png, image/jpeg, image/gif, image/webp, application/pdf"
                                     className="hidden" 
                                 />
                                 <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
@@ -352,7 +356,7 @@ export default function AtendimentoPage() {
                                     placeholder="Digite sua resposta..."
                                     autoComplete="off"
                                 />
-                                <Button type="submit" size="icon" disabled={!newMessage.trim() && !fileInputRef.current?.files?.length}>
+                                <Button type="submit" size="icon" disabled={!newMessage.trim() && !(fileInputRef.current?.files && fileInputRef.current.files.length > 0)}>
                                     <Send className="h-4 w-4" />
                                 </Button>
                             </form>
@@ -369,3 +373,5 @@ export default function AtendimentoPage() {
         </div>
     );
 }
+
+    
