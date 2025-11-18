@@ -135,7 +135,7 @@ export default function ManageProductsPage() {
             </Card>
             
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-[625px]">
+                <DialogContent className="max-w-4xl">
                     <DialogHeader>
                         <DialogTitle>{productToEdit ? 'Editar Produto' : 'Cadastrar Novo Produto'}</DialogTitle>
                         <DialogDescription>
