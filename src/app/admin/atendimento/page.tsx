@@ -336,7 +336,7 @@ export default function AtendimentoPage() {
                                     type="file" 
                                     ref={fileInputRef} 
                                     onChange={handleFileChange}
-                                    accept="image/*,application/pdf" 
+                                    accept="image/png, image/jpeg, image/gif, image/webp, application/pdf" 
                                     className="hidden" 
                                 />
                                 <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
