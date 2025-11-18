@@ -149,10 +149,8 @@ export default function ChatWidget() {
     };
     
     const handleSendMessage = async (text: string, attachment: ChatAttachment | null) => {
-        if (!visitorId || !hasSetName) return;
-
         const messageText = text || (attachment ? attachment.name : '');
-        if (messageText.trim() === '') return;
+        if (messageText.trim() === '' || !hasSetName) return;
         
         let messageData: Partial<ChatMessage> = {
             text: messageText,
@@ -315,7 +313,7 @@ export default function ChatWidget() {
                 </Button>
             </div>
             {isOpen && (
-                <div className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 z-50 w-full h-full sm:w-80 sm:h-[500px] sm:rounded-lg">
+                <div className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 z-50 w-full sm:w-80 h-[calc(100%-80px)] mt-20 sm:h-[500px] max-h-[600px] sm:rounded-lg">
                     <Card className="h-full flex flex-col shadow-2xl">
                         <CardHeader className="flex flex-row items-center justify-between bg-primary text-primary-foreground p-4">
                             <CardTitle className="text-lg">Atendimento Online</CardTitle>
