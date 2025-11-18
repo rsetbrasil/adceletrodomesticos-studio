@@ -6,14 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, X, Send, User, RotateCcw } from 'lucide-react';
+import { MessageSquare, X, Send, User, RotateCcw, Paperclip, FileText, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getClientFirebase } from '@/lib/firebase-client';
 import { collection, doc, setDoc, onSnapshot, addDoc, query, orderBy, serverTimestamp, updateDoc } from 'firebase/firestore';
-import type { ChatMessage, ChatSession } from '@/lib/types';
+import type { ChatMessage, ChatSession, ChatAttachment } from '@/lib/types';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 const getOrCreateVisitorId = (): string => {
     if (typeof window === 'undefined') return '';
@@ -34,7 +35,9 @@ export default function ChatWidget() {
     const [visitorId] = useState(getOrCreateVisitorId);
     const [session, setSession] = useState<ChatSession | null>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const { db } = getClientFirebase();
+    const { toast } = useToast();
     const previousSessionRef = useRef<ChatSession | null>(null);
     
     const [visitorName, setVisitorName] = useState('');
@@ -52,7 +55,6 @@ export default function ChatWidget() {
 
     useEffect(() => {
         if (session && previousSessionRef.current) {
-            // Play sound if a new unread message arrives for the visitor and the chat is closed
             if (session.unreadByVisitor && !previousSessionRef.current.unreadByVisitor && !isOpen) {
                 new Audio(notificationSound).play();
             }
@@ -127,22 +129,25 @@ export default function ChatWidget() {
         await updateDoc(sessionRef, { status: 'open' });
     };
 
-    const handleSendMessage = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (newMessage.trim() === '' || !visitorId || !hasSetName) return;
+    const handleSendMessage = async (text: string, attachment?: ChatAttachment) => {
+        if (!visitorId || !hasSetName) return;
+        if (text.trim() === '' && !attachment) return;
 
         const sessionRef = doc(db, 'chatSessions', visitorId);
         const messagesRef = collection(db, 'chatSessions', visitorId, 'messages');
 
-        const messageData: Omit<ChatMessage, 'id' | 'timestamp' | 'sessionId'> = {
-            text: newMessage,
-            sender: 'visitor',
+        const messageText = attachment ? text || attachment.name : text;
+
+        const messageData = {
+            text: messageText,
+            sender: 'visitor' as const,
             senderName: visitorName,
+            attachment: attachment || null,
         };
 
         const sessionPayload: Partial<ChatSession> = {
             lastMessageAt: new Date().toISOString(),
-            lastMessageText: newMessage,
+            lastMessageText: attachment ? `Anexo: ${attachment.name}` : messageText,
             status: session?.status === 'closed' ? 'open' : session?.status || 'open',
             unreadBySeller: true,
             visitorName: visitorName,
@@ -157,8 +162,8 @@ export default function ChatWidget() {
                 status: 'open',
                 unreadBySeller: true,
                 unreadByVisitor: false,
-                lastMessageText: newMessage,
-                lastMessageAt: new Date().toISOString(), // Ensure lastMessageAt is always set
+                lastMessageText: messageText,
+                lastMessageAt: new Date().toISOString(),
             };
             await setDoc(sessionRef, newSession);
         } else {
@@ -172,6 +177,41 @@ export default function ChatWidget() {
 
         setNewMessage('');
     };
+    
+    const handleFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        handleSendMessage(newMessage);
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            toast({ title: "Arquivo muito grande", description: "O tamanho máximo do arquivo é 5MB.", variant: "destructive" });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const url = e.target?.result as string;
+            const attachment: ChatAttachment = {
+                name: file.name,
+                type: file.type.startsWith('image/') ? 'image' : 'pdf',
+                url,
+            };
+            handleSendMessage(newMessage, attachment);
+        };
+        reader.onerror = () => {
+            toast({ title: "Erro ao ler arquivo", description: "Não foi possível processar o anexo.", variant: "destructive" });
+        };
+        reader.readAsDataURL(file);
+        
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
 
     return (
         <>
@@ -217,7 +257,24 @@ export default function ChatWidget() {
                                             {messages.map((msg) => (
                                                 <div key={msg.id} className={cn("flex flex-col", msg.sender === 'visitor' ? 'items-end' : 'items-start')}>
                                                     <div className={cn("max-w-xs rounded-lg px-3 py-2", msg.sender === 'visitor' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
-                                                        <p className="text-sm">{msg.text}</p>
+                                                        {msg.attachment ? (
+                                                            <div className="space-y-2">
+                                                                {msg.attachment.type === 'image' ? (
+                                                                    <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="block relative w-40 h-40">
+                                                                        <Image src={msg.attachment.url} alt={msg.attachment.name} fill className="object-cover rounded-md" />
+                                                                    </a>
+                                                                ) : (
+                                                                    <a href={msg.attachment.url} download={msg.attachment.name} className="flex items-center gap-2 p-2 rounded-md bg-background/20 hover:bg-background/40">
+                                                                        <FileText className="h-6 w-6" />
+                                                                        <span className="truncate">{msg.attachment.name}</span>
+                                                                        <Download className="h-4 w-4 ml-auto" />
+                                                                    </a>
+                                                                )}
+                                                                {msg.text !== msg.attachment.name && <p className="text-sm">{msg.text}</p>}
+                                                            </div>
+                                                        ) : (
+                                                            <p className="text-sm">{msg.text}</p>
+                                                        )}
                                                     </div>
                                                     <span className="text-xs text-muted-foreground mt-1">
                                                         {msg.senderName} - {format(new Date(msg.timestamp), 'HH:mm')}
@@ -237,7 +294,17 @@ export default function ChatWidget() {
                                     </CardFooter>
                                 ) : (
                                     <CardFooter className="p-4 border-t">
-                                        <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
+                                        <form onSubmit={handleFormSubmit} className="w-full flex items-center gap-2">
+                                            <input 
+                                                type="file" 
+                                                ref={fileInputRef} 
+                                                onChange={handleFileChange}
+                                                accept="image/*,application/pdf" 
+                                                className="hidden" 
+                                            />
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
+                                                <Paperclip className="h-5 w-5" />
+                                            </Button>
                                             <Input
                                                 value={newMessage}
                                                 onChange={(e) => setNewMessage(e.target.value)}

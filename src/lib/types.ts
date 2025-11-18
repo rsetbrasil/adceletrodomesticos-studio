@@ -190,6 +190,12 @@ export type Avaria = {
   description: string;
 };
 
+export type ChatAttachment = {
+  name: string;
+  type: 'image' | 'pdf'; // or more types like 'video', 'document'
+  url: string; // data:URL or a real URL
+};
+
 export type ChatMessage = {
   id: string;
   text: string;
@@ -197,6 +203,7 @@ export type ChatMessage = {
   sender: 'visitor' | 'seller';
   senderName: string; // "Visitante" or seller's name
   sessionId: string;
+  attachment?: ChatAttachment;
 };
 
 export type ChatSession = {
@@ -212,4 +219,3 @@ export type ChatSession = {
   unreadBySeller: boolean;
   unreadByVisitor: boolean;
 };
-    

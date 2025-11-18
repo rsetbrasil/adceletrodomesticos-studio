@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getClientFirebase } from '@/lib/firebase-client';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-import type { ChatSession, ChatMessage } from '@/lib/types';
+import type { ChatSession, ChatMessage, ChatAttachment } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -13,9 +13,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Send, UserCircle, CheckCircle, Circle } from 'lucide-react';
+import { MessageSquare, Send, UserCircle, CheckCircle, Circle, Paperclip, FileText, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 const notificationSound = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 
@@ -27,11 +29,13 @@ export default function AtendimentoPage() {
     const [newMessage, setNewMessage] = useState('');
     const [filter, setFilter] = useState<'open' | 'active' | 'closed'>('open');
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const { db } = getClientFirebase();
+    const { toast } = useToast();
+
     const originalTitleRef = useRef(typeof document !== 'undefined' ? document.title : '');
     const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
-    const lastPlayedSoundTimeRef = useRef(0);
-
+    
     // Effect to handle notifications for new messages
     useEffect(() => {
         const latestMessage = messages[messages.length - 1];
@@ -40,23 +44,18 @@ export default function AtendimentoPage() {
         const isMyMessage = latestMessage.sender === 'seller';
         const isChatWindowOpen = selectedSession && selectedSession.id === latestMessage.sessionId;
 
-        // If the message is not from the current seller and the chat window isn't open for that session, or the tab is hidden
         if (!isMyMessage && (!isChatWindowOpen || document.hidden)) {
-            const now = Date.now();
-            // Throttle sound to prevent multiple plays in a short time
-            if (now - lastPlayedSoundTimeRef.current > 2000) {
-                 new Audio(notificationSound).play().catch(e => console.error("Error playing sound:", e));
-                 lastPlayedSoundTimeRef.current = now;
-            }
-
-            if (document.hidden && !titleIntervalRef.current) {
-                let isOriginalTitle = true;
-                titleIntervalRef.current = setInterval(() => {
-                    document.title = isOriginalTitle ? `(NOVO) Atendimento` : originalTitleRef.current;
-                    isOriginalTitle = !isOriginalTitle;
-                }, 1000);
-            }
+            new Audio(notificationSound).play().catch(e => console.error("Error playing sound:", e));
         }
+        
+        if (document.hidden && !isMyMessage && !titleIntervalRef.current) {
+            let isOriginalTitle = true;
+            titleIntervalRef.current = setInterval(() => {
+                document.title = isOriginalTitle ? `(NOVO) Atendimento` : originalTitleRef.current;
+                isOriginalTitle = !isOriginalTitle;
+            }, 1000);
+        }
+
     }, [messages, selectedSession]);
 
     // Effect to clear title flashing when tab is visible
@@ -140,26 +139,64 @@ export default function AtendimentoPage() {
         await updateDoc(sessionRef, updates);
     };
 
-    const handleSendMessage = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newMessage.trim() || !selectedSession || !user) return;
+    const handleSendMessage = async (text: string, attachment?: ChatAttachment) => {
+        if (!selectedSession || !user) return;
+        if (text.trim() === '' && !attachment) return;
+        
+        const messageText = attachment ? text || attachment.name : text;
 
         const messagesRef = collection(db, 'chatSessions', selectedSession.id, 'messages');
         await addDoc(messagesRef, {
-            text: newMessage,
+            text: messageText,
             sender: 'seller',
             senderName: user.name,
             timestamp: new Date().toISOString(),
+            attachment: attachment || null,
         });
 
         const sessionRef = doc(db, 'chatSessions', selectedSession.id);
         await updateDoc(sessionRef, {
             lastMessageAt: new Date().toISOString(),
-            lastMessageText: newMessage,
+            lastMessageText: attachment ? `Anexo: ${attachment.name}` : messageText,
             unreadByVisitor: true,
         });
 
         setNewMessage('');
+    };
+
+    const handleFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        handleSendMessage(newMessage);
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            toast({ title: "Arquivo muito grande", description: "O tamanho máximo do arquivo é 5MB.", variant: "destructive" });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const url = e.target?.result as string;
+            const attachment: ChatAttachment = {
+                name: file.name,
+                type: file.type.startsWith('image/') ? 'image' : 'pdf',
+                url,
+            };
+            handleSendMessage(newMessage, attachment);
+        };
+        reader.onerror = () => {
+            toast({ title: "Erro ao ler arquivo", description: "Não foi possível processar o anexo.", variant: "destructive" });
+        };
+        reader.readAsDataURL(file);
+
+        // Reset file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
     
     const handleCloseSession = async () => {
@@ -229,8 +266,25 @@ export default function AtendimentoPage() {
                                 <div className="p-6 space-y-4">
                                      {messages.map((msg) => (
                                         <div key={msg.id} className={cn("flex flex-col", msg.sender === 'seller' ? 'items-end' : 'items-start')}>
-                                            <div className={cn("max-w-lg rounded-lg px-4 py-2", msg.sender === 'seller' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
-                                                <p className="text-sm">{msg.text}</p>
+                                            <div className={cn("max-w-lg rounded-lg px-3 py-2", msg.sender === 'seller' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                                                {msg.attachment ? (
+                                                    <div className="space-y-2">
+                                                        {msg.attachment.type === 'image' ? (
+                                                             <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="block relative w-48 h-48">
+                                                                <Image src={msg.attachment.url} alt={msg.attachment.name} fill className="object-cover rounded-md" />
+                                                            </a>
+                                                        ) : (
+                                                            <a href={msg.attachment.url} download={msg.attachment.name} className="flex items-center gap-2 p-2 rounded-md bg-background/20 hover:bg-background/40">
+                                                                <FileText className="h-6 w-6" />
+                                                                <span>{msg.attachment.name}</span>
+                                                                <Download className="h-4 w-4 ml-auto" />
+                                                            </a>
+                                                        )}
+                                                        {msg.text !== msg.attachment.name && <p className="text-sm">{msg.text}</p>}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-sm">{msg.text}</p>
+                                                )}
                                             </div>
                                             <span className="text-xs text-muted-foreground mt-1">
                                                 {msg.senderName} - {format(new Date(msg.timestamp), 'HH:mm')}
@@ -241,7 +295,17 @@ export default function AtendimentoPage() {
                             </ScrollArea>
                         </CardContent>
                         <CardFooter className="p-4 border-t">
-                            <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
+                            <form onSubmit={handleFormSubmit} className="w-full flex items-center gap-2">
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    onChange={handleFileChange}
+                                    accept="image/*,application/pdf" 
+                                    className="hidden" 
+                                />
+                                <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
+                                    <Paperclip className="h-5 w-5" />
+                                </Button>
                                 <Input
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
