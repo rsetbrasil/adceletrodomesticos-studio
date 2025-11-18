@@ -204,13 +204,15 @@ export type ChatMessage = {
   senderName: string; // "Visitante" or seller's name
   sessionId: string;
   attachment?: ChatAttachment;
+  type?: 'survey' | 'feedback';
+  rating?: 'Ótimo' | 'Bom' | 'Ruim';
 };
 
 export type ChatSession = {
   id: string; // Corresponds to visitorId
   visitorId: string;
   visitorName?: string;
-  status: 'open' | 'active' | 'closed';
+  status: 'open' | 'active' | 'closed' | 'awaiting-feedback';
   createdAt: string; // ISO String
   lastMessageAt: string; // ISO String
   lastMessageText: string;
@@ -218,4 +220,7 @@ export type ChatSession = {
   sellerName?: string;
   unreadBySeller: boolean;
   unreadByVisitor: boolean;
+  satisfaction?: 'Ótimo' | 'Bom' | 'Ruim';
 };
+
+    

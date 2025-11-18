@@ -258,11 +258,34 @@ export default function AtendimentoPage() {
     };
     
     const handleCloseSession = async () => {
-        if (!selectedSession) return;
+        if (!selectedSession || !user) return;
         const sessionRef = doc(db, 'chatSessions', selectedSession.id);
-        await updateDoc(sessionRef, { status: 'closed' });
-        setSelectedSession(null);
-    }
+        
+        const surveyMessage: ChatMessage = {
+            id: `survey-${Date.now()}`,
+            text: 'Como você avalia nosso atendimento?',
+            sender: 'seller',
+            senderName: 'Sistema',
+            timestamp: new Date().toISOString(),
+            type: 'survey',
+            sessionId: selectedSession.id,
+        };
+
+        const messagesRef = collection(db, 'chatSessions', selectedSession.id, 'messages');
+        await addDoc(messagesRef, surveyMessage);
+        
+        await updateDoc(sessionRef, { 
+            status: 'awaiting-feedback',
+            unreadByVisitor: true,
+            lastMessageAt: new Date().toISOString(),
+            lastMessageText: surveyMessage.text,
+        });
+        
+        toast({
+            title: "Atendimento Encerrado",
+            description: "Uma pesquisa de satisfação foi enviada ao cliente.",
+        });
+    };
     
     const handleDeleteSession = async () => {
         if (!selectedSession || user?.role !== 'admin') return;
@@ -379,7 +402,7 @@ export default function AtendimentoPage() {
                                 
                              </div>
                              <div className="flex gap-2">
-                                <Button variant="outline" onClick={handleCloseSession}>Fechar Atendimento</Button>
+                                <Button variant="outline" onClick={handleCloseSession}>Encerrar Atendimento</Button>
                                 {user?.role === 'admin' && (
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
@@ -487,13 +510,5 @@ export default function AtendimentoPage() {
         </div>
     );
 }
-
-    
-
-    
-
-
-
-    
 
     
