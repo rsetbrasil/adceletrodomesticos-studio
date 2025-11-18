@@ -150,15 +150,16 @@ export default function ChatWidget() {
     
     const handleSendMessage = async (text: string, attachment: ChatAttachment | null) => {
         if (!visitorId || !hasSetName) return;
+
+        const messageText = text || (attachment ? attachment.name : '');
+        if (messageText.trim() === '') return;
         
         let messageData: Partial<ChatMessage> = {
-            text: text || (attachment ? attachment.name : ''),
+            text: messageText,
             sender: 'visitor' as const,
             senderName: visitorName,
             timestamp: new Date().toISOString(),
         };
-
-        if (messageData.text?.trim() === '') return;
 
         if (attachment) {
             messageData.attachment = attachment;
@@ -177,14 +178,14 @@ export default function ChatWidget() {
                 status: 'open',
                 unreadBySeller: true,
                 unreadByVisitor: false,
-                lastMessageText: messageData.text,
+                lastMessageText: messageText,
                 lastMessageAt: timestamp,
             };
             await setDoc(sessionRef, newSession);
         } else {
             await updateDoc(sessionRef, {
                 lastMessageAt: timestamp,
-                lastMessageText: messageData.text,
+                lastMessageText: messageText,
                 status: session.status === 'closed' ? 'open' : session.status,
                 unreadBySeller: true,
                 satisfaction: session.status === 'closed' ? null : session.satisfaction, // Reset satisfaction if starting a new chat
@@ -275,6 +276,10 @@ export default function ChatWidget() {
     const SurveyMessage = ({ message }: { message: ChatMessage }) => {
         const [feedbackSent, setFeedbackSent] = useState(session?.satisfaction !== undefined && session?.satisfaction !== null);
         
+        useEffect(() => {
+            setFeedbackSent(session?.satisfaction !== undefined && session?.satisfaction !== null);
+        }, [session?.satisfaction]);
+
         const handleFeedbackClick = async (rating: 'Ótimo' | 'Bom' | 'Ruim') => {
             if (feedbackSent) return;
             await handleSendFeedback(rating);
@@ -438,5 +443,3 @@ export default function ChatWidget() {
         </>
     );
 }
-
-    
