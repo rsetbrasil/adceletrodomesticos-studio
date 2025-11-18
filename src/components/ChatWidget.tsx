@@ -24,6 +24,8 @@ const getOrCreateVisitorId = (): string => {
     return visitorId;
 };
 
+const notificationSound = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
 export default function ChatWidget() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -32,6 +34,17 @@ export default function ChatWidget() {
     const [session, setSession] = useState<ChatSession | null>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { db } = getClientFirebase();
+    const previousSessionRef = useRef<ChatSession | null>(null);
+
+    useEffect(() => {
+        if (session && previousSessionRef.current) {
+            // Play sound if a new unread message arrives for the visitor
+            if (session.unreadByVisitor && !previousSessionRef.current.unreadByVisitor) {
+                new Audio(notificationSound).play();
+            }
+        }
+        previousSessionRef.current = session;
+    }, [session]);
 
     useEffect(() => {
         if (!visitorId) return;
@@ -101,7 +114,7 @@ export default function ChatWidget() {
         const sessionPayload: Partial<ChatSession> = {
             lastMessageAt: new Date().toISOString(),
             lastMessageText: newMessage,
-            status: 'open',
+            status: session?.status === 'closed' ? 'open' : session?.status || 'open',
             unreadBySeller: true,
         };
 

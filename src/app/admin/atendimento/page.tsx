@@ -17,6 +17,8 @@ import { MessageSquare, Send, UserCircle, CheckCircle, Circle } from 'lucide-rea
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
+const notificationSound = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
 export default function AtendimentoPage() {
     const { user } = useAuth();
     const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -26,6 +28,46 @@ export default function AtendimentoPage() {
     const [filter, setFilter] = useState<'open' | 'active' | 'closed'>('open');
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { db } = getClientFirebase();
+    const previousSessionsRef = useRef<ChatSession[]>([]);
+    const originalTitleRef = useRef(typeof document !== 'undefined' ? document.title : '');
+    const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Effect to play sound and flash title on new message
+    useEffect(() => {
+        const newUnreadSessions = sessions.filter(session => {
+            const previousSession = previousSessionsRef.current.find(p => p.id === session.id);
+            // Is it a new message for the seller?
+            return session.unreadBySeller && (!previousSession || !previousSession.unreadBySeller);
+        });
+
+        if (newUnreadSessions.length > 0) {
+            new Audio(notificationSound).play();
+             if (!titleIntervalRef.current) {
+                let isOriginalTitle = true;
+                titleIntervalRef.current = setInterval(() => {
+                    document.title = isOriginalTitle ? '(NOVO) Atendimento' : originalTitleRef.current;
+                    isOriginalTitle = !isOriginalTitle;
+                }, 1000);
+            }
+        } else {
+             if (titleIntervalRef.current) {
+                clearInterval(titleIntervalRef.current);
+                titleIntervalRef.current = null;
+                document.title = originalTitleRef.current;
+            }
+        }
+        
+        previousSessionsRef.current = sessions;
+        
+        return () => {
+            if (titleIntervalRef.current) {
+                clearInterval(titleIntervalRef.current);
+                document.title = originalTitleRef.current;
+            }
+        };
+
+    }, [sessions]);
+
 
     useEffect(() => {
         const sessionsRef = collection(db, 'chatSessions');
