@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const getOrCreateVisitorId = (): string => {
     if (typeof window === 'undefined') return '';
@@ -42,6 +43,8 @@ export default function ChatWidget() {
     
     const [visitorName, setVisitorName] = useState('');
     const [hasSetName, setHasSetName] = useState(false);
+    const [imageToView, setImageToView] = useState<string | null>(null);
+
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -274,9 +277,12 @@ export default function ChatWidget() {
                                                         {msg.attachment ? (
                                                             <div className="space-y-2">
                                                                 {msg.attachment.type === 'image' ? (
-                                                                    <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="block relative w-40 h-40">
+                                                                    <div 
+                                                                        className="block relative w-40 h-40 cursor-pointer"
+                                                                        onClick={() => setImageToView(msg.attachment?.url || null)}
+                                                                    >
                                                                         <Image src={msg.attachment.url} alt={msg.attachment.name} layout="fill" className="object-cover rounded-md" />
-                                                                    </a>
+                                                                    </div>
                                                                 ) : (
                                                                     <a href={msg.attachment.url} download={msg.attachment.name} className="flex items-center gap-2 p-2 rounded-md bg-background/20 hover:bg-background/40">
                                                                         <FileText className="h-6 w-6" />
@@ -333,6 +339,18 @@ export default function ChatWidget() {
                                 )}
                             </>
                         )}
+                         <Dialog open={!!imageToView} onOpenChange={() => setImageToView(null)}>
+                            <DialogContent className="max-w-4xl h-[80vh] p-2 sm:p-4">
+                                <DialogHeader>
+                                    <DialogTitle>Visualizador de Imagem</DialogTitle>
+                                </DialogHeader>
+                                <div className="relative w-full h-full my-4">
+                                    {imageToView && (
+                                        <Image src={imageToView} alt="Visualização do anexo" fill className="object-contain" />
+                                    )}
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                     </Card>
                 </div>
             )}

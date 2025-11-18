@@ -21,6 +21,7 @@ import Image from 'next/image';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAdmin } from '@/context/AdminContext';
 import { useAudit } from '@/context/AuditContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const notificationSound = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 
@@ -47,6 +48,7 @@ export default function AtendimentoPage() {
     const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [imageToView, setImageToView] = useState<string | null>(null);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -405,7 +407,7 @@ export default function AtendimentoPage() {
                                                         {msg.attachment.type === 'image' ? (
                                                             <div 
                                                                 className="block relative w-48 h-48 cursor-pointer"
-                                                                onClick={() => window.open(msg.attachment?.url, '_blank')}
+                                                                onClick={() => setImageToView(msg.attachment?.url || null)}
                                                             >
                                                                 <Image src={msg.attachment.url} alt={msg.attachment.name} layout="fill" className="object-cover rounded-md" />
                                                             </div>
@@ -462,6 +464,18 @@ export default function AtendimentoPage() {
                     </div>
                 )}
             </main>
+             <Dialog open={!!imageToView} onOpenChange={() => setImageToView(null)}>
+                <DialogContent className="max-w-4xl h-[80vh] p-2 sm:p-4">
+                    <DialogHeader>
+                        <DialogTitle>Visualizador de Imagem</DialogTitle>
+                    </DialogHeader>
+                    <div className="relative w-full h-full my-4">
+                        {imageToView && (
+                            <Image src={imageToView} alt="Visualização do anexo" fill className="object-contain" />
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
