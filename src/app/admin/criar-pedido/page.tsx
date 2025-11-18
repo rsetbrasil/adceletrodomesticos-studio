@@ -339,7 +339,7 @@ export default function CreateOrderPage() {
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" onCloseAutoFocus={(e) => e.preventDefault()}>
                         <Command shouldFilter={false}>
                            <CommandInput 
                             placeholder="Buscar cliente por nome ou CPF..."
@@ -353,8 +353,7 @@ export default function CreateOrderPage() {
                                 <CommandItem
                                   key={c.cpf}
                                   value={c.name}
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
+                                  onSelect={() => {
                                     form.setValue("customerId", c.cpf, { shouldValidate: true });
                                     setOpenCustomerPopover(false);
                                   }}
@@ -569,5 +568,3 @@ export default function CreateOrderPage() {
     </Card>
   );
 }
-
-    
