@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -13,7 +14,7 @@ import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
 import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock, History, User, Calendar, Shield, Image as ImageIcon, Clock, Package, DollarSign } from 'lucide-react';
-import type { StoreSettings, RolePermissions, UserRole, AppSection } from '@/lib/types';
+import type { RolePermissions, UserRole, AppSection, StoreSettings } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAudit } from '@/context/AuditContext';
@@ -38,6 +39,7 @@ const settingsSchema = z.object({
   storePhone: z.string().min(10, 'O telefone da loja é obrigatório.'),
   logoUrl: z.string().optional(),
   accessControlEnabled: z.boolean().optional(),
+  showWhatsAppButton: z.boolean().optional(),
   commercialHourStart: z.string().optional(),
   commercialHourEnd: z.string().optional(),
 });
@@ -152,6 +154,7 @@ export default function ConfiguracaoPage() {
         storePhone: '',
         logoUrl: '',
         accessControlEnabled: false,
+        showWhatsAppButton: true,
         commercialHourStart: '08:00',
         commercialHourEnd: '18:00',
     },
@@ -163,6 +166,7 @@ export default function ConfiguracaoPage() {
           ...settings,
           commercialHourStart: settings.commercialHourStart || '08:00',
           commercialHourEnd: settings.commercialHourEnd || '18:00',
+          showWhatsAppButton: settings.showWhatsAppButton ?? true,
       });
     }
   }, [settingsLoading, settings, form]);
@@ -417,6 +421,28 @@ export default function ConfiguracaoPage() {
                     )}
                   />
               </div>
+              <FormField
+                control={form.control}
+                name="showWhatsAppButton"
+                render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                        <FormLabel className="text-base">
+                            Exibir botão "Falar com Vendedor"
+                        </FormLabel>
+                        <FormDescription>
+                            Se desativado, o botão flutuante do WhatsApp não aparecerá na loja.
+                        </FormDescription>
+                    </div>
+                    <FormControl>
+                        <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                        />
+                    </FormControl>
+                    </FormItem>
+                )}
+              />
               <Button type="submit">
                   <Save className="mr-2 h-4 w-4" />
                   Salvar Alterações

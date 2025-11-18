@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -21,6 +22,7 @@ const initialSettings: StoreSettings = {
     accessControlEnabled: false,
     commercialHourStart: '08:00',
     commercialHourEnd: '18:00',
+    showWhatsAppButton: true,
 };
 
 interface SettingsContextType {
