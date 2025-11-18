@@ -272,7 +272,7 @@ export default function ChatWidget() {
     };
 
     const SurveyMessage = ({ message }: { message: ChatMessage }) => {
-        const [feedbackSent, setFeedbackSent] = useState(session?.satisfaction !== undefined);
+        const [feedbackSent, setFeedbackSent] = useState(false);
 
         const handleFeedbackClick = async (rating: 'Ótimo' | 'Bom' | 'Ruim') => {
             if (feedbackSent) return;
@@ -280,7 +280,7 @@ export default function ChatWidget() {
             setFeedbackSent(true);
         };
         
-        if (feedbackSent) {
+        if (feedbackSent || session?.satisfaction) {
             return (
                 <div className="text-sm text-center text-muted-foreground p-3 bg-muted rounded-md">
                     Obrigado por avaliar este atendimento!
@@ -437,5 +437,3 @@ export default function ChatWidget() {
         </>
     );
 }
-
-    
