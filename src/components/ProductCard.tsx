@@ -40,6 +40,9 @@ export default function ProductCard({ product }: ProductCardProps) {
   const imageUrl = (product.imageUrls && product.imageUrls.length > 0) 
     ? product.imageUrls[0] 
     : 'https://placehold.co/600x600.png';
+  
+  const maxInstallments = product.maxInstallments ?? 1;
+  const installmentValue = maxInstallments > 1 ? product.price / maxInstallments : 0;
 
   return (
     <Link href={`/produtos/${product.id}`} className="block h-full" aria-label={`Ver detalhes de ${product.name}`}>
@@ -72,9 +75,16 @@ export default function ProductCard({ product }: ProductCardProps) {
           </CardDescription>
         </CardContent>
         <CardFooter className="p-4 pt-0 flex flex-col items-start">
-          <p className="text-2xl font-bold text-primary mb-4">
-            {formatCurrency(product.price)}
-          </p>
+            <div className="mb-4">
+                <p className="text-2xl font-bold text-primary">
+                    {formatCurrency(product.price)}
+                </p>
+                {installmentValue > 0 && (
+                    <p className="text-sm text-accent font-semibold -mt-1">
+                        ou {maxInstallments}x de {formatCurrency(installmentValue)} sem juros
+                    </p>
+                )}
+            </div>
           {product.stock > 0 ? (
             <Button onClick={handleAddToCart} className="w-full bg-accent hover:bg-accent/90">
               <ShoppingCart className="mr-2 h-4 w-4" />
