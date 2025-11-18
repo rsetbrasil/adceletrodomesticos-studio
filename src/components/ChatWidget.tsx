@@ -132,11 +132,11 @@ export default function ChatWidget() {
     const handleSendMessage = async (text: string, file?: File) => {
         if (!visitorId || !hasSetName) return;
         if (text.trim() === '' && !file) return;
-
+    
         let attachment: ChatAttachment | null = null;
         if (file) {
             try {
-                 const url = await new Promise<string>((resolve, reject) => {
+                const url = await new Promise<string>((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = (e) => resolve(e.target?.result as string);
                     reader.onerror = reject;
@@ -152,60 +152,61 @@ export default function ChatWidget() {
                 return;
             }
         }
-
-
+    
         const sessionRef = doc(db, 'chatSessions', visitorId);
         const messagesRef = collection(db, 'chatSessions', visitorId, 'messages');
-
+    
         const messageText = attachment ? text || attachment.name : text;
-
+    
         const messageData = {
             text: messageText,
             sender: 'visitor' as const,
             senderName: visitorName,
-            attachment: attachment,
+            attachment: attachment || null,
         };
-
+    
+        const timestamp = new Date().toISOString();
+    
         const sessionPayload: Partial<ChatSession> = {
-            lastMessageAt: new Date().toISOString(),
+            lastMessageAt: timestamp,
             lastMessageText: attachment ? `Anexo: ${attachment.name}` : messageText,
             status: session?.status === 'closed' ? 'open' : session?.status || 'open',
             unreadBySeller: true,
             visitorName: visitorName,
         };
-
+    
         if (!session) {
             const newSession: ChatSession = {
                 id: visitorId,
                 visitorId: visitorId,
-                createdAt: new Date().toISOString(),
+                visitorName: visitorName,
+                createdAt: timestamp,
                 status: 'open',
                 unreadBySeller: true,
                 unreadByVisitor: false,
                 lastMessageText: messageText,
-                lastMessageAt: new Date().toISOString(),
-                 ...sessionPayload,
+                lastMessageAt: timestamp,
             };
             await setDoc(sessionRef, newSession);
         } else {
             await updateDoc(sessionRef, sessionPayload);
         }
-
+    
         await addDoc(messagesRef, {
             ...messageData,
-            timestamp: new Date().toISOString(),
+            timestamp: timestamp,
         });
-
+    
         setNewMessage('');
-         if (fileInputRef.current) {
+        if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
     };
     
+    
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const file = fileInputRef.current?.files?.[0];
-        handleSendMessage(newMessage, file);
+        handleSendMessage(newMessage, fileInputRef.current?.files?.[0]);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,15 +215,13 @@ export default function ChatWidget() {
 
         if (file.size > 5 * 1024 * 1024) { // 5MB limit
             toast({ title: "Arquivo muito grande", description: "O tamanho máximo do arquivo é 5MB.", variant: "destructive" });
-             if (fileInputRef.current) {
+            if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
             return;
         }
 
-        if (!newMessage.trim()) {
-            handleSendMessage('', file);
-        }
+        handleSendMessage(newMessage, file);
     };
 
 
@@ -274,7 +273,7 @@ export default function ChatWidget() {
                                                             <div className="space-y-2">
                                                                 {msg.attachment.type === 'image' ? (
                                                                     <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="block relative w-40 h-40">
-                                                                        <Image src={msg.attachment.url} alt={msg.attachment.name} fill className="object-cover rounded-md" />
+                                                                        <Image src={msg.attachment.url} alt={msg.attachment.name} layout="fill" className="object-cover rounded-md" />
                                                                     </a>
                                                                 ) : (
                                                                     <a href={msg.attachment.url} download={msg.attachment.name} className="flex items-center gap-2 p-2 rounded-md bg-background/20 hover:bg-background/40">
@@ -312,7 +311,7 @@ export default function ChatWidget() {
                                                 type="file" 
                                                 ref={fileInputRef} 
                                                 onChange={handleFileChange}
-                                                accept="image/*,application/pdf" 
+                                                accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.gif,.webp" 
                                                 className="hidden" 
                                             />
                                             <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
@@ -338,3 +337,5 @@ export default function ChatWidget() {
         </>
     );
 }
+
+    

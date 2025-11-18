@@ -152,7 +152,7 @@ export default function AtendimentoPage() {
     const handleSendMessage = async (text: string, file?: File) => {
         if (!selectedSession || !user) return;
         if (text.trim() === '' && !file) return;
-
+    
         let attachment: ChatAttachment | null = null;
         if (file) {
             try {
@@ -172,53 +172,50 @@ export default function AtendimentoPage() {
                 return;
             }
         }
-        
+    
         const messageText = attachment ? text || attachment.name : text;
-
+    
         const messagesRef = collection(db, 'chatSessions', selectedSession.id, 'messages');
         await addDoc(messagesRef, {
             text: messageText,
             sender: 'seller',
             senderName: user.name,
             timestamp: new Date().toISOString(),
-            attachment: attachment,
+            attachment: attachment || null,
         });
-
+    
         const sessionRef = doc(db, 'chatSessions', selectedSession.id);
         await updateDoc(sessionRef, {
             lastMessageAt: new Date().toISOString(),
             lastMessageText: attachment ? `Anexo: ${attachment.name}` : messageText,
             unreadByVisitor: true,
         });
-
+    
         setNewMessage('');
-         if (fileInputRef.current) {
+        if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
     };
+    
 
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const file = fileInputRef.current?.files?.[0];
-        handleSendMessage(newMessage, file);
+        handleSendMessage(newMessage, fileInputRef.current?.files?.[0]);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        
+
         if (file.size > 5 * 1024 * 1024) { // 5MB limit
             toast({ title: "Arquivo muito grande", description: "O tamanho máximo do arquivo é 5MB.", variant: "destructive" });
-             if (fileInputRef.current) {
+            if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
             return;
         }
-        
-        // Se houver texto, envia junto. Se não, dispara o envio só com o anexo.
-        if (!newMessage.trim()) {
-            handleSendMessage('', file);
-        }
+
+        handleSendMessage(newMessage, file);
     };
     
     const handleCloseSession = async () => {
@@ -294,7 +291,7 @@ export default function AtendimentoPage() {
                                                     <div className="space-y-2">
                                                         {msg.attachment.type === 'image' ? (
                                                              <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="block relative w-48 h-48">
-                                                                <Image src={msg.attachment.url} alt={msg.attachment.name} fill className="object-cover rounded-md" />
+                                                                <Image src={msg.attachment.url} alt={msg.attachment.name} layout="fill" className="object-cover rounded-md" />
                                                             </a>
                                                         ) : (
                                                             <a href={msg.attachment.url} download={msg.attachment.name} className="flex items-center gap-2 p-2 rounded-md bg-background/20 hover:bg-background/40">
@@ -323,7 +320,7 @@ export default function AtendimentoPage() {
                                     type="file" 
                                     ref={fileInputRef} 
                                     onChange={handleFileChange}
-                                    accept="image/*,application/pdf" 
+                                    accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.gif,.webp" 
                                     className="hidden" 
                                 />
                                 <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
@@ -352,3 +349,5 @@ export default function AtendimentoPage() {
         </div>
     );
 }
+
+    
