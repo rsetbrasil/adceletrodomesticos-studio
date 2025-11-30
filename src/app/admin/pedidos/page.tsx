@@ -106,33 +106,30 @@ export default function OrdersAdminPage() {
     return users.filter(u => u.role === 'vendedor' || u.role === 'admin' || u.role === 'gerente');
   }, [users]);
   
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
+    
+    return orders.filter(o => {
+        const searchTerm = filters.search.toLowerCase();
+        const searchMatch = !searchTerm ||
+            o.id.toLowerCase().includes(searchTerm) ||
+            o.customer.name.toLowerCase().includes(searchTerm);
+
+        const statusMatch = filters.status === 'all' || o.status === filters.status;
+        
+        const sellerMatch = filters.seller === 'all' || o.sellerId === filters.seller;
+        
+        return searchMatch && statusMatch && sellerMatch;
+    });
+  }, [orders, filters]);
+
   const { activeOrders, deletedOrders } = useMemo(() => {
     const active: Order[] = [];
     const deleted: Order[] = [];
 
-    if (!orders) return { activeOrders: [], deletedOrders: [] };
-    let filtered = [...orders];
-
-    if (filters.seller !== 'all') {
-      filtered = filtered.filter(o => o.sellerId === filters.seller);
-    }
-    
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(o => 
-        o.id.toLowerCase().includes(searchTerm) || 
-        o.customer.name.toLowerCase().includes(searchTerm)
-      );
-    }
-    
-    if (filters.status !== 'all') {
-      filtered = filtered.filter(o => o.status === filters.status);
-    }
-    
-    filtered.forEach(order => {
-      // Exclude registration-only orders from the main active view
+    filteredOrders.forEach(order => {
       if (order.status === 'Excluído' && order.items.length === 0) {
-        // This is a registration-only record, don't show in active or trash
+        // Registration-only record, don't show
       } else if (order.status === 'Excluído') {
         deleted.push(order);
       } else {
@@ -144,7 +141,8 @@ export default function OrdersAdminPage() {
         activeOrders: active.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
         deletedOrders: deleted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     };
-  }, [orders, user, filters]);
+  }, [filteredOrders]);
+
 
   const { paginatedActiveOrders, totalActivePages } = useMemo(() => {
     const total = Math.ceil(activeOrders.length / ORDERS_PER_PAGE);
