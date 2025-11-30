@@ -93,6 +93,10 @@ export default function OrdersAdminPage() {
   });
   const [activeTab, setActiveTab] = useState('active');
   const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
+  const [activePage, setActivePage] = useState(1);
+  const [deletedPage, setDeletedPage] = useState(1);
+
+  const ORDERS_PER_PAGE = 20;
 
   useEffect(() => {
     setIsClient(true);
@@ -142,6 +146,18 @@ export default function OrdersAdminPage() {
     };
   }, [orders, user, filters]);
 
+  const { paginatedActiveOrders, totalActivePages } = useMemo(() => {
+    const total = Math.ceil(activeOrders.length / ORDERS_PER_PAGE);
+    const paginated = activeOrders.slice((activePage - 1) * ORDERS_PER_PAGE, activePage * ORDERS_PER_PAGE);
+    return { paginatedActiveOrders: paginated, totalActivePages: total };
+  }, [activeOrders, activePage]);
+
+  const { paginatedDeletedOrders, totalDeletedPages } = useMemo(() => {
+    const total = Math.ceil(deletedOrders.length / ORDERS_PER_PAGE);
+    const paginated = deletedOrders.slice((deletedPage - 1) * ORDERS_PER_PAGE, deletedPage * ORDERS_PER_PAGE);
+    return { paginatedDeletedOrders: paginated, totalDeletedPages: total };
+  }, [deletedOrders, deletedPage]);
+
   const maxAllowedInstallmentsForSelectedOrder = useMemo(() => {
     if (!selectedOrder || !products) return 10;
     const orderProductIds = selectedOrder.items.map(item => item.id);
@@ -154,6 +170,8 @@ export default function OrdersAdminPage() {
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
     setFilters(prev => ({...prev, [filterName]: value}));
+    setActivePage(1);
+    setDeletedPage(1);
   };
 
   const clearFilters = () => {
@@ -391,7 +409,8 @@ export default function OrdersAdminPage() {
                         </Button>
                     </div>
 
-                    {activeOrders.length > 0 ? (
+                    {paginatedActiveOrders.length > 0 ? (
+                        <>
                         <div className="rounded-md border overflow-x-auto">
                             <Table>
                                 <TableHeader>
@@ -408,7 +427,7 @@ export default function OrdersAdminPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {activeOrders.map((order) => (
+                                    {paginatedActiveOrders.map((order) => (
                                     <TableRow key={order.id}>
                                         <TableCell className="font-medium">{order.id}</TableCell>
                                         <TableCell className="whitespace-nowrap">{format(new Date(order.date), "dd/MM/yy HH:mm")}</TableCell>
@@ -467,6 +486,20 @@ export default function OrdersAdminPage() {
                                 </TableBody>
                             </Table>
                         </div>
+                        {totalActivePages > 1 && (
+                            <div className="flex justify-end items-center gap-2 mt-4">
+                                <Button variant="outline" size="sm" onClick={() => setActivePage(p => Math.max(1, p - 1))} disabled={activePage === 1}>
+                                    Anterior
+                                </Button>
+                                <span className="text-sm">
+                                    Página {activePage} de {totalActivePages}
+                                </span>
+                                <Button variant="outline" size="sm" onClick={() => setActivePage(p => Math.min(totalActivePages, p + 1))} disabled={activePage === totalActivePages}>
+                                    Próxima
+                                </Button>
+                            </div>
+                        )}
+                        </>
                     ) : (
                         <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
                             <PackageSearch className="mx-auto h-12 w-12" />
@@ -500,20 +533,21 @@ export default function OrdersAdminPage() {
                             </AlertDialogContent>
                         </AlertDialog>
                     </div>
-                    <div className="rounded-md border overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Pedido ID</TableHead>
-                                    <TableHead>Cliente</TableHead>
-                                    <TableHead>Data da Exclusão</TableHead>
-                                    <TableHead className="text-right">Total</TableHead>
-                                    <TableHead className="text-right">Ações</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {deletedOrders.length > 0 ? (
-                                    deletedOrders.map(order => (
+                    {paginatedDeletedOrders.length > 0 ? (
+                        <>
+                        <div className="rounded-md border overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Pedido ID</TableHead>
+                                        <TableHead>Cliente</TableHead>
+                                        <TableHead>Data da Exclusão</TableHead>
+                                        <TableHead className="text-right">Total</TableHead>
+                                        <TableHead className="text-right">Ações</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {paginatedDeletedOrders.map(order => (
                                         <TableRow key={order.id}>
                                             <TableCell className="font-medium">{order.id}</TableCell>
                                             <TableCell>{order.customer.name}</TableCell>
@@ -550,15 +584,31 @@ export default function OrdersAdminPage() {
                                                 </div>
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">A lixeira está vazia.</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        {totalDeletedPages > 1 && (
+                            <div className="flex justify-end items-center gap-2 mt-4">
+                                <Button variant="outline" size="sm" onClick={() => setDeletedPage(p => Math.max(1, p - 1))} disabled={deletedPage === 1}>
+                                    Anterior
+                                </Button>
+                                <span className="text-sm">
+                                    Página {deletedPage} de {totalDeletedPages}
+                                </span>
+                                <Button variant="outline" size="sm" onClick={() => setDeletedPage(p => Math.min(totalDeletedPages, p + 1))} disabled={deletedPage === totalDeletedPages}>
+                                    Próxima
+                                </Button>
+                            </div>
+                        )}
+                        </>
+                    ) : (
+                         <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
+                            <Trash2 className="mx-auto h-12 w-12" />
+                            <h3 className="mt-4 text-lg font-semibold">A lixeira está vazia</h3>
+                            <p className="mt-1 text-sm">Os pedidos excluídos aparecerão aqui.</p>
+                        </div>
+                    )}
                 </TabsContent>
             </Tabs>
           </CardContent>
@@ -847,5 +897,3 @@ export default function OrdersAdminPage() {
     </>
   );
 }
-
-      
