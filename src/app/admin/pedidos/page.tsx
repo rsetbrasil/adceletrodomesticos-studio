@@ -54,6 +54,7 @@ import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { useSettings } from '@/context/SettingsContext';
 import Logo from '@/components/Logo';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 
 const formatCurrency = (value: number) => {
@@ -506,6 +507,7 @@ export default function OrdersAdminPage() {
                                           <TableHead>Cliente</TableHead>
                                           <TableHead>Produtos</TableHead>
                                           <TableHead>Vendedor</TableHead>
+                                          <TableHead>Próx. Venc.</TableHead>
                                           <TableHead className="text-right">Total</TableHead>
                                           <TableHead className="text-right">Comissão</TableHead>
                                           <TableHead className="text-center">Status</TableHead>
@@ -514,8 +516,10 @@ export default function OrdersAdminPage() {
                                   </TableHeader>
                                   <TableBody>
                                       {paginatedActiveOrders.map((order) => {
-                                          const firstOverdueInstallment = order.installmentDetails?.find(inst => inst.status === 'Pendente' && new Date(inst.dueDate) < new Date());
-                                          const isOverdue = !!firstOverdueInstallment;
+                                          const nextPendingInstallment = order.installmentDetails
+                                                ?.filter(inst => inst.status === 'Pendente')
+                                                .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+                                          const isOverdue = !!nextPendingInstallment && new Date(nextPendingInstallment.dueDate) < new Date();
                                           return (
                                               <TableRow key={order.id}>
                                                   <TableCell className="font-medium">{order.id}</TableCell>
@@ -533,6 +537,9 @@ export default function OrdersAdminPage() {
                                                   </TableCell>
                                                   <TableCell className="text-xs max-w-[200px] truncate">{order.items.map(item => item.name).join(', ')}</TableCell>
                                                   <TableCell>{order.sellerName}</TableCell>
+                                                  <TableCell className={cn("whitespace-nowrap", isOverdue && "text-destructive font-semibold")}>
+                                                      {nextPendingInstallment ? format(new Date(nextPendingInstallment.dueDate), 'dd/MM/yy') : '-'}
+                                                  </TableCell>
                                                   <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
                                                   <TableCell className="text-right font-semibold text-green-600">{formatCurrency(order.commission || 0)}</TableCell>
                                                   <TableCell className="text-center">
@@ -547,8 +554,8 @@ export default function OrdersAdminPage() {
                                                   </TableCell>
                                                   <TableCell className="text-right">
                                                       <div className="flex items-center justify-end gap-2">
-                                                          {isOverdue && firstOverdueInstallment && (
-                                                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, firstOverdueInstallment)}>
+                                                          {isOverdue && nextPendingInstallment && (
+                                                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, nextPendingInstallment)}>
                                                                   <WhatsAppIcon />
                                                               </Button>
                                                           )}
@@ -848,6 +855,18 @@ export default function OrdersAdminPage() {
                           </Card>
                       </div>
 
+                      {selectedOrder.observations && (
+                        <Card>
+                            <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
+                                <MessageSquare className="w-8 h-8 text-primary" />
+                                <CardTitle className="text-lg">Observações do Pedido</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground whitespace-pre-line">{selectedOrder.observations}</p>
+                            </CardContent>
+                        </Card>
+                      )}
+                      
                       <Card>
                         <CardHeader className="flex-row items-center justify-between gap-4 space-y-0 pb-4">
                             <div className="flex items-center gap-4">
