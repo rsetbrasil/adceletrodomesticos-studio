@@ -94,6 +94,7 @@ export type Order = {
   customer: CustomerInfo;
   items: CartItem[];
   total: number;
+  discount?: number;
   installments: number;
   installmentValue: number;
   date: string;

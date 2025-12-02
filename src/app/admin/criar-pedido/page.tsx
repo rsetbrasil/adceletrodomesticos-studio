@@ -20,13 +20,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Check, ChevronsUpDown, PlusCircle, ShoppingCart, Trash2, CalendarIcon } from 'lucide-react';
+import { Check, ChevronsUpDown, PlusCircle, ShoppingCart, Trash2, CalendarIcon, MinusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CustomerInfo, User, Product, CartItem, Order } from '@/lib/types';
 import { addMonths, format, parse, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
+import { Separator } from '@/components/ui/separator';
 
 const createOrderSchema = z.object({
   customerId: z.string().min(1, 'É obrigatório selecionar um cliente.'),
@@ -40,6 +41,7 @@ const createOrderSchema = z.object({
     imageUrl: z.string(),
   })).min(1, 'O pedido deve ter pelo menos um item.'),
   installments: z.coerce.number().min(1, 'O número de parcelas deve ser pelo menos 1.'),
+  discount: z.coerce.number().min(0, 'O desconto não pode ser negativo.').optional(),
 });
 
 type CreateOrderFormValues = z.infer<typeof createOrderSchema>;
@@ -186,6 +188,7 @@ export default function CreateOrderPage() {
       date: new Date(),
       items: [],
       installments: 1,
+      discount: 0,
     },
   });
   
@@ -236,13 +239,15 @@ export default function CreateOrderPage() {
   
   const handleRemoveItem = (productId: string) => {
     const newItems = selectedItems.filter(item => item.id !== productId);
-    setSelectedItems(newItems);
      form.setValue('items', newItems, { shouldValidate: true });
   };
   
-  const total = useMemo(() => {
+  const subtotal = useMemo(() => {
     return selectedItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
   }, [selectedItems]);
+  
+  const discount = form.watch('discount') || 0;
+  const total = subtotal - discount;
   
   async function onSubmit(values: CreateOrderFormValues) {
     const customer = allCustomers.find(c => c.cpf === values.customerId);
@@ -272,11 +277,12 @@ export default function CreateOrderPage() {
       payments: [],
     }));
     
-    const orderData = {
+    const orderData: Partial<Order> = {
         id: orderId,
         customer: customer,
         items: selectedItems,
         total,
+        discount: values.discount,
         installments: values.installments,
         installmentValue,
         date: orderDate.toISOString(),
@@ -533,9 +539,52 @@ export default function CreateOrderPage() {
             </div>
             
             <div className="grid md:grid-cols-2 gap-8 items-start pt-6 border-t">
+                <div className="space-y-4">
+                     <FormField
+                        control={form.control}
+                        name="discount"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Desconto (R$)</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="number"
+                                        placeholder="0,00"
+                                        step="0.01"
+                                        {...field}
+                                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="installments"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Número de Parcelas</FormLabel>
+                                <FormControl>
+                                    <Input type="number" min={1} {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
                 <div className='flex flex-col'>
                     <FormLabel>Resumo Financeiro</FormLabel>
-                    <div className="p-4 bg-muted rounded-lg mt-2">
+                    <div className="p-4 bg-muted rounded-lg mt-2 space-y-2">
+                        <div className="flex justify-between items-center text-md">
+                            <span>Subtotal</span>
+                            <span>{formatCurrency(subtotal)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-md text-destructive">
+                            <span>Desconto</span>
+                            <span>- {formatCurrency(discount)}</span>
+                        </div>
+                        <Separator />
                         <div className="flex justify-between items-center text-xl font-bold">
                             <span>TOTAL DO PEDIDO</span>
                             <span>{formatCurrency(total)}</span>
@@ -543,19 +592,6 @@ export default function CreateOrderPage() {
                     </div>
                 </div>
 
-                <FormField
-                    control={form.control}
-                    name="installments"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Número de Parcelas</FormLabel>
-                            <FormControl>
-                                <Input type="number" min={1} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
             </div>
             
             <Button type="submit" size="lg" className="w-full md:w-auto" disabled={form.formState.isSubmitting}>
@@ -568,5 +604,3 @@ export default function CreateOrderPage() {
     </Card>
   );
 }
-
-    
