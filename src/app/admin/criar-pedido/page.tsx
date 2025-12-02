@@ -28,6 +28,7 @@ import { ptBR } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 
 const createOrderSchema = z.object({
   customerId: z.string().min(1, 'É obrigatório selecionar um cliente.'),
@@ -42,6 +43,7 @@ const createOrderSchema = z.object({
   })).min(1, 'O pedido deve ter pelo menos um item.'),
   installments: z.coerce.number().min(1, 'O número de parcelas deve ser pelo menos 1.'),
   discount: z.coerce.number().min(0, 'O desconto não pode ser negativo.').optional(),
+  observations: z.string().optional(),
 });
 
 type CreateOrderFormValues = z.infer<typeof createOrderSchema>;
@@ -199,6 +201,7 @@ export default function CreateOrderPage() {
       items: [],
       installments: 1,
       discount: 0,
+      observations: '',
     },
   });
   
@@ -301,6 +304,7 @@ export default function CreateOrderPage() {
         installmentDetails,
         sellerId: seller.id,
         sellerName: seller.name,
+        observations: values.observations,
     };
     
     try {
@@ -606,6 +610,24 @@ export default function CreateOrderPage() {
                 </div>
 
             </div>
+
+             <FormField
+                control={form.control}
+                name="observations"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Observações do Pedido (Opcional)</FormLabel>
+                        <FormControl>
+                            <Textarea
+                                placeholder="Digite aqui qualquer observação relevante para este pedido. Ex: Entregar após as 14h, produto para presente, etc."
+                                {...field}
+                                rows={3}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
             
             <Button type="submit" size="lg" className="w-full md:w-auto" disabled={form.formState.isSubmitting}>
                 <ShoppingCart className="mr-5 h-5 w-5" />

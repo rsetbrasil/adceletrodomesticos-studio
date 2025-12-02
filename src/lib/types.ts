@@ -107,6 +107,7 @@ export type Order = {
   commission?: number;
   commissionPaid?: boolean;
   isCommissionManual?: boolean;
+  observations?: string;
 };
 
 export type CommissionPayment = {

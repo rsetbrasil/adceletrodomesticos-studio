@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus, Clock } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus, Clock, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, parseISO, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -804,6 +804,18 @@ export default function OrdersAdminPage() {
                             </CardContent>
                           </Card>
                       </div>
+
+                      {selectedOrder.observations && (
+                          <Card>
+                            <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
+                                <MessageSquare className="w-8 h-8 text-primary" />
+                                <CardTitle className="text-lg">Observações do Pedido</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground whitespace-pre-line">{selectedOrder.observations}</p>
+                            </CardContent>
+                          </Card>
+                      )}
 
                       <Card>
                           <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
