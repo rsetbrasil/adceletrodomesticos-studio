@@ -71,8 +71,15 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                 <p className="font-semibold">{order.items.map(item => item.name).join(', ')}</p>
             </div>
         </div>
+        
+        {order.observations && (
+            <div className="py-2 print:py-1 border-t">
+                <p className="text-xs print:text-[8px] text-muted-foreground">OBSERVAÇÕES</p>
+                <p className="font-semibold whitespace-pre-line">{order.observations}</p>
+            </div>
+        )}
 
-        <div className="flex flex-col md:flex-row gap-4 print:flex-row print:gap-2">
+        <div className="flex flex-col md:flex-row gap-4 print:flex-row print:gap-2 mt-2">
             <div className="flex-grow border rounded-md overflow-hidden">
                 <table className="w-full text-xs print:text-[9px]">
                     <thead className="bg-muted/50 print:bg-gray-100">
