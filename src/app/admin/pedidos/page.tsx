@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus, Clock, MessageSquare } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus, Clock, MessageSquare, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, parseISO, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -509,9 +509,9 @@ export default function OrdersAdminPage() {
                                                                   <WhatsAppIcon />
                                                               </Button>
                                                           )}
-                                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(order)}>
-                                                              <Pencil className="h-4 w-4" />
-                                                              <span className="sr-only">Gerenciar Pedido</span>
+                                                          <Button variant="outline" size="sm" onClick={() => handleOpenDetails(order)}>
+                                                              <Eye className="mr-2 h-4 w-4" />
+                                                              Ver Pedido
                                                           </Button>
                                                           <DropdownMenu>
                                                               <DropdownMenuTrigger asChild>
