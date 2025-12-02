@@ -360,21 +360,27 @@ export default function CreateOrderPage() {
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command shouldFilter={false}>
+                        <Command
+                          filter={(value, search) => {
+                            const customer = allCustomers.find(c => c.cpf === value);
+                            if (!customer) return 0;
+                            const nameMatch = customer.name.toLowerCase().includes(search.toLowerCase());
+                            const cpfMatch = customer.cpf.replace(/\D/g, '').includes(search.replace(/\D/g, ''));
+                            return nameMatch || cpfMatch ? 1 : 0;
+                          }}
+                        >
                            <CommandInput 
                             placeholder="Buscar cliente por nome ou CPF..."
-                            value={customerSearch}
-                            onValueChange={setCustomerSearch}
                           />
                            <CommandList>
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandGroup>
-                              {filteredCustomers.map(c => (
+                              {allCustomers.map(c => (
                                 <CommandItem
                                   key={c.cpf}
-                                  value={c.name}
-                                  onSelect={() => {
-                                    form.setValue("customerId", c.cpf, { shouldValidate: true });
+                                  value={c.cpf}
+                                  onSelect={(currentValue) => {
+                                    form.setValue("customerId", currentValue, { shouldValidate: true });
                                     setOpenCustomerPopover(false);
                                   }}
                                 >
