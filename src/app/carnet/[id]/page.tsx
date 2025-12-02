@@ -133,7 +133,6 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
 
 export default function CarnetPage() {
   const params = useParams();
-  const router = useRouter();
   const { orders, isLoading } = useData();
   const { settings } = useSettings();
 
@@ -181,7 +180,7 @@ export default function CarnetPage() {
     return (
       <div className="container mx-auto py-24 text-center">
         <h1 className="text-2xl font-bold">Pedido não encontrado</h1>
-        <Button onClick={() => router.back()} className="mt-6">
+        <Button onClick={() => window.close()} className="mt-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
@@ -195,7 +194,7 @@ export default function CarnetPage() {
         <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
         <h1 className="mt-4 text-2xl font-bold">Este pedido não é um carnê</h1>
         <p className="text-muted-foreground mt-2">O método de pagamento foi {order.paymentMethod} e não possui parcelamento.</p>
-        <Button onClick={() => router.back()} className="mt-6">
+        <Button onClick={() => window.close()} className="mt-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
@@ -207,7 +206,7 @@ export default function CarnetPage() {
     <div className={cn("bg-muted/30 print:bg-white")}>
        <div className="container mx-auto max-w-7xl py-8 print:p-0 print:m-0 print:max-w-full">
         <header className="flex justify-between items-center mb-8 print-hidden">
-          <Button variant="ghost" onClick={() => router.back()}>
+          <Button variant="ghost" onClick={() => window.close()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
