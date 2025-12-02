@@ -54,9 +54,9 @@ export type Attachment = {
 
 export type CustomerInfo = {
   name: string;
-  cpf: string;
+  cpf?: string;
   phone: string;
-  email: string;
+  email?: string;
   zip: string;
   address: string;
   number: string;

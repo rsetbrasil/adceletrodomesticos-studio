@@ -99,7 +99,7 @@ export default function MyAccountPage() {
                         <CardContent className="space-y-3 text-sm">
                             <p className="font-semibold">{customer.name}</p>
                             <div className="flex items-center gap-2 text-muted-foreground">
-                                <Mail className="h-4 w-4" /> <span>{customer.email}</span>
+                                <Mail className="h-4 w-4" /> <span>{customer.email || 'Não informado'}</span>
                             </div>
                             <div className="flex items-center gap-2 text-muted-foreground">
                                 <Phone className="h-4 w-4" /> <span>{customer.phone}</span>

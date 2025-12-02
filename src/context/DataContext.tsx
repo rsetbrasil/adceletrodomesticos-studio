@@ -91,9 +91,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     sortedOrders.forEach(order => {
         if (order.customer.cpf) {
             const cpf = order.customer.cpf.replace(/\D/g, '');
-            if (!customerMap.has(cpf)) {
+            if (cpf && !customerMap.has(cpf)) {
                 customerMap.set(cpf, order.customer);
             }
+        } else {
+             const uniqueKey = `${order.customer.name}-${order.customer.phone}`;
+             if (!customerMap.has(uniqueKey)) {
+                customerMap.set(uniqueKey, order.customer);
+             }
         }
     });
 
@@ -104,15 +109,15 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const ordersByCustomer: { [key: string]: Order[] } = {};
     orders.forEach(order => {
       if (order.status !== 'Cancelado' && order.status !== 'Excluído') {
-        const cpf = order.customer.cpf;
-        if (!ordersByCustomer[cpf]) {
-          ordersByCustomer[cpf] = [];
+        const customerKey = order.customer.cpf || `${order.customer.name}-${order.customer.phone}`;
+        if (!ordersByCustomer[customerKey]) {
+          ordersByCustomer[customerKey] = [];
         }
-        ordersByCustomer[cpf].push(order);
+        ordersByCustomer[customerKey].push(order);
       }
     });
-    for(const cpf in ordersByCustomer) {
-        ordersByCustomer[cpf].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    for(const key in ordersByCustomer) {
+        ordersByCustomer[key].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
     return ordersByCustomer;
   }, [orders]);
@@ -120,12 +125,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const customerFinancials = useMemo(() => {
       const financialsByCustomer: { [key: string]: { totalComprado: number, totalPago: number, saldoDevedor: number } } = {};
       customers.forEach(customer => {
-        const orders = customerOrders[customer.cpf] || [];
+        const customerKey = customer.cpf || `${customer.name}-${customer.phone}`;
+        const orders = customerOrders[customerKey] || [];
         const allInstallments = orders.flatMap(order => order.installmentDetails || []);
         const totalComprado = orders.reduce((acc, order) => acc + order.total, 0);
         const totalPago = allInstallments.reduce((sum, inst) => sum + (inst.paidAmount || 0), 0);
         const saldoDevedor = totalComprado - totalPago;
-        financialsByCustomer[customer.cpf] = { totalComprado, totalPago, saldoDevedor };
+        financialsByCustomer[customerKey] = { totalComprado, totalPago, saldoDevedor };
       });
       return financialsByCustomer;
   }, [customers, customerOrders]);

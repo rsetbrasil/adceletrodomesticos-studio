@@ -46,7 +46,7 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
     const normalizedCpf = cpf.replace(/\D/g, '');
     
     const customerOrders = orders
-        .filter(o => o.customer.cpf.replace(/\D/g, '') === normalizedCpf)
+        .filter(o => o.customer.cpf && o.customer.cpf.replace(/\D/g, '') === normalizedCpf)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     if (customerOrders.length === 0) {

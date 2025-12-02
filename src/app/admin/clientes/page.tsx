@@ -116,7 +116,7 @@ export default function CustomersAdminPage() {
   useEffect(() => {
     const cpfFromQuery = searchParams.get('cpf');
     if (cpfFromQuery && customers.length > 0) {
-      const customerToSelect = customers.find(c => c.cpf.replace(/\D/g, '') === cpfFromQuery.replace(/\D/g, ''));
+      const customerToSelect = customers.find(c => c.cpf && c.cpf.replace(/\D/g, '') === cpfFromQuery.replace(/\D/g, ''));
       if (customerToSelect) {
         setSelectedCustomer(customerToSelect);
         // Optional: clear the query param after selection
@@ -147,7 +147,7 @@ export default function CustomersAdminPage() {
     const lowercasedQuery = searchQuery.toLowerCase();
     return customers.filter(customer =>
         customer.name.toLowerCase().includes(lowercasedQuery) ||
-        customer.cpf.replace(/\D/g, '').includes(lowercasedQuery)
+        (customer.cpf && customer.cpf.replace(/\D/g, '').includes(lowercasedQuery))
     );
   }, [customers, searchQuery]);
   
@@ -382,16 +382,16 @@ export default function CustomersAdminPage() {
   const handleAddCustomer = async (customerData: CustomerInfo) => {
     if (!user) return;
     
-    const existingCustomer = customers.find(c => c.cpf.replace(/\D/g, '') === customerData.cpf.replace(/\D/g, ''));
+    const existingCustomer = customers.find(c => c.cpf && customerData.cpf && c.cpf.replace(/\D/g, '') === customerData.cpf.replace(/\D/g, ''));
     if (existingCustomer) {
         toast({ title: 'Erro', description: 'Um cliente com este CPF já existe.', variant: 'destructive' });
         return;
     }
 
-    const orderId = `REG-${customerData.cpf.replace(/\D/g, '')}`;
+    const orderId = `REG-${customerData.cpf?.replace(/\D/g, '') || Date.now()}`;
     const newCustomerOrder: Partial<Order> = {
       id: orderId,
-      customer: { ...customerData, password: customerData.cpf.substring(0, 6) },
+      customer: { ...customerData, password: customerData.cpf?.substring(0, 6) },
       items: [],
       total: 0,
       installments: 0,
@@ -525,7 +525,7 @@ export default function CustomersAdminPage() {
                         </div>
                         <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4 text-muted-foreground" />
-                            <span>{selectedCustomer.email}</span>
+                            <span>{selectedCustomer.email || 'Não informado'}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <Phone className="h-4 w-4 text-muted-foreground" />
@@ -533,7 +533,7 @@ export default function CustomersAdminPage() {
                         </div>
                         <div className="flex items-center gap-2">
                             <strong className="text-muted-foreground font-mono text-xs">CPF</strong>
-                            <span>{selectedCustomer.cpf}</span>
+                            <span>{selectedCustomer.cpf || 'Não informado'}</span>
                         </div>
                         <div className="flex items-start col-span-full gap-2 mt-2">
                             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
