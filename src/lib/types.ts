@@ -224,3 +224,7 @@ export type ChatSession = {
   unreadByVisitor: boolean;
   satisfaction?: 'Ótimo' | 'Bom' | 'Ruim';
 };
+
+export type WhatsAppIconProps = {
+    // No props needed for this component
+};

@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus, ArrowLeft } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, parseISO, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -50,6 +50,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import PaymentDialog from '@/components/PaymentDialog';
 import { useData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
+import { useSettings } from '@/context/SettingsContext';
 
 
 const formatCurrency = (value: number) => {
@@ -76,6 +78,7 @@ export default function OrdersAdminPage() {
   const { updateOrderStatus, recordInstallmentPayment, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder, reversePayment, emptyTrash } = useAdmin();
   const { products, orders } = useData();
   const { user, users } = useAuth();
+  const { settings } = useSettings();
   const { logAction } = useAudit();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -339,6 +342,19 @@ export default function OrdersAdminPage() {
   const handleEmptyTrash = () => {
     emptyTrash(logAction, user);
   }
+  
+  const handleSendWhatsAppReminder = (order: Order, installment: Installment) => {
+    const customerName = order.customer.name.split(' ')[0];
+    const customerPhone = order.customer.phone.replace(/\D/g, '');
+    const storeName = settings.storeName || 'sua loja';
+    const dueDate = format(parseISO(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR });
+    const amount = formatCurrency(installment.amount);
+    
+    const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}) na ${storeName}.\n\nVencimento: *${dueDate}*\nValor: *${amount}*\n\nNossa chave PIX para pagamento é: *${settings.pixKey}*\n\nQualquer dúvida, estamos à disposição!\nObrigado!`;
+    
+    const whatsappUrl = `https://wa.me/55${customerPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
 
   const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'gerente';
   const isAdmin = user?.role === 'admin';
@@ -425,62 +441,78 @@ export default function OrdersAdminPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {paginatedActiveOrders.map((order) => (
-                                    <TableRow key={order.id}>
-                                        <TableCell className="font-medium">{order.id}</TableCell>
-                                        <TableCell className="whitespace-nowrap">{format(new Date(order.date), "dd/MM/yy HH:mm")}</TableCell>
-                                        <TableCell>
-                                          <div className="flex items-center gap-2">
-                                            <Link href={`/admin/clientes?cpf=${order.customer.cpf}`} passHref>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <UserIcon className="h-4 w-4" />
-                                                    <span className="sr-only">Ver Cliente</span>
-                                                </Button>
-                                            </Link>
-                                            <span>{order.customer.name}</span>
-                                          </div>
-                                        </TableCell>
-                                        <TableCell className="text-xs max-w-[200px] truncate">{order.items.map(item => item.name).join(', ')}</TableCell>
-                                        <TableCell>{order.sellerName}</TableCell>
-                                        <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
-                                        <TableCell className="text-right font-semibold text-green-600">{formatCurrency(order.commission || 0)}</TableCell>
-                                        <TableCell className="text-center">
-                                            <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(order)}>
-                                                    <Pencil className="h-4 w-4" />
-                                                    <span className="sr-only">Gerenciar Pedido</span>
-                                                </Button>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
+                                    {paginatedActiveOrders.map((order) => {
+                                        const firstOverdueInstallment = order.installmentDetails?.find(inst => inst.status === 'Pendente' && new Date(inst.dueDate) < new Date());
+                                        const isOverdue = !!firstOverdueInstallment;
+                                        return (
+                                            <TableRow key={order.id}>
+                                                <TableCell className="font-medium">{order.id}</TableCell>
+                                                <TableCell className="whitespace-nowrap">{format(new Date(order.date), "dd/MM/yy HH:mm")}</TableCell>
+                                                <TableCell>
+                                                  <div className="flex items-center gap-2">
+                                                    <Link href={`/admin/clientes?cpf=${order.customer.cpf}`} passHref>
                                                         <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                            <Users className="h-4 w-4" />
-                                                            <span className="sr-only">Atribuir Vendedor</span>
+                                                            <UserIcon className="h-4 w-4" />
+                                                            <span className="sr-only">Ver Cliente</span>
                                                         </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={() => handleAssignToMe(order)}>
-                                                          <UserPlus className="mr-2 h-4 w-4" />
-                                                          Atribuir a mim
-                                                        </DropdownMenuItem>
-                                                        <Separator />
-                                                        {sellers.map(s => (
-                                                            <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
-                                                                {s.name}
-                                                            </DropdownMenuItem>
-                                                        ))}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteOrder(order.id)}>
-                                                    <Trash className="h-4 w-4" />
-                                                    <span className="sr-only">Excluir Pedido</span>
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                    ))}
+                                                    </Link>
+                                                    <span>{order.customer.name}</span>
+                                                  </div>
+                                                </TableCell>
+                                                <TableCell className="text-xs max-w-[200px] truncate">{order.items.map(item => item.name).join(', ')}</TableCell>
+                                                <TableCell>{order.sellerName}</TableCell>
+                                                <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
+                                                <TableCell className="text-right font-semibold text-green-600">{formatCurrency(order.commission || 0)}</TableCell>
+                                                <TableCell className="text-center">
+                                                    <div className="flex flex-col items-center justify-center gap-1">
+                                                        <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                                                        {isOverdue && (
+                                                            <Badge variant="destructive" className="flex items-center gap-1">
+                                                                <Clock className="h-3 w-3" /> Atrasado
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                         {isOverdue && firstOverdueInstallment && (
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, firstOverdueInstallment)}>
+                                                                <WhatsAppIcon />
+                                                            </Button>
+                                                        )}
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(order)}>
+                                                            <Pencil className="h-4 w-4" />
+                                                            <span className="sr-only">Gerenciar Pedido</span>
+                                                        </Button>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                    <Users className="h-4 w-4" />
+                                                                    <span className="sr-only">Atribuir Vendedor</span>
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem onClick={() => handleAssignToMe(order)}>
+                                                                  <UserPlus className="mr-2 h-4 w-4" />
+                                                                  Atribuir a mim
+                                                                </DropdownMenuItem>
+                                                                <Separator />
+                                                                {sellers.map(s => (
+                                                                    <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
+                                                                        {s.name}
+                                                                    </DropdownMenuItem>
+                                                                ))}
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteOrder(order.id)}>
+                                                            <Trash className="h-4 w-4" />
+                                                            <span className="sr-only">Excluir Pedido</span>
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
                                 </TableBody>
                             </Table>
                         </div>
