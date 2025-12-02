@@ -48,6 +48,16 @@ type CreateOrderFormValues = z.infer<typeof createOrderSchema>;
 
 const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
+const formatBRL = (value: number | undefined | null) => {
+  if (value === undefined || value === null || isNaN(value)) {
+    return "";
+  }
+  return value.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 const CustomProductForm = ({ onAdd }: { onAdd: (item: CartItem) => void }) => {
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
@@ -548,11 +558,14 @@ export default function CreateOrderPage() {
                                 <FormLabel>Desconto (R$)</FormLabel>
                                 <FormControl>
                                     <Input
-                                        type="number"
-                                        placeholder="0,00"
-                                        step="0.01"
                                         {...field}
-                                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                        placeholder="0,00"
+                                        inputMode="decimal"
+                                        value={formatBRL(field.value)}
+                                        onChange={(e) => {
+                                            const rawValue = e.target.value.replace(/\D/g, '');
+                                            field.onChange(Number(rawValue) / 100);
+                                        }}
                                     />
                                 </FormControl>
                                 <FormMessage />
