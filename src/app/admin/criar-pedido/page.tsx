@@ -351,13 +351,7 @@ export default function CreateOrderPage() {
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command
-                           filter={(value, search) => {
-                            const nameMatch = value.toLowerCase().includes(search.toLowerCase());
-                            const cpfMatch = value.replace(/\D/g, '').includes(search.replace(/\D/g, ''));
-                            return nameMatch || cpfMatch ? 1 : 0;
-                          }}
-                        >
+                        <Command>
                            <CommandInput 
                             placeholder="Buscar cliente por nome ou CPF..."
                           />
@@ -368,8 +362,9 @@ export default function CreateOrderPage() {
                                 <CommandItem
                                   key={c.cpf}
                                   value={`${c.name} ${c.cpf}`}
-                                  onSelect={() => {
-                                    form.setValue("customerId", c.cpf, { shouldValidate: true });
+                                  onSelect={(currentValue) => {
+                                    const selectedCpf = allCustomers.find(cust => `${cust.name} ${cust.cpf}`.toLowerCase() === currentValue.toLowerCase())?.cpf
+                                    form.setValue("customerId", selectedCpf || "", { shouldValidate: true });
                                     setOpenCustomerPopover(false);
                                   }}
                                 >
