@@ -37,7 +37,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus, Clock, MessageSquare, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { format, parseISO, addMonths } from 'date-fns';
+import { format, parseISO, addMonths, getDay, getMonth, getYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -76,6 +76,16 @@ const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'o
   }
 };
 
+const dueDateRanges = [
+    { value: 'all', label: 'Todos os Vencimentos' },
+    { value: '1-5', label: '1 a 5' },
+    { value: '6-10', label: '6 a 10' },
+    { value: '11-15', label: '11 a 15' },
+    { value: '16-20', label: '16 a 20' },
+    { value: '21-25', label: '21 a 25' },
+    { value: '26-31', label: '26 a 31' },
+];
+
 export default function OrdersAdminPage() {
   const { updateOrderStatus, recordInstallmentPayment, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder, reversePayment, emptyTrash } = useAdmin();
   const { products, orders } = useData();
@@ -97,6 +107,7 @@ export default function OrdersAdminPage() {
     status: 'all',
     seller: 'all',
     showOverdue: false,
+    dueDateRange: 'all',
   });
   const [activeTab, setActiveTab] = useState('active');
   const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
@@ -128,7 +139,18 @@ export default function OrdersAdminPage() {
 
         const overdueMatch = !filters.showOverdue || (o.installmentDetails || []).some(inst => inst.status === 'Pendente' && new Date(inst.dueDate) < new Date());
         
-        return searchMatch && statusMatch && sellerMatch && overdueMatch;
+        const dueDateMatch = filters.dueDateRange === 'all' || (o.installmentDetails || []).some(inst => {
+            const dueDate = parseISO(inst.dueDate);
+            const today = new Date();
+            if (getMonth(dueDate) !== getMonth(today) || getYear(dueDate) !== getYear(today)) {
+                return false;
+            }
+            const day = getDay(dueDate) + 1;
+            const [start, end] = filters.dueDateRange.split('-').map(Number);
+            return day >= start && day <= end;
+        });
+
+        return searchMatch && statusMatch && sellerMatch && overdueMatch && dueDateMatch;
     });
   }, [orders, filters]);
 
@@ -182,7 +204,7 @@ export default function OrdersAdminPage() {
   };
 
   const clearFilters = () => {
-    setFilters({ search: '', status: 'all', seller: 'all', showOverdue: false });
+    setFilters({ search: '', status: 'all', seller: 'all', showOverdue: false, dueDateRange: 'all' });
   };
 
   useEffect(() => {
@@ -440,6 +462,18 @@ export default function OrdersAdminPage() {
                                       <SelectItem value="all">Todos os Vendedores</SelectItem>
                                       {sellers.map(s => (
                                           <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
+                          </div>
+                           <div className="flex-grow min-w-[150px]">
+                              <Select value={filters.dueDateRange} onValueChange={(value) => handleFilterChange('dueDateRange', value)}>
+                                  <SelectTrigger>
+                                      <SelectValue placeholder="Vencimento no Mês" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                      {dueDateRanges.map(range => (
+                                          <SelectItem key={range.value} value={range.value}>{range.label}</SelectItem>
                                       ))}
                                   </SelectContent>
                               </Select>
