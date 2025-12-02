@@ -53,6 +53,7 @@ import { useAudit } from '@/context/AuditContext';
 import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { useSettings } from '@/context/SettingsContext';
 import Logo from '@/components/Logo';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const formatCurrency = (value: number) => {
@@ -87,6 +88,7 @@ export default function OrdersAdminPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [installmentsInput, setInstallmentsInput] = useState(1);
   const [commissionInput, setCommissionInput] = useState('0');
+  const [observationsInput, setObservationsInput] = useState('');
   const [openDueDatePopover, setOpenDueDatePopover] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [installmentToPay, setInstallmentToPay] = useState<Installment | null>(null);
@@ -191,6 +193,7 @@ export default function OrdersAdminPage() {
       }
       setInstallmentsInput(updatedOrderInList?.installments || 1);
       setCommissionInput((updatedOrderInList?.commission || 0).toString().replace('.', ','));
+      setObservationsInput(updatedOrderInList?.observations || '');
     }
   }, [orders, selectedOrder]);
 
@@ -198,6 +201,7 @@ export default function OrdersAdminPage() {
     setSelectedOrder(order);
     setInstallmentsInput(order.installments);
     setCommissionInput((order.commission || 0).toString().replace('.', ','));
+    setObservationsInput(order.observations || '');
     setIsDetailModalOpen(true);
   }
 
@@ -342,6 +346,11 @@ export default function OrdersAdminPage() {
     }
     updateOrderDetails(selectedOrder.id, { commission: value, isCommissionManual: true }, logAction, user);
   }
+  
+  const handleUpdateObservations = () => {
+    if (!selectedOrder) return;
+    updateOrderDetails(selectedOrder.id, { observations: observationsInput }, logAction, user);
+  };
 
   const handleEmptyTrash = () => {
     emptyTrash(logAction, user);
@@ -805,17 +814,25 @@ export default function OrdersAdminPage() {
                           </Card>
                       </div>
 
-                      {selectedOrder.observations && (
-                          <Card>
-                            <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
+                      <Card>
+                        <CardHeader className="flex-row items-center justify-between gap-4 space-y-0 pb-4">
+                            <div className="flex items-center gap-4">
                                 <MessageSquare className="w-8 h-8 text-primary" />
                                 <CardTitle className="text-lg">Observações do Pedido</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground whitespace-pre-line">{selectedOrder.observations}</p>
-                            </CardContent>
-                          </Card>
-                      )}
+                            </div>
+                            <Button size="sm" variant="outline" onClick={handleUpdateObservations}>
+                                <Save className="mr-2 h-4 w-4" /> Salvar
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <Textarea
+                                placeholder="Nenhuma observação registrada. Adicione uma aqui..."
+                                value={observationsInput}
+                                onChange={(e) => setObservationsInput(e.target.value)}
+                                rows={3}
+                            />
+                        </CardContent>
+                      </Card>
 
                       <Card>
                           <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
