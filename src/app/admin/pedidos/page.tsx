@@ -93,6 +93,7 @@ export default function OrdersAdminPage() {
     search: '',
     status: 'all',
     seller: 'all',
+    showOverdue: false,
   });
   const [activeTab, setActiveTab] = useState('active');
   const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
@@ -121,8 +122,10 @@ export default function OrdersAdminPage() {
         const statusMatch = filters.status === 'all' || o.status === filters.status;
         
         const sellerMatch = filters.seller === 'all' || o.sellerId === filters.seller;
+
+        const overdueMatch = !filters.showOverdue || (o.installmentDetails || []).some(inst => inst.status === 'Pendente' && new Date(inst.dueDate) < new Date());
         
-        return searchMatch && statusMatch && sellerMatch;
+        return searchMatch && statusMatch && sellerMatch && overdueMatch;
     });
   }, [orders, filters]);
 
@@ -169,14 +172,14 @@ export default function OrdersAdminPage() {
     return Math.min(...maxInstallmentsArray);
   }, [selectedOrder, products]);
 
-  const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
+  const handleFilterChange = (filterName: keyof typeof filters, value: string | boolean) => {
     setFilters(prev => ({...prev, [filterName]: value}));
     setActivePage(1);
     setDeletedPage(1);
   };
 
   const clearFilters = () => {
-    setFilters({ search: '', status: 'all', seller: 'all' });
+    setFilters({ search: '', status: 'all', seller: 'all', showOverdue: false });
   };
 
   useEffect(() => {
@@ -417,6 +420,13 @@ export default function OrdersAdminPage() {
                                 </SelectContent>
                             </Select>
                         </div>
+                        <Button 
+                            variant={filters.showOverdue ? 'destructive' : 'outline'} 
+                            onClick={() => handleFilterChange('showOverdue', !filters.showOverdue)}
+                        >
+                            <Clock className="mr-2 h-4 w-4"/>
+                            Atrasados
+                        </Button>
                         <Button variant="ghost" onClick={clearFilters}>
                             <X className="mr-2 h-4 w-4"/>
                             Limpar
