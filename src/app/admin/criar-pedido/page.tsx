@@ -158,18 +158,8 @@ export default function CreateOrderPage() {
   const [productSearch, setProductSearch] = useState('');
   const [openProductPopover, setOpenProductPopover] = useState(false);
   
-  const [customerSearch, setCustomerSearch] = useState('');
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
   
-  const filteredCustomers = useMemo(() => {
-    if (!customerSearch) return allCustomers;
-    const lowercasedQuery = customerSearch.toLowerCase();
-    return allCustomers.filter(c => 
-        c.name.toLowerCase().includes(lowercasedQuery) || 
-        c.cpf.replace(/\D/g, '').includes(lowercasedQuery)
-    );
-  }, [allCustomers, customerSearch]);
-
 
   const sellers = useMemo(() => {
     return users.filter(u => u.role === 'vendedor' || u.role === 'admin' || u.role === 'gerente');
@@ -252,7 +242,8 @@ export default function CreateOrderPage() {
   
   const handleRemoveItem = (productId: string) => {
     const newItems = selectedItems.filter(item => item.id !== productId);
-     form.setValue('items', newItems, { shouldValidate: true });
+    setSelectedItems(newItems);
+    form.setValue('items', newItems, { shouldValidate: true });
   };
   
   const subtotal = useMemo(() => {
@@ -361,11 +352,9 @@ export default function CreateOrderPage() {
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                         <Command
-                          filter={(value, search) => {
-                            const customer = allCustomers.find(c => c.cpf === value);
-                            if (!customer) return 0;
-                            const nameMatch = customer.name.toLowerCase().includes(search.toLowerCase());
-                            const cpfMatch = customer.cpf.replace(/\D/g, '').includes(search.replace(/\D/g, ''));
+                           filter={(value, search) => {
+                            const nameMatch = value.toLowerCase().includes(search.toLowerCase());
+                            const cpfMatch = value.replace(/\D/g, '').includes(search.replace(/\D/g, ''));
                             return nameMatch || cpfMatch ? 1 : 0;
                           }}
                         >
@@ -378,9 +367,9 @@ export default function CreateOrderPage() {
                               {allCustomers.map(c => (
                                 <CommandItem
                                   key={c.cpf}
-                                  value={c.cpf}
-                                  onSelect={(currentValue) => {
-                                    form.setValue("customerId", currentValue, { shouldValidate: true });
+                                  value={`${c.name} ${c.cpf}`}
+                                  onSelect={() => {
+                                    form.setValue("customerId", c.cpf, { shouldValidate: true });
                                     setOpenCustomerPopover(false);
                                   }}
                                 >
@@ -527,7 +516,6 @@ export default function CreateOrderPage() {
                         </PopoverTrigger>
                         <PopoverContent 
                             className="w-[300px] p-0"
-                            onCloseAutoFocus={(e) => e.preventDefault()}
                         >
                             <Command shouldFilter={false}>
                                 <CommandInput 
