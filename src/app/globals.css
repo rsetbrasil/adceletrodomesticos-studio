@@ -79,10 +79,19 @@
   .print-hidden {
     display: none !important;
   }
-
+  
   .print-only {
-      display: block !important;
+    display: none;
   }
+
+  body.print-overdue-report .print-only {
+    display: block !important;
+  }
+  
+  body.print-overdue-report .print-hidden {
+    display: none !important;
+  }
+
 
   .print-only .border, 
   .print-only .border-b,

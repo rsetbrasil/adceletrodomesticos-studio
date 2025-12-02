@@ -52,6 +52,7 @@ import { useData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
 import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { useSettings } from '@/context/SettingsContext';
+import Logo from '@/components/Logo';
 
 
 const formatCurrency = (value: number) => {
@@ -359,6 +360,19 @@ export default function OrdersAdminPage() {
     window.open(whatsappUrl, '_blank');
   };
 
+  const handlePrintOverdueReport = () => {
+    document.body.classList.add('print-overdue-report');
+    window.print();
+    document.body.classList.remove('print-overdue-report');
+  };
+
+  const overdueOrdersForReport = useMemo(() => {
+    return activeOrders.map(order => {
+        const overdueInstallment = (order.installmentDetails || []).find(inst => inst.status === 'Pendente' && new Date(inst.dueDate) < new Date());
+        return overdueInstallment ? { order, overdueInstallment } : null;
+    }).filter(item => item !== null) as { order: Order; overdueInstallment: Installment }[];
+  }, [activeOrders]);
+
   const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'gerente';
   const isAdmin = user?.role === 'admin';
 
@@ -373,286 +387,348 @@ export default function OrdersAdminPage() {
 
   return (
     <>
-      <Card>
-          <CardHeader>
-              <CardTitle>Gerenciamento de Pedidos</CardTitle>
-              <CardDescription>Visualize e atualize o status dos pedidos recentes.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-4">
-                    <TabsTrigger value="active">Pedidos Ativos</TabsTrigger>
-                    <TabsTrigger value="deleted">Lixeira</TabsTrigger>
-                </TabsList>
-                <TabsContent value="active">
-                    <div className="flex flex-wrap gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
-                        <div className="flex-grow min-w-[200px]">
-                            <Input 
-                                placeholder="Buscar por ID ou cliente..."
-                                value={filters.search}
-                                onChange={(e) => handleFilterChange('search', e.target.value)}
-                            />
-                        </div>
-                        <div className="flex-grow min-w-[150px]">
-                            <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Filtrar por status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todos os Status</SelectItem>
-                                    <SelectItem value="Processando">Processando</SelectItem>
-                                    <SelectItem value="Enviado">Enviado</SelectItem>
-                                    <SelectItem value="Entregue">Entregue</SelectItem>
-                                    <SelectItem value="Cancelado">Cancelado</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex-grow min-w-[150px]">
-                            <Select value={filters.seller} onValueChange={(value) => handleFilterChange('seller', value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Filtrar por vendedor" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todos os Vendedores</SelectItem>
-                                    {sellers.map(s => (
-                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <Button 
-                            variant={filters.showOverdue ? 'destructive' : 'outline'} 
-                            onClick={() => handleFilterChange('showOverdue', !filters.showOverdue)}
-                        >
-                            <Clock className="mr-2 h-4 w-4"/>
-                            Atrasados
-                        </Button>
-                        <Button variant="ghost" onClick={clearFilters}>
-                            <X className="mr-2 h-4 w-4"/>
-                            Limpar
-                        </Button>
-                    </div>
+      <div className="print-hidden">
+        <Card>
+            <CardHeader>
+                <CardTitle>Gerenciamento de Pedidos</CardTitle>
+                <CardDescription>Visualize e atualize o status dos pedidos recentes.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="mb-4">
+                      <TabsTrigger value="active">Pedidos Ativos</TabsTrigger>
+                      <TabsTrigger value="deleted">Lixeira</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="active">
+                      <div className="flex flex-wrap gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
+                          <div className="flex-grow min-w-[200px]">
+                              <Input 
+                                  placeholder="Buscar por ID ou cliente..."
+                                  value={filters.search}
+                                  onChange={(e) => handleFilterChange('search', e.target.value)}
+                              />
+                          </div>
+                          <div className="flex-grow min-w-[150px]">
+                              <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+                                  <SelectTrigger>
+                                      <SelectValue placeholder="Filtrar por status" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                      <SelectItem value="all">Todos os Status</SelectItem>
+                                      <SelectItem value="Processando">Processando</SelectItem>
+                                      <SelectItem value="Enviado">Enviado</SelectItem>
+                                      <SelectItem value="Entregue">Entregue</SelectItem>
+                                      <SelectItem value="Cancelado">Cancelado</SelectItem>
+                                  </SelectContent>
+                              </Select>
+                          </div>
+                          <div className="flex-grow min-w-[150px]">
+                              <Select value={filters.seller} onValueChange={(value) => handleFilterChange('seller', value)}>
+                                  <SelectTrigger>
+                                      <SelectValue placeholder="Filtrar por vendedor" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                      <SelectItem value="all">Todos os Vendedores</SelectItem>
+                                      {sellers.map(s => (
+                                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
+                          </div>
+                          <Button 
+                              variant={filters.showOverdue ? 'destructive' : 'outline'} 
+                              onClick={() => handleFilterChange('showOverdue', !filters.showOverdue)}
+                          >
+                              <Clock className="mr-2 h-4 w-4"/>
+                              Atrasados
+                          </Button>
+                          <Button variant="outline" onClick={handlePrintOverdueReport}>
+                            <Printer className="mr-2 h-4 w-4" />
+                            Imprimir Relatório
+                          </Button>
+                          <Button variant="ghost" onClick={clearFilters}>
+                              <X className="mr-2 h-4 w-4"/>
+                              Limpar
+                          </Button>
+                      </div>
 
-                    {paginatedActiveOrders.length > 0 ? (
-                        <>
-                        <div className="rounded-md border overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[150px]">Pedido ID</TableHead>
-                                        <TableHead>Data</TableHead>
-                                        <TableHead>Cliente</TableHead>
-                                        <TableHead>Produtos</TableHead>
-                                        <TableHead>Vendedor</TableHead>
-                                        <TableHead className="text-right">Total</TableHead>
-                                        <TableHead className="text-right">Comissão</TableHead>
-                                        <TableHead className="text-center">Status</TableHead>
-                                        <TableHead className="text-right">Ações</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {paginatedActiveOrders.map((order) => {
-                                        const firstOverdueInstallment = order.installmentDetails?.find(inst => inst.status === 'Pendente' && new Date(inst.dueDate) < new Date());
-                                        const isOverdue = !!firstOverdueInstallment;
-                                        return (
-                                            <TableRow key={order.id}>
-                                                <TableCell className="font-medium">{order.id}</TableCell>
-                                                <TableCell className="whitespace-nowrap">{format(new Date(order.date), "dd/MM/yy HH:mm")}</TableCell>
-                                                <TableCell>
-                                                  <div className="flex items-center gap-2">
-                                                    <Link href={`/admin/clientes?cpf=${order.customer.cpf}`} passHref>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                            <UserIcon className="h-4 w-4" />
-                                                            <span className="sr-only">Ver Cliente</span>
-                                                        </Button>
-                                                    </Link>
-                                                    <span>{order.customer.name}</span>
+                      {paginatedActiveOrders.length > 0 ? (
+                          <>
+                          <div className="rounded-md border overflow-x-auto">
+                              <Table>
+                                  <TableHeader>
+                                      <TableRow>
+                                          <TableHead className="w-[150px]">Pedido ID</TableHead>
+                                          <TableHead>Data</TableHead>
+                                          <TableHead>Cliente</TableHead>
+                                          <TableHead>Produtos</TableHead>
+                                          <TableHead>Vendedor</TableHead>
+                                          <TableHead className="text-right">Total</TableHead>
+                                          <TableHead className="text-right">Comissão</TableHead>
+                                          <TableHead className="text-center">Status</TableHead>
+                                          <TableHead className="text-right">Ações</TableHead>
+                                      </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                      {paginatedActiveOrders.map((order) => {
+                                          const firstOverdueInstallment = order.installmentDetails?.find(inst => inst.status === 'Pendente' && new Date(inst.dueDate) < new Date());
+                                          const isOverdue = !!firstOverdueInstallment;
+                                          return (
+                                              <TableRow key={order.id}>
+                                                  <TableCell className="font-medium">{order.id}</TableCell>
+                                                  <TableCell className="whitespace-nowrap">{format(new Date(order.date), "dd/MM/yy HH:mm")}</TableCell>
+                                                  <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                      <Link href={`/admin/clientes?cpf=${order.customer.cpf}`} passHref>
+                                                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                              <UserIcon className="h-4 w-4" />
+                                                              <span className="sr-only">Ver Cliente</span>
+                                                          </Button>
+                                                      </Link>
+                                                      <span>{order.customer.name}</span>
+                                                    </div>
+                                                  </TableCell>
+                                                  <TableCell className="text-xs max-w-[200px] truncate">{order.items.map(item => item.name).join(', ')}</TableCell>
+                                                  <TableCell>{order.sellerName}</TableCell>
+                                                  <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
+                                                  <TableCell className="text-right font-semibold text-green-600">{formatCurrency(order.commission || 0)}</TableCell>
+                                                  <TableCell className="text-center">
+                                                      <div className="flex flex-col items-center justify-center gap-1">
+                                                          <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                                                          {isOverdue && (
+                                                              <Badge variant="destructive" className="flex items-center gap-1">
+                                                                  <Clock className="h-3 w-3" /> Atrasado
+                                                              </Badge>
+                                                          )}
+                                                      </div>
+                                                  </TableCell>
+                                                  <TableCell className="text-right">
+                                                      <div className="flex items-center justify-end gap-2">
+                                                          {isOverdue && firstOverdueInstallment && (
+                                                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, firstOverdueInstallment)}>
+                                                                  <WhatsAppIcon />
+                                                              </Button>
+                                                          )}
+                                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(order)}>
+                                                              <Pencil className="h-4 w-4" />
+                                                              <span className="sr-only">Gerenciar Pedido</span>
+                                                          </Button>
+                                                          <DropdownMenu>
+                                                              <DropdownMenuTrigger asChild>
+                                                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                      <Users className="h-4 w-4" />
+                                                                      <span className="sr-only">Atribuir Vendedor</span>
+                                                                  </Button>
+                                                              </DropdownMenuTrigger>
+                                                              <DropdownMenuContent align="end">
+                                                                  <DropdownMenuItem onClick={() => handleAssignToMe(order)}>
+                                                                    <UserPlus className="mr-2 h-4 w-4" />
+                                                                    Atribuir a mim
+                                                                  </DropdownMenuItem>
+                                                                  <Separator />
+                                                                  {sellers.map(s => (
+                                                                      <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
+                                                                          {s.name}
+                                                                      </DropdownMenuItem>
+                                                                  ))}
+                                                              </DropdownMenuContent>
+                                                          </DropdownMenu>
+                                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteOrder(order.id)}>
+                                                              <Trash className="h-4 w-4" />
+                                                              <span className="sr-only">Excluir Pedido</span>
+                                                          </Button>
+                                                      </div>
+                                                  </TableCell>
+                                              </TableRow>
+                                          )
+                                      })}
+                                  </TableBody>
+                              </Table>
+                          </div>
+                          {totalActivePages > 1 && (
+                              <div className="flex justify-end items-center gap-2 mt-4">
+                                  <Button variant="outline" size="sm" onClick={() => setActivePage(p => Math.max(1, p - 1))} disabled={activePage === 1}>
+                                      Anterior
+                                  </Button>
+                                  <span className="text-sm">
+                                      Página {activePage} de {totalActivePages}
+                                  </span>
+                                  <Button variant="outline" size="sm" onClick={() => setActivePage(p => Math.min(totalActivePages, p + 1))} disabled={activePage === totalActivePages}>
+                                      Próxima
+                                  </Button>
+                              </div>
+                          )}
+                          </>
+                      ) : (
+                          <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
+                              <PackageSearch className="mx-auto h-12 w-12" />
+                              <h3 className="mt-4 text-lg font-semibold">Nenhum pedido encontrado</h3>
+                              <p className="mt-1 text-sm">Ajuste os filtros ou crie um novo pedido.</p>
+                          </div>
+                      )}
+                  </TabsContent>
+                  <TabsContent value="deleted">
+                      <div className="mb-4">
+                          <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                  <Button variant="destructive" disabled={deletedOrders.length === 0}>
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Esvaziar Lixeira ({deletedOrders.length})
+                                  </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>Esvaziar a lixeira?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          Esta ação não pode ser desfeita. Isso irá apagar permanentemente todos os {deletedOrders.length} pedidos na lixeira.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={handleEmptyTrash}>
+                                          Sim, Esvaziar Lixeira
+                                      </AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                          </AlertDialog>
+                      </div>
+                      {paginatedDeletedOrders.length > 0 ? (
+                          <>
+                          <div className="rounded-md border overflow-x-auto">
+                              <Table>
+                                  <TableHeader>
+                                      <TableRow>
+                                          <TableHead>Pedido ID</TableHead>
+                                          <TableHead>Cliente</TableHead>
+                                          <TableHead>Data da Exclusão</TableHead>
+                                          <TableHead className="text-right">Total</TableHead>
+                                          <TableHead className="text-right">Ações</TableHead>
+                                      </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                      {paginatedDeletedOrders.map(order => (
+                                          <TableRow key={order.id}>
+                                              <TableCell className="font-medium">{order.id}</TableCell>
+                                              <TableCell>{order.customer.name}</TableCell>
+                                              <TableCell>{format(new Date(order.date), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                                              <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
+                                              <TableCell className="text-right">
+                                                  <div className="flex items-center justify-end gap-2">
+                                                      <Button variant="outline" size="sm" onClick={() => handleRestoreOrder(order.id)}>
+                                                          <History className="mr-2 h-4 w-4" />
+                                                          Restaurar
+                                                      </Button>
+                                                      <AlertDialog>
+                                                          <AlertDialogTrigger asChild>
+                                                              <Button variant="destructive" outline size="sm">
+                                                                  <Trash2 className="mr-2 h-4 w-4" />
+                                                                  Excluir
+                                                              </Button>
+                                                          </AlertDialogTrigger>
+                                                          <AlertDialogContent>
+                                                              <AlertDialogHeader>
+                                                                  <AlertDialogTitle>Excluir Permanentemente?</AlertDialogTitle>
+                                                                  <AlertDialogDescription>
+                                                                      Esta ação é irreversível e irá apagar permanentemente o pedido <span className="font-bold">{order.id}</span>. Você tem certeza?
+                                                                  </AlertDialogDescription>
+                                                              </AlertDialogHeader>
+                                                              <AlertDialogFooter>
+                                                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                  <AlertDialogAction onClick={() => handlePermanentlyDeleteOrder(order.id)}>
+                                                                      Sim, Excluir
+                                                                  </AlertDialogAction>
+                                                              </AlertDialogFooter>
+                                                          </AlertDialogContent>
+                                                      </AlertDialog>
                                                   </div>
-                                                </TableCell>
-                                                <TableCell className="text-xs max-w-[200px] truncate">{order.items.map(item => item.name).join(', ')}</TableCell>
-                                                <TableCell>{order.sellerName}</TableCell>
-                                                <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
-                                                <TableCell className="text-right font-semibold text-green-600">{formatCurrency(order.commission || 0)}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <div className="flex flex-col items-center justify-center gap-1">
-                                                        <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
-                                                        {isOverdue && (
-                                                            <Badge variant="destructive" className="flex items-center gap-1">
-                                                                <Clock className="h-3 w-3" /> Atrasado
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                         {isOverdue && firstOverdueInstallment && (
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, firstOverdueInstallment)}>
-                                                                <WhatsAppIcon />
-                                                            </Button>
-                                                        )}
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(order)}>
-                                                            <Pencil className="h-4 w-4" />
-                                                            <span className="sr-only">Gerenciar Pedido</span>
-                                                        </Button>
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                                    <Users className="h-4 w-4" />
-                                                                    <span className="sr-only">Atribuir Vendedor</span>
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem onClick={() => handleAssignToMe(order)}>
-                                                                  <UserPlus className="mr-2 h-4 w-4" />
-                                                                  Atribuir a mim
-                                                                </DropdownMenuItem>
-                                                                <Separator />
-                                                                {sellers.map(s => (
-                                                                    <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
-                                                                        {s.name}
-                                                                    </DropdownMenuItem>
-                                                                ))}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteOrder(order.id)}>
-                                                            <Trash className="h-4 w-4" />
-                                                            <span className="sr-only">Excluir Pedido</span>
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        )
-                                    })}
-                                </TableBody>
-                            </Table>
+                                              </TableCell>
+                                          </TableRow>
+                                      ))}
+                                  </TableBody>
+                              </Table>
+                          </div>
+                          {totalDeletedPages > 1 && (
+                              <div className="flex justify-end items-center gap-2 mt-4">
+                                  <Button variant="outline" size="sm" onClick={() => setDeletedPage(p => Math.max(1, p - 1))} disabled={deletedPage === 1}>
+                                      Anterior
+                                  </Button>
+                                  <span className="text-sm">
+                                      Página {deletedPage} de {totalDeletedPages}
+                                  </span>
+                                  <Button variant="outline" size="sm" onClick={() => setDeletedPage(p => Math.min(totalDeletedPages, p + 1))} disabled={deletedPage === totalDeletedPages}>
+                                      Próxima
+                                  </Button>
+                              </div>
+                          )}
+                          </>
+                      ) : (
+                          <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
+                              <Trash2 className="mx-auto h-12 w-12" />
+                              <h3 className="mt-4 text-lg font-semibold">A lixeira está vazia</h3>
+                              <p className="mt-1 text-sm">Os pedidos excluídos aparecerão aqui.</p>
+                          </div>
+                      )}
+                  </TabsContent>
+              </Tabs>
+            </CardContent>
+        </Card>
+      </div>
+
+      <div className="print-only">
+         <div className="mb-8">
+            <div className="flex justify-between items-start pb-4 border-b">
+                <div style={{ display: 'table' }}>
+                    <div style={{ display: 'table-row' }}>
+                        <div style={{ display: 'table-cell', verticalAlign: 'middle', paddingRight: '1rem' }}>
+                            <Logo />
                         </div>
-                        {totalActivePages > 1 && (
-                            <div className="flex justify-end items-center gap-2 mt-4">
-                                <Button variant="outline" size="sm" onClick={() => setActivePage(p => Math.max(1, p - 1))} disabled={activePage === 1}>
-                                    Anterior
-                                </Button>
-                                <span className="text-sm">
-                                    Página {activePage} de {totalActivePages}
-                                </span>
-                                <Button variant="outline" size="sm" onClick={() => setActivePage(p => Math.min(totalActivePages, p + 1))} disabled={activePage === totalActivePages}>
-                                    Próxima
-                                </Button>
+                        <div style={{ display: 'table-cell', verticalAlign: 'middle' }}>
+                            <div className="text-xs">
+                                <p className="font-bold">{settings.storeName}</p>
+                                <p className="whitespace-pre-line">{settings.storeAddress}</p>
                             </div>
-                        )}
-                        </>
-                    ) : (
-                        <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
-                            <PackageSearch className="mx-auto h-12 w-12" />
-                            <h3 className="mt-4 text-lg font-semibold">Nenhum pedido encontrado</h3>
-                            <p className="mt-1 text-sm">Ajuste os filtros ou crie um novo pedido.</p>
                         </div>
-                    )}
-                </TabsContent>
-                <TabsContent value="deleted">
-                    <div className="mb-4">
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" disabled={deletedOrders.length === 0}>
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Esvaziar Lixeira ({deletedOrders.length})
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Esvaziar a lixeira?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta ação não pode ser desfeita. Isso irá apagar permanentemente todos os {deletedOrders.length} pedidos na lixeira.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleEmptyTrash}>
-                                        Sim, Esvaziar Lixeira
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
                     </div>
-                    {paginatedDeletedOrders.length > 0 ? (
-                        <>
-                        <div className="rounded-md border overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Pedido ID</TableHead>
-                                        <TableHead>Cliente</TableHead>
-                                        <TableHead>Data da Exclusão</TableHead>
-                                        <TableHead className="text-right">Total</TableHead>
-                                        <TableHead className="text-right">Ações</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {paginatedDeletedOrders.map(order => (
-                                        <TableRow key={order.id}>
-                                            <TableCell className="font-medium">{order.id}</TableCell>
-                                            <TableCell>{order.customer.name}</TableCell>
-                                            <TableCell>{format(new Date(order.date), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
-                                            <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => handleRestoreOrder(order.id)}>
-                                                        <History className="mr-2 h-4 w-4" />
-                                                        Restaurar
-                                                    </Button>
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button variant="destructive" outline size="sm">
-                                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                                Excluir
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Excluir Permanentemente?</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Esta ação é irreversível e irá apagar permanentemente o pedido <span className="font-bold">{order.id}</span>. Você tem certeza?
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handlePermanentlyDeleteOrder(order.id)}>
-                                                                    Sim, Excluir
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                        {totalDeletedPages > 1 && (
-                            <div className="flex justify-end items-center gap-2 mt-4">
-                                <Button variant="outline" size="sm" onClick={() => setDeletedPage(p => Math.max(1, p - 1))} disabled={deletedPage === 1}>
-                                    Anterior
-                                </Button>
-                                <span className="text-sm">
-                                    Página {deletedPage} de {totalDeletedPages}
-                                </span>
-                                <Button variant="outline" size="sm" onClick={() => setDeletedPage(p => Math.min(totalDeletedPages, p + 1))} disabled={deletedPage === totalDeletedPages}>
-                                    Próxima
-                                </Button>
-                            </div>
-                        )}
-                        </>
-                    ) : (
-                         <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
-                            <Trash2 className="mx-auto h-12 w-12" />
-                            <h3 className="mt-4 text-lg font-semibold">A lixeira está vazia</h3>
-                            <p className="mt-1 text-sm">Os pedidos excluídos aparecerão aqui.</p>
-                        </div>
-                    )}
-                </TabsContent>
-            </Tabs>
-          </CardContent>
-      </Card>
+                </div>
+                <div className="text-right">
+                    <p className="text-lg font-bold">Relatório de Pedidos em Atraso</p>
+                    <p className="text-sm text-gray-500">Gerado em: {format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</p>
+                </div>
+            </div>
+        </div>
+        <table className="w-full text-sm border-collapse">
+            <thead>
+                <tr className="border-b-2">
+                    <th className="text-left p-2 font-bold">Cliente</th>
+                    <th className="text-left p-2 font-bold">Telefone</th>
+                    <th className="text-left p-2 font-bold">Pedido</th>
+                    <th className="text-left p-2 font-bold">Parcela</th>
+                    <th className="text-right p-2 font-bold">Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {overdueOrdersForReport.length > 0 ? (
+                    overdueOrdersForReport.map(({ order, overdueInstallment }) => (
+                        <tr key={order.id} className="border-b last:border-none">
+                            <td className="p-2">{order.customer.name}</td>
+                            <td className="p-2">{order.customer.phone}</td>
+                            <td className="p-2 font-mono">{order.id}</td>
+                            <td className="p-2">
+                                {overdueInstallment.installmentNumber} (Venc. {format(parseISO(overdueInstallment.dueDate), 'dd/MM/yy')})
+                            </td>
+                            <td className="text-right p-2 font-semibold">
+                                {formatCurrency(overdueInstallment.amount - (overdueInstallment.paidAmount || 0))}
+                            </td>
+                        </tr>
+                    ))
+                ) : (
+                    <tr>
+                        <td colSpan={5} className="text-center p-8">Nenhum pedido em atraso encontrado.</td>
+                    </tr>
+                )}
+            </tbody>
+        </table>
+      </div>
 
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
           <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
