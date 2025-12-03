@@ -386,16 +386,7 @@ export default function OrdersAdminPage() {
     const dueDate = format(parseISO(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR });
     const amount = formatCurrency(installment.amount - (installment.paidAmount || 0));
     
-    const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da sua parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}).
-
-Vencimento: *${dueDate}*
-Valor: *${amount}*
-
-Chave pix: ${settings.pixKey}
-Adriano Cavalcante de Oliveira
-Banco: Nubank 
-
-Não esqueça de enviar o comprovante!`;
+    const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da sua parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}).\n\nVencimento: *${dueDate}*\nValor: *${amount}*\n\nChave pix: ${settings.pixKey}\nAdriano Cavalcante de Oliveira\nBanco: Nubank \n\nNão esqueça de enviar o comprovante!`;
     
     const whatsappUrl = `https://wa.me/55${customerPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -556,11 +547,15 @@ Não esqueça de enviar o comprovante!`;
                                                   <TableCell className="text-center">
                                                       <div className="flex flex-col items-center justify-center gap-1">
                                                           <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
-                                                          {isOverdue && (
+                                                          {isOverdue ? (
                                                               <Badge variant="destructive" className="flex items-center gap-1">
                                                                   <Clock className="h-3 w-3" /> Atrasado
                                                               </Badge>
-                                                          )}
+                                                          ) : (nextPendingInstallment && (
+                                                               <Badge variant="default" className="bg-green-600 hover:bg-green-700 flex items-center gap-1">
+                                                                  <CheckCircle className="h-3 w-3" /> Em dia
+                                                              </Badge>
+                                                          ))}
                                                       </div>
                                                   </TableCell>
                                                   <TableCell className="text-right">
