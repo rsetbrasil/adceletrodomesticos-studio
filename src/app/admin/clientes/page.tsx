@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent, useRef } from 'react';
@@ -412,11 +413,19 @@ export default function CustomersAdminPage() {
   const handleSendWhatsAppReminder = (order: Order, installment: Installment) => {
     const customerName = order.customer.name.split(' ')[0];
     const customerPhone = order.customer.phone.replace(/\D/g, '');
-    const storeName = settings.storeName || 'sua loja';
     const dueDate = format(parseISO(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR });
-    const amount = formatCurrency(installment.amount);
+    const amount = formatCurrency(installment.amount - (installment.paidAmount || 0));
     
-    const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}) na ${storeName}.\n\nVencimento: *${dueDate}*\nValor: *${amount}*\n\nNossa chave PIX para pagamento é: *${settings.pixKey}*\n\nQualquer dúvida, estamos à disposição!\nObrigado!`;
+    const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da sua parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}).
+
+Vencimento: *${dueDate}*
+Valor: *${amount}*
+
+Chave pix:${settings.pixKey}
+Adriano Cavalcante de Oliveira
+Banco: Nubank 
+
+Não esqueça de enviar o comprovante!`;
     
     const whatsappUrl = `https://wa.me/55${customerPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');

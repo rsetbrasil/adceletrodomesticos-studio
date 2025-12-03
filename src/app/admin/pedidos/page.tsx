@@ -394,6 +394,7 @@ Valor: *${amount}*
 Chave pix:${settings.pixKey}
 Adriano Cavalcante de Oliveira
 Banco: Nubank 
+
 Não esqueça de enviar o comprovante!`;
     
     const whatsappUrl = `https://wa.me/55${customerPhone}?text=${encodeURIComponent(message)}`;
