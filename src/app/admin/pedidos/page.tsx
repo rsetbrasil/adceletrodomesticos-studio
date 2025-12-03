@@ -101,6 +101,8 @@ export default function OrdersAdminPage() {
   const [installmentsInput, setInstallmentsInput] = useState(1);
   const [commissionInput, setCommissionInput] = useState('0');
   const [observationsInput, setObservationsInput] = useState('');
+  const [discountInput, setDiscountInput] = useState('0,00');
+  const [downPaymentInput, setDownPaymentInput] = useState('0,00');
   const [openDueDatePopover, setOpenDueDatePopover] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [installmentToPay, setInstallmentToPay] = useState<Installment | null>(null);
@@ -235,6 +237,7 @@ export default function OrdersAdminPage() {
       setInstallmentsInput(updatedOrderInList?.installments || 1);
       setCommissionInput((updatedOrderInList?.commission || 0).toString().replace('.', ','));
       setObservationsInput(updatedOrderInList?.observations || '');
+      setDiscountInput((updatedOrderInList?.discount || 0).toFixed(2).replace('.', ','));
     }
   }, [orders, selectedOrder]);
 
@@ -243,6 +246,8 @@ export default function OrdersAdminPage() {
     setInstallmentsInput(order.installments);
     setCommissionInput((order.commission || 0).toString().replace('.', ','));
     setObservationsInput(order.observations || '');
+    setDiscountInput((order.discount || 0).toFixed(2).replace('.', ','));
+    setDownPaymentInput('0,00');
     setIsDetailModalOpen(true);
   }
 
@@ -387,6 +392,58 @@ export default function OrdersAdminPage() {
     }
     updateOrderDetails(selectedOrder.id, { commission: value, isCommissionManual: true }, logAction, user);
   }
+
+  const handleUpdateDiscount = () => {
+    if (!selectedOrder) return;
+    const subtotal = selectedOrder.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    const discountValue = parseFloat(discountInput.replace(',', '.'));
+    if (isNaN(discountValue) || discountValue < 0 || discountValue > subtotal) {
+      toast({ title: 'Desconto inválido', description: 'O valor do desconto não pode ser negativo ou maior que o subtotal do pedido.', variant: 'destructive' });
+      return;
+    }
+
+    const newTotal = subtotal - discountValue;
+    const newInstallmentValue = newTotal / selectedOrder.installments;
+
+    const newInstallmentDetails: Installment[] = (selectedOrder.installmentDetails || []).map(inst => ({
+        ...inst,
+        amount: newInstallmentValue,
+        paidAmount: 0,
+        payments: [],
+        status: 'Pendente' as const,
+    }));
+    
+    const detailsToUpdate: Partial<Order> = {
+        discount: discountValue,
+        total: newTotal,
+        installmentValue: newInstallmentValue,
+        installmentDetails: newInstallmentDetails,
+    };
+    updateOrderDetails(selectedOrder.id, detailsToUpdate, logAction, user);
+  };
+  
+  const handleAddDownPayment = () => {
+      if (!selectedOrder || !selectedOrder.installmentDetails?.length) {
+          toast({ title: 'Erro', description: 'Este pedido não tem parcelas para adicionar uma entrada.', variant: 'destructive' });
+          return;
+      }
+      const downPaymentValue = parseFloat(downPaymentInput.replace(',', '.'));
+      if (isNaN(downPaymentValue) || downPaymentValue <= 0) {
+          toast({ title: 'Valor inválido', description: 'Por favor, insira um valor de entrada válido.', variant: 'destructive' });
+          return;
+      }
+
+      const firstInstallment = selectedOrder.installmentDetails[0];
+      const payment: Omit<Payment, 'receivedBy'> = {
+          id: `downpay-${Date.now()}`,
+          amount: downPaymentValue,
+          date: new Date().toISOString(),
+          method: 'Dinheiro', // Assuming down payment is cash/pix, can be changed
+      };
+      
+      recordInstallmentPayment(selectedOrder.id, firstInstallment.installmentNumber, payment, logAction, user);
+      setDownPaymentInput('0,00');
+  };
   
   const handleUpdateObservations = () => {
     if (!selectedOrder) return;
@@ -847,7 +904,7 @@ Não esqueça de enviar o comprovante!`;
                           <Card>
                             <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
                                 <ShoppingBag className="w-8 h-8 text-primary" />
-                                <CardTitle className="text-lg">Resumo</CardTitle>
+                                <CardTitle className="text-lg">Resumo da Compra</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-2 text-sm">
@@ -857,6 +914,11 @@ Não esqueça de enviar o comprovante!`;
                                             <span>{formatCurrency(item.price * item.quantity)}</span>
                                         </div>
                                     ))}
+                                    <Separator />
+                                     <div className="flex justify-between items-center text-destructive">
+                                        <span>Desconto</span>
+                                        <span>- {formatCurrency(selectedOrder.discount || 0)}</span>
+                                     </div>
                                 </div>
                                 <Separator className="my-3" />
                                 <div className="flex justify-between font-bold text-base">
@@ -893,36 +955,24 @@ Não esqueça de enviar o comprovante!`;
                             </CardContent>
                           </Card>
                       </div>
-
-                      {selectedOrder.observations && (
-                        <Card>
-                            <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
-                                <MessageSquare className="w-8 h-8 text-primary" />
-                                <CardTitle className="text-lg">Observações do Pedido</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground whitespace-pre-line">{selectedOrder.observations}</p>
-                            </CardContent>
-                        </Card>
-                      )}
                       
                       <Card>
-                        <CardHeader className="flex-row items-center justify-between gap-4 space-y-0 pb-4">
-                            <div className="flex items-center gap-4">
-                                <MessageSquare className="w-8 h-8 text-primary" />
-                                <CardTitle className="text-lg">Observações do Pedido</CardTitle>
-                            </div>
-                            <Button size="sm" variant="outline" onClick={handleUpdateObservations}>
-                                <Save className="mr-2 h-4 w-4" /> Salvar
-                            </Button>
+                        <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
+                            <MessageSquare className="w-8 h-8 text-primary" />
+                            <CardTitle className="text-lg">Observações do Pedido</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Textarea
-                                placeholder="Nenhuma observação registrada. Adicione uma aqui..."
-                                value={observationsInput}
-                                onChange={(e) => setObservationsInput(e.target.value)}
-                                rows={3}
-                            />
+                             <div className="flex gap-2">
+                                <Textarea
+                                    placeholder="Nenhuma observação registrada. Adicione uma aqui..."
+                                    value={observationsInput}
+                                    onChange={(e) => setObservationsInput(e.target.value)}
+                                    rows={2}
+                                />
+                                <Button size="sm" variant="outline" onClick={handleUpdateObservations} className="self-end">
+                                    <Save className="mr-2 h-4 w-4" /> Salvar
+                                </Button>
+                            </div>
                         </CardContent>
                       </Card>
 
@@ -933,7 +983,53 @@ Não esqueça de enviar o comprovante!`;
                           </CardHeader>
                           <CardContent className="space-y-6">
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                                    <div className="flex-grow">
+                                    <div>
+                                        <label className="text-sm font-medium">Status do Pedido</label>
+                                        <Select value={selectedOrder.status} onValueChange={(status) => handleUpdateOrderStatus(status as Order['status'])}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Alterar status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Processando">Processando</SelectItem>
+                                                <SelectItem value="Enviado">Enviado</SelectItem>
+                                                <SelectItem value="Entregue">Entregue</SelectItem>
+                                                <SelectItem value="Cancelado">Cancelado</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <Badge variant={getStatusVariant(selectedOrder.status)} className="h-10 text-sm w-fit">{selectedOrder.status}</Badge>
+                              </div>
+                              <Separator />
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                                  <div>
+                                       <label className="text-sm font-medium">Desconto (R$)</label>
+                                       <div className="flex gap-2">
+                                            <Input
+                                                type="text"
+                                                value={discountInput}
+                                                onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, '').replace(/(\d)(\d{2})$/, '$1,$2'))}
+                                                className="h-9"
+                                            />
+                                            <Button size="sm" variant="outline" onClick={handleUpdateDiscount}>
+                                                <Save className="mr-2 h-4 w-4" /> Aplicar
+                                            </Button>
+                                        </div>
+                                  </div>
+                                  <div>
+                                       <label className="text-sm font-medium">Dar Entrada (R$)</label>
+                                       <div className="flex gap-2">
+                                            <Input
+                                                type="text"
+                                                value={downPaymentInput}
+                                                onChange={(e) => setDownPaymentInput(e.target.value.replace(/\D/g, '').replace(/(\d)(\d{2})$/, '$1,$2'))}
+                                                className="h-9"
+                                            />
+                                            <Button size="sm" variant="outline" onClick={handleAddDownPayment}>
+                                                <Save className="mr-2 h-4 w-4" /> Registrar
+                                            </Button>
+                                        </div>
+                                  </div>
+                                   <div>
                                         <label className="text-sm font-medium">Forma de Pagamento</label>
                                         <Select value={selectedOrder.paymentMethod} onValueChange={(value) => handleUpdatePaymentMethod(value as PaymentMethod)}>
                                             <SelectTrigger>
@@ -964,23 +1060,6 @@ Não esqueça de enviar o comprovante!`;
                                           </div>
                                       </div>
                                   )}
-                              </div>
-                              <div className="flex items-end gap-4">
-                                  <div className="flex-grow">
-                                      <label className="text-sm font-medium">Status do Pedido</label>
-                                      <Select value={selectedOrder.status} onValueChange={(status) => handleUpdateOrderStatus(status as Order['status'])}>
-                                          <SelectTrigger>
-                                              <SelectValue placeholder="Alterar status" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                              <SelectItem value="Processando">Processando</SelectItem>
-                                              <SelectItem value="Enviado">Enviado</SelectItem>
-                                              <SelectItem value="Entregue">Entregue</SelectItem>
-                                              <SelectItem value="Cancelado">Cancelado</SelectItem>
-                                          </SelectContent>
-                                      </Select>
-                                  </div>
-                                  <Badge variant={getStatusVariant(selectedOrder.status)} className="h-10 text-sm">{selectedOrder.status}</Badge>
                               </div>
                           </CardContent>
                       </Card>
