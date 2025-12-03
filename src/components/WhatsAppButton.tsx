@@ -8,7 +8,7 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 export default function WhatsAppButton() {
   const { settings, isLoading } = useSettings();
 
-  if (isLoading || !settings.storePhone || !settings.showWhatsAppButton) {
+  if (isLoading || !settings.storePhone) {
     return null;
   }
 
