@@ -13,11 +13,11 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import type { StoreSettings } from '@/lib/types';
 
 const initialSettings: StoreSettings = {
-    storeName: 'ADC MOVEIS E ELETRO',
-    storeCity: 'SAO PAULO',
-    storeAddress: 'Rua da Loja, 123 - Centro, São Paulo/SP - CEP 01000-000',
-    pixKey: 'fb43228c-4740-4c16-a217-21706a782496', // Example key
-    storePhone: '11999999999', // Example phone
+    storeName: '',
+    storeCity: '',
+    storeAddress: '',
+    pixKey: '',
+    storePhone: '',
     logoUrl: '',
     accessControlEnabled: false,
     commercialHourStart: '08:00',
