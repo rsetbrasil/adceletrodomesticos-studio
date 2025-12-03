@@ -534,16 +534,16 @@ Não esqueça de enviar o comprovante!`;
                               <Table>
                                   <TableHeader>
                                       <TableRow>
-                                          <TableHead className="w-[150px]">Pedido ID</TableHead>
-                                          <TableHead>Data</TableHead>
+                                          <TableHead className="w-[120px]">Pedido</TableHead>
+                                          <TableHead className="w-[130px]">Data</TableHead>
                                           <TableHead>Cliente</TableHead>
-                                          <TableHead>Produtos</TableHead>
+                                          <TableHead className="w-[150px]">Produtos</TableHead>
                                           <TableHead>Vendedor</TableHead>
-                                          <TableHead>Próx. Venc.</TableHead>
+                                          <TableHead className="w-[100px]">Próx. Venc.</TableHead>
                                           <TableHead className="text-right">Total</TableHead>
                                           <TableHead className="text-right">Comissão</TableHead>
-                                          <TableHead className="text-center">Status</TableHead>
-                                          <TableHead className="text-right">Ações</TableHead>
+                                          <TableHead className="text-center w-[120px]">Status</TableHead>
+                                          <TableHead className="text-right w-[200px]">Ações</TableHead>
                                       </TableRow>
                                   </TableHeader>
                                   <TableBody>
@@ -555,28 +555,28 @@ Não esqueça de enviar o comprovante!`;
                                           const isOverdue = !!nextPendingInstallment && new Date(nextPendingInstallment.dueDate) < new Date();
                                           
                                           return (
-                                              <TableRow key={order.id}>
-                                                  <TableCell className="font-medium">{order.id}</TableCell>
-                                                  <TableCell className="whitespace-nowrap">{format(new Date(order.date), "dd/MM/yy HH:mm")}</TableCell>
-                                                  <TableCell>
+                                              <TableRow key={order.id} className="text-sm">
+                                                  <TableCell className="p-2 font-medium font-mono text-xs">{order.id}</TableCell>
+                                                  <TableCell className="p-2 whitespace-nowrap">{format(new Date(order.date), "dd/MM/yy HH:mm")}</TableCell>
+                                                  <TableCell className="p-2">
                                                     <div className="flex items-center gap-2">
                                                       <Link href={`/admin/clientes?cpf=${order.customer.cpf}`} passHref>
-                                                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                          <Button variant="ghost" size="icon" className="h-7 w-7">
                                                               <UserIcon className="h-4 w-4" />
                                                               <span className="sr-only">Ver Cliente</span>
                                                           </Button>
                                                       </Link>
-                                                      <span>{order.customer.name}</span>
+                                                      <span className="truncate max-w-[150px]">{order.customer.name}</span>
                                                     </div>
                                                   </TableCell>
-                                                  <TableCell className="text-xs max-w-[200px] truncate">{order.items.map(item => item.name).join(', ')}</TableCell>
-                                                  <TableCell>{order.sellerName}</TableCell>
-                                                  <TableCell className={cn("whitespace-nowrap", isOverdue && "text-destructive font-semibold")}>
+                                                  <TableCell className="p-2 text-xs truncate max-w-[150px]">{order.items.map(item => item.name).join(', ')}</TableCell>
+                                                  <TableCell className="p-2 truncate max-w-[120px]">{order.sellerName}</TableCell>
+                                                  <TableCell className={cn("p-2 whitespace-nowrap", isOverdue && "text-destructive font-semibold")}>
                                                       {nextPendingInstallment ? format(new Date(nextPendingInstallment.dueDate), 'dd/MM/yy') : '-'}
                                                   </TableCell>
-                                                  <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
-                                                  <TableCell className="text-right font-semibold text-green-600">{formatCurrency(order.commission || 0)}</TableCell>
-                                                  <TableCell className="text-center">
+                                                  <TableCell className="p-2 text-right font-semibold">{formatCurrency(order.total)}</TableCell>
+                                                  <TableCell className="p-2 text-right font-semibold text-green-600">{formatCurrency(order.commission || 0)}</TableCell>
+                                                  <TableCell className="p-2 text-center">
                                                       <div className="flex flex-col items-center justify-center gap-1">
                                                           <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                                                           {isOverdue ? (
@@ -590,22 +590,21 @@ Não esqueça de enviar o comprovante!`;
                                                           ))}
                                                       </div>
                                                   </TableCell>
-                                                  <TableCell className="text-right">
-                                                      <div className="flex items-center justify-end gap-2">
+                                                  <TableCell className="p-2 text-right">
+                                                      <div className="flex items-center justify-end gap-1">
                                                           {order.installmentDetails && order.installmentDetails.length > 0 && installmentForReminder && (
-                                                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, installmentForReminder)}>
+                                                              <Button variant="ghost" size="icon" className="h-7 w-7 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, installmentForReminder)}>
                                                                   <WhatsAppIcon />
                                                               </Button>
                                                           )}
-                                                          <Button variant="outline" size="sm" onClick={() => handleOpenDetails(order)}>
-                                                              <Eye className="mr-2 h-4 w-4" />
-                                                              Ver Pedido
+                                                          <Button variant="outline" size="sm" className="h-8" onClick={() => handleOpenDetails(order)}>
+                                                              <Eye className="mr-1 h-3 w-3" />
+                                                              Ver
                                                           </Button>
                                                           <DropdownMenu>
                                                               <DropdownMenuTrigger asChild>
                                                                   <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                                      <Users className="h-4 w-4" />
-                                                                      <span className="sr-only">Atribuir Vendedor</span>
+                                                                      <MoreHorizontal className="h-4 w-4" />
                                                                   </Button>
                                                               </DropdownMenuTrigger>
                                                               <DropdownMenuContent align="end">
@@ -613,7 +612,12 @@ Não esqueça de enviar o comprovante!`;
                                                                     <UserPlus className="mr-2 h-4 w-4" />
                                                                     Atribuir a mim
                                                                   </DropdownMenuItem>
+                                                                  <DropdownMenuItem onClick={() => handleDeleteOrder(order.id)} className="text-destructive">
+                                                                      <Trash className="mr-2 h-4 w-4" />
+                                                                      Mover para Lixeira
+                                                                  </DropdownMenuItem>
                                                                   <Separator />
+                                                                  <DropdownMenuLabel>Atribuir a:</DropdownMenuLabel>
                                                                   {sellers.map(s => (
                                                                       <DropdownMenuItem key={s.id} onClick={() => handleAssignSeller(order, s)}>
                                                                           {s.name}
@@ -621,10 +625,6 @@ Não esqueça de enviar o comprovante!`;
                                                                   ))}
                                                               </DropdownMenuContent>
                                                           </DropdownMenu>
-                                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteOrder(order.id)}>
-                                                              <Trash className="h-4 w-4" />
-                                                              <span className="sr-only">Excluir Pedido</span>
-                                                          </Button>
                                                       </div>
                                                   </TableCell>
                                               </TableRow>
@@ -696,11 +696,11 @@ Não esqueça de enviar o comprovante!`;
                                   <TableBody>
                                       {paginatedDeletedOrders.map(order => (
                                           <TableRow key={order.id}>
-                                              <TableCell className="font-medium">{order.id}</TableCell>
-                                              <TableCell>{order.customer.name}</TableCell>
-                                              <TableCell>{format(new Date(order.date), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
-                                              <TableCell className="text-right">{formatCurrency(order.total)}</TableCell>
-                                              <TableCell className="text-right">
+                                              <TableCell className="p-2 font-medium">{order.id}</TableCell>
+                                              <TableCell className="p-2">{order.customer.name}</TableCell>
+                                              <TableCell className="p-2">{format(new Date(order.date), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                                              <TableCell className="p-2 text-right">{formatCurrency(order.total)}</TableCell>
+                                              <TableCell className="p-2 text-right">
                                                   <div className="flex items-center justify-end gap-2">
                                                       <Button variant="outline" size="sm" onClick={() => handleRestoreOrder(order.id)}>
                                                           <History className="mr-2 h-4 w-4" />
