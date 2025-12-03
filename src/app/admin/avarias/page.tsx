@@ -21,6 +21,7 @@ import { ptBR } from 'date-fns/locale';
 import type { CustomerInfo, Avaria } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 
 const avariaSchema = z.object({
@@ -36,6 +37,7 @@ export default function AvariasPage() {
     const { orders, products, avarias } = useData();
     const { user } = useAuth();
     const { logAction } = useAudit();
+    const { toast } = useToast();
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [avariaToEdit, setAvariaToEdit] = useState<Avaria | null>(null);
 
@@ -52,7 +54,7 @@ export default function AvariasPage() {
         resolver: zodResolver(avariaSchema),
     });
 
-    const customers = useMemo(() => {
+    const customersWithCpf = useMemo(() => {
         if (!orders) return [];
         const customerMap = new Map<string, CustomerInfo>();
         orders.forEach(order => {
@@ -69,10 +71,13 @@ export default function AvariasPage() {
 
     function onSubmit(values: AvariaFormValues) {
         if (!user) return;
-        const customer = customers.find(c => c.cpf === values.customerId);
+        const customer = customersWithCpf.find(c => c.cpf === values.customerId);
         const product = products.find(p => p.id === values.productId);
 
-        if (!customer || !product) return;
+        if (!customer || !product || !customer.cpf) {
+             toast({ title: 'Erro', description: 'Cliente ou produto inválido. O cliente deve ter um CPF.', variant: 'destructive' });
+            return;
+        }
 
         addAvaria({
             customerId: customer.cpf,
@@ -97,9 +102,12 @@ export default function AvariasPage() {
 
     function onEditSubmit(values: AvariaFormValues) {
         if (!user || !avariaToEdit) return;
-        const customer = customers.find(c => c.cpf === values.customerId);
+        const customer = customersWithCpf.find(c => c.cpf === values.customerId);
         const product = products.find(p => p.id === values.productId);
-        if (!customer || !product) return;
+        if (!customer || !product || !customer.cpf) {
+            toast({ title: 'Erro', description: 'Cliente ou produto inválido. O cliente deve ter um CPF.', variant: 'destructive' });
+            return;
+        }
         
         updateAvaria(avariaToEdit.id, {
             customerId: customer.cpf,
@@ -139,7 +147,7 @@ export default function AvariasPage() {
                                     name="customerId"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Cliente</FormLabel>
+                                            <FormLabel>Cliente (com CPF)</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
@@ -147,8 +155,8 @@ export default function AvariasPage() {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    {customers.map(c => (
-                                                        <SelectItem key={c.cpf} value={c.cpf}>{c.name} - {c.cpf}</SelectItem>
+                                                    {customersWithCpf.map(c => (
+                                                        <SelectItem key={c.cpf} value={c.cpf!}>{c.name} - {c.cpf}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
@@ -304,8 +312,8 @@ export default function AvariasPage() {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    {customers.map(c => (
-                                                        <SelectItem key={c.cpf} value={c.cpf}>{c.name} - {c.cpf}</SelectItem>
+                                                    {customersWithCpf.map(c => (
+                                                        <SelectItem key={c.cpf} value={c.cpf!}>{c.name} - {c.cpf}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>

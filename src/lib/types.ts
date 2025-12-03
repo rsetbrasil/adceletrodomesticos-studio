@@ -1,5 +1,4 @@
 
-
 export type StoreSettings = {
     storeName: string;
     storeCity: string;

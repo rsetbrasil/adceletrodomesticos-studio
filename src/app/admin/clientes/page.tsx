@@ -388,7 +388,7 @@ export default function CustomersAdminPage() {
         return;
     }
 
-    const orderId = `REG-${customerData.cpf?.replace(/\D/g, '') || Date.now()}`;
+    const orderId = `REG-${customerData.cpf ? customerData.cpf.replace(/\D/g, '') : Date.now()}`;
     const newCustomerOrder: Partial<Order> = {
       id: orderId,
       customer: { ...customerData, password: customerData.cpf?.substring(0, 6) },
@@ -472,8 +472,8 @@ export default function CustomersAdminPage() {
                 <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-2">
                 {filteredCustomers.map((customer) => (
                     <Button
-                    key={customer.cpf}
-                    variant={selectedCustomer?.cpf === customer.cpf ? 'secondary' : 'ghost'}
+                    key={customer.cpf || `${customer.name}-${customer.phone}`}
+                    variant={(selectedCustomer?.cpf || `${selectedCustomer?.name}-${selectedCustomer?.phone}`) === (customer.cpf || `${customer.name}-${customer.phone}`) ? 'secondary' : 'ghost'}
                     className="justify-start w-full text-left h-auto py-2"
                     onClick={() => setSelectedCustomer(customer)}
                     >
@@ -987,7 +987,3 @@ export default function CustomersAdminPage() {
     </>
   );
 }
-
-    
-
-    
