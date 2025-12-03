@@ -421,7 +421,7 @@ export default function CustomersAdminPage() {
 Vencimento: *${dueDate}*
 Valor: *${amount}*
 
-Chave pix:${settings.pixKey}
+Chave pix: ${settings.pixKey}
 Adriano Cavalcante de Oliveira
 Banco: Nubank 
 
