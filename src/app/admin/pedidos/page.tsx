@@ -38,7 +38,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus, Clock, MessageSquare, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { format, parseISO, addMonths, getDay, getMonth, getYear } from 'date-fns';
+import { format, parseISO, addMonths, getMonth, getYear, getDate } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -147,14 +147,16 @@ export default function OrdersAdminPage() {
         const onTimeMatch = !filters.showOnTime || (hasPendingInstallments && !isOverdue);
         
         const dueDateMatch = filters.dueDateRange === 'all' || (o.installmentDetails || []).some(inst => {
+            if (inst.status !== 'Pendente') return false;
             const dueDate = parseISO(inst.dueDate);
             const today = new Date();
+            // Only consider installments in the current month and year for this filter
             if (getMonth(dueDate) !== getMonth(today) || getYear(dueDate) !== getYear(today)) {
                 return false;
             }
-            const day = getDay(dueDate) + 1;
+            const dayOfMonth = getDate(dueDate);
             const [start, end] = filters.dueDateRange.split('-').map(Number);
-            return day >= start && day <= end;
+            return dayOfMonth >= start && dayOfMonth <= end;
         });
 
         return searchMatch && statusMatch && sellerMatch && overdueMatch && onTimeMatch && dueDateMatch;
