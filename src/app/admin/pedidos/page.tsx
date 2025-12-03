@@ -393,8 +393,8 @@ Valor: *${amount}*
 
 Chave pix:${settings.pixKey}
 Adriano Cavalcante de Oliveira
-🏦 nubank 
-Não esqueça de enviar o comprovante!😉🤝`;
+Banco: Nubank 
+Não esqueça de enviar o comprovante!`;
     
     const whatsappUrl = `https://wa.me/55${customerPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -564,8 +564,8 @@ Não esqueça de enviar o comprovante!😉🤝`;
                                                   </TableCell>
                                                   <TableCell className="text-right">
                                                       <div className="flex items-center justify-end gap-2">
-                                                          {order.installmentDetails && order.installmentDetails.length > 0 && (
-                                                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, installmentForReminder || order.installmentDetails[0])}>
+                                                          {order.installmentDetails && order.installmentDetails.length > 0 && installmentForReminder && (
+                                                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, installmentForReminder)}>
                                                                   <WhatsAppIcon />
                                                               </Button>
                                                           )}
