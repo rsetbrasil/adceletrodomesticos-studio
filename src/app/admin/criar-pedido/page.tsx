@@ -254,10 +254,11 @@ export default function CreateOrderPage() {
   const total = subtotal - discount;
   
   async function onSubmit(values: CreateOrderFormValues) {
-    const customer = allCustomers.find(c => c.cpf === values.customerId);
+    const customer = allCustomers.find(c => (c.cpf || `${c.name}-${c.phone}`) === values.customerId);
     const seller = users.find(u => u.id === values.sellerId);
     
     if (!customer || !seller) {
+        toast({ title: 'Erro', description: 'Cliente ou vendedor inválido.', variant: 'destructive'});
         return;
     }
     
@@ -344,7 +345,7 @@ export default function CreateOrderPage() {
                             className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
                           >
                             {field.value
-                              ? allCustomers.find(c => c.cpf === field.value)?.name
+                              ? allCustomers.find(c => (c.cpf || `${c.name}-${c.phone}`) === field.value)?.name
                               : "Selecione um cliente"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -358,23 +359,25 @@ export default function CreateOrderPage() {
                            <CommandList>
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandGroup>
-                              {allCustomers.map(c => (
+                              {allCustomers.map(c => {
+                                const customerId = c.cpf || `${c.name}-${c.phone}`;
+                                return (
                                 <CommandItem
-                                  key={c.cpf}
-                                  value={`${c.name} ${c.cpf}`}
-                                  onSelect={(currentValue) => {
-                                    const selectedCpf = allCustomers.find(cust => `${cust.name} ${cust.cpf}`.toLowerCase() === currentValue.toLowerCase())?.cpf
-                                    form.setValue("customerId", selectedCpf || "", { shouldValidate: true });
+                                  key={customerId}
+                                  value={`${c.name} ${c.cpf || ''}`}
+                                  onSelect={() => {
+                                    form.setValue("customerId", customerId, { shouldValidate: true });
                                     setOpenCustomerPopover(false);
                                   }}
                                 >
-                                  <Check className={cn("mr-2 h-4 w-4", c.cpf === field.value ? "opacity-100" : "opacity-0")} />
+                                  <Check className={cn("mr-2 h-4 w-4", customerId === field.value ? "opacity-100" : "opacity-0")} />
                                   <div className="flex flex-col items-start text-left">
                                       <span>{c.name}</span>
-                                      <span className="text-xs text-muted-foreground">{c.cpf}</span>
+                                      <span className="text-xs text-muted-foreground">{c.cpf || c.phone}</span>
                                   </div>
                                 </CommandItem>
-                              ))}
+                                )
+                              })}
                             </CommandGroup>
                           </CommandList>
                         </Command>

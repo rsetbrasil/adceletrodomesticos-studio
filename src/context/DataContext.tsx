@@ -89,16 +89,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const sortedOrders = [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     sortedOrders.forEach(order => {
-        if (order.customer.cpf) {
-            const cpf = order.customer.cpf.replace(/\D/g, '');
-            if (cpf && !customerMap.has(cpf)) {
-                customerMap.set(cpf, order.customer);
-            }
-        } else {
-             const uniqueKey = `${order.customer.name}-${order.customer.phone}`;
-             if (!customerMap.has(uniqueKey)) {
-                customerMap.set(uniqueKey, order.customer);
-             }
+        const customerKey = order.customer.cpf ? order.customer.cpf.replace(/\D/g, '') : `${order.customer.name}-${order.customer.phone}`;
+        if (customerKey && !customerMap.has(customerKey)) {
+            customerMap.set(customerKey, order.customer);
         }
     });
 
