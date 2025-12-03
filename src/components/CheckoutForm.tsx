@@ -40,7 +40,7 @@ function isValidCPF(cpf: string) {
 
 const checkoutSchema = z.object({
   name: z.string().min(3, 'Nome completo é obrigatório.'),
-  cpf: z.string().optional().refine(val => !val || isValidCPF(val), {
+  cpf: z.string().refine(isValidCPF, {
     message: 'CPF inválido.',
   }),
   phone: z.string().min(10, 'Telefone é obrigatório.'),
@@ -363,14 +363,14 @@ export default function CheckoutForm() {
             <h3 className="text-xl font-semibold mb-4 font-headline">Informações do Cliente</h3>
             <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF (Opcional)</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} onBlur={handleCpfBlur} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} onBlur={handleCpfBlur} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email (Opcional)</FormLabel><FormControl><Input placeholder="seu@email.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
                  {isNewCustomer && (
                      <div className="p-3 bg-blue-500/10 text-blue-800 rounded-lg text-sm">
-                        <p><strong>Novo cliente!</strong> Se preencher o CPF, a senha de acesso para a Área do Cliente será os <strong>6 primeiros dígitos do seu CPF</strong>.</p>
+                        <p><strong>Novo cliente!</strong> A senha de acesso para a Área do Cliente será os <strong>6 primeiros dígitos do seu CPF</strong>.</p>
                     </div>
                 )}
                 <h4 className="text-lg font-semibold pt-4">Endereço de Entrega</h4>
