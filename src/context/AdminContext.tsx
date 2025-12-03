@@ -831,11 +831,17 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     let updatedCount = 0;
     let createdCount = 0;
     
-    const existingCpfSet = new Set(orders.map(o => o.customer.cpf.replace(/\D/g, '')));
+    const existingCpfSet = new Set(
+        orders
+            .map(o => o.customer.cpf)
+            .filter((cpf): cpf is string => !!cpf)
+            .map(cpf => cpf.replace(/\D/g, ''))
+    );
+
 
     for (const importedCustomer of customersToImport) {
         const cpf = importedCustomer.cpf!.replace(/\D/g, '');
-        const existingOrders = orders.filter(o => o.customer.cpf.replace(/\D/g, '') === cpf);
+        const existingOrders = orders.filter(o => o.customer.cpf && o.customer.cpf.replace(/\D/g, '') === cpf);
 
         if (existingOrders.length > 0) {
             let customerAlreadyUpdated = false;
