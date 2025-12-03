@@ -564,8 +564,8 @@ Não esqueça de enviar o comprovante!😉🤝`;
                                                   </TableCell>
                                                   <TableCell className="text-right">
                                                       <div className="flex items-center justify-end gap-2">
-                                                          {installmentForReminder && (
-                                                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, installmentForReminder)}>
+                                                          {order.installmentDetails && order.installmentDetails.length > 0 && (
+                                                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, installmentForReminder || order.installmentDetails[0])}>
                                                                   <WhatsAppIcon />
                                                               </Button>
                                                           )}
