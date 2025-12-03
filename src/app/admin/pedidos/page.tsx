@@ -109,6 +109,7 @@ export default function OrdersAdminPage() {
     status: 'all',
     seller: 'all',
     showOverdue: false,
+    showOnTime: false,
     dueDateRange: 'all',
   });
   const [activeTab, setActiveTab] = useState('active');
@@ -139,7 +140,11 @@ export default function OrdersAdminPage() {
         
         const sellerMatch = filters.seller === 'all' || o.sellerId === filters.seller;
 
-        const overdueMatch = !filters.showOverdue || (o.installmentDetails || []).some(inst => inst.status === 'Pendente' && new Date(inst.dueDate) < new Date());
+        const isOverdue = (o.installmentDetails || []).some(inst => inst.status === 'Pendente' && new Date(inst.dueDate) < new Date());
+        const hasPendingInstallments = (o.installmentDetails || []).some(inst => inst.status === 'Pendente');
+
+        const overdueMatch = !filters.showOverdue || isOverdue;
+        const onTimeMatch = !filters.showOnTime || (hasPendingInstallments && !isOverdue);
         
         const dueDateMatch = filters.dueDateRange === 'all' || (o.installmentDetails || []).some(inst => {
             const dueDate = parseISO(inst.dueDate);
@@ -152,7 +157,7 @@ export default function OrdersAdminPage() {
             return day >= start && day <= end;
         });
 
-        return searchMatch && statusMatch && sellerMatch && overdueMatch && dueDateMatch;
+        return searchMatch && statusMatch && sellerMatch && overdueMatch && onTimeMatch && dueDateMatch;
     });
   }, [orders, filters]);
 
@@ -200,13 +205,23 @@ export default function OrdersAdminPage() {
   }, [selectedOrder, products]);
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string | boolean) => {
-    setFilters(prev => ({...prev, [filterName]: value}));
+    setFilters(prev => {
+        const newFilters = { ...prev, [filterName]: value };
+        // Ensure only one of showOverdue or showOnTime is active
+        if (filterName === 'showOverdue' && value) {
+            newFilters.showOnTime = false;
+        }
+        if (filterName === 'showOnTime' && value) {
+            newFilters.showOverdue = false;
+        }
+        return newFilters;
+    });
     setActivePage(1);
     setDeletedPage(1);
   };
 
   const clearFilters = () => {
-    setFilters({ search: '', status: 'all', seller: 'all', showOverdue: false, dueDateRange: 'all' });
+    setFilters({ search: '', status: 'all', seller: 'all', showOverdue: false, showOnTime: false, dueDateRange: 'all' });
   };
 
   useEffect(() => {
@@ -386,7 +401,16 @@ export default function OrdersAdminPage() {
     const dueDate = format(parseISO(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR });
     const amount = formatCurrency(installment.amount - (installment.paidAmount || 0));
     
-    const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da sua parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}).\n\nVencimento: *${dueDate}*\nValor: *${amount}*\n\nChave pix: ${settings.pixKey}\nAdriano Cavalcante de Oliveira\nBanco: Nubank \n\nNão esqueça de enviar o comprovante!`;
+    const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da sua parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}).
+
+Vencimento: *${dueDate}*
+Valor: *${amount}*
+
+Chave pix: ${settings.pixKey}
+Adriano Cavalcante de Oliveira
+Banco: Nubank 
+
+Não esqueça de enviar o comprovante!`;
     
     const whatsappUrl = `https://wa.me/55${customerPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -479,6 +503,14 @@ export default function OrdersAdminPage() {
                                   </SelectContent>
                               </Select>
                           </div>
+                           <Button 
+                              variant={filters.showOnTime ? 'default' : 'outline'}
+                              className={cn(filters.showOnTime && "bg-green-600 hover:bg-green-700")}
+                              onClick={() => handleFilterChange('showOnTime', !filters.showOnTime)}
+                          >
+                              <CheckCircle className="mr-2 h-4 w-4"/>
+                              Em Dia
+                          </Button>
                           <Button 
                               variant={filters.showOverdue ? 'destructive' : 'outline'} 
                               onClick={() => handleFilterChange('showOverdue', !filters.showOverdue)}
