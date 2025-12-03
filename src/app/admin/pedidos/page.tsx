@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -384,8 +385,9 @@ export default function OrdersAdminPage() {
     const customerPhone = order.customer.phone.replace(/\D/g, '');
     const dueDate = format(parseISO(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR });
     const amount = formatCurrency(installment.amount - (installment.paidAmount || 0));
+    const storeName = settings.storeName || 'sua loja';
     
-    const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da sua parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}).\n\n🗓️ Vencimento: *${dueDate}*\n💰 Valor: *${amount}*\n\nChave PIX: *${settings.pixKey}*\nAdriano Cavalcante de Oliveira\n🏦 Nubank\n\nNão esqueça de enviar o comprovante! 😉🤝`;
+    const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da sua parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}).\n\nVencimento: *${dueDate}*\nValor: *${amount}*\n\nChave pix:${settings.pixKey}\nAdriano Cavalcante de Oliveira\n🏦 nubank\nNão esqueça de enviar o comprovante!😉🤝`;
     
     const whatsappUrl = `https://wa.me/55${customerPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
