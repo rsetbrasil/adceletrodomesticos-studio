@@ -536,16 +536,16 @@ Não esqueça de enviar o comprovante!`;
                               <Table>
                                   <TableHeader>
                                       <TableRow>
-                                          <TableHead className="w-[120px]">Pedido</TableHead>
-                                          <TableHead className="w-[130px]">Data</TableHead>
-                                          <TableHead>Cliente</TableHead>
-                                          <TableHead className="w-[150px]">Produtos</TableHead>
-                                          <TableHead>Vendedor</TableHead>
-                                          <TableHead className="w-[100px]">Próx. Venc.</TableHead>
-                                          <TableHead className="text-right">Total</TableHead>
-                                          <TableHead className="text-right">Comissão</TableHead>
-                                          <TableHead className="text-center w-[120px]">Status</TableHead>
-                                          <TableHead className="text-right w-[200px]">Ações</TableHead>
+                                          <TableHead className="w-[120px] p-2">Pedido</TableHead>
+                                          <TableHead className="w-[130px] p-2">Data</TableHead>
+                                          <TableHead className="p-2">Cliente</TableHead>
+                                          <TableHead className="w-[150px] p-2">Produtos</TableHead>
+                                          <TableHead className="p-2">Vendedor</TableHead>
+                                          <TableHead className="w-[100px] p-2">Próx. Venc.</TableHead>
+                                          <TableHead className="text-right p-2">Total</TableHead>
+                                          <TableHead className="text-right p-2">Comissão</TableHead>
+                                          <TableHead className="text-center w-[120px] p-2">Status</TableHead>
+                                          <TableHead className="text-right w-[200px] p-2">Ações</TableHead>
                                       </TableRow>
                                   </TableHeader>
                                   <TableBody>
@@ -599,9 +599,8 @@ Não esqueça de enviar o comprovante!`;
                                                                   <WhatsAppIcon />
                                                               </Button>
                                                           )}
-                                                          <Button variant="outline" size="sm" className="h-8" onClick={() => handleOpenDetails(order)}>
-                                                              <Eye className="mr-1 h-3 w-3" />
-                                                              Ver
+                                                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(order)}>
+                                                              <Eye className="h-4 w-4" />
                                                           </Button>
                                                           <DropdownMenu>
                                                               <DropdownMenuTrigger asChild>
