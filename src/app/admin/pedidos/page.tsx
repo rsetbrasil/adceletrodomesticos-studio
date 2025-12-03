@@ -527,7 +527,9 @@ Não esqueça de enviar o comprovante!😉🤝`;
                                           const nextPendingInstallment = order.installmentDetails
                                                 ?.filter(inst => inst.status === 'Pendente')
                                                 .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+                                          const installmentForReminder = nextPendingInstallment || order.installmentDetails?.[0];
                                           const isOverdue = !!nextPendingInstallment && new Date(nextPendingInstallment.dueDate) < new Date();
+                                          
                                           return (
                                               <TableRow key={order.id}>
                                                   <TableCell className="font-medium">{order.id}</TableCell>
@@ -562,8 +564,8 @@ Não esqueça de enviar o comprovante!😉🤝`;
                                                   </TableCell>
                                                   <TableCell className="text-right">
                                                       <div className="flex items-center justify-end gap-2">
-                                                          {isOverdue && nextPendingInstallment && (
-                                                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, nextPendingInstallment)}>
+                                                          {installmentForReminder && (
+                                                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800" onClick={() => handleSendWhatsAppReminder(order, installmentForReminder)}>
                                                                   <WhatsAppIcon />
                                                               </Button>
                                                           )}
