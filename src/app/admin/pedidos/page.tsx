@@ -62,6 +62,16 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
+const formatBRL = (value: number | undefined | null) => {
+  if (value === undefined || value === null || isNaN(value)) {
+    return "";
+  }
+  return value.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'outline' | 'destructive' => {
   switch (status) {
     case 'Processando':
@@ -101,8 +111,8 @@ export default function OrdersAdminPage() {
   const [installmentsInput, setInstallmentsInput] = useState(1);
   const [commissionInput, setCommissionInput] = useState('0');
   const [observationsInput, setObservationsInput] = useState('');
-  const [discountInput, setDiscountInput] = useState('0,00');
-  const [downPaymentInput, setDownPaymentInput] = useState('0,00');
+  const [discountInput, setDiscountInput] = useState(0);
+  const [downPaymentInput, setDownPaymentInput] = useState(0);
   const [openDueDatePopover, setOpenDueDatePopover] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [installmentToPay, setInstallmentToPay] = useState<Installment | null>(null);
@@ -237,7 +247,7 @@ export default function OrdersAdminPage() {
       setInstallmentsInput(updatedOrderInList?.installments || 1);
       setCommissionInput((updatedOrderInList?.commission || 0).toString().replace('.', ','));
       setObservationsInput(updatedOrderInList?.observations || '');
-      setDiscountInput((updatedOrderInList?.discount || 0).toFixed(2).replace('.', ','));
+      setDiscountInput(updatedOrderInList?.discount || 0);
     }
   }, [orders, selectedOrder]);
 
@@ -246,8 +256,8 @@ export default function OrdersAdminPage() {
     setInstallmentsInput(order.installments);
     setCommissionInput((order.commission || 0).toString().replace('.', ','));
     setObservationsInput(order.observations || '');
-    setDiscountInput((order.discount || 0).toFixed(2).replace('.', ','));
-    setDownPaymentInput('0,00');
+    setDiscountInput(order.discount || 0);
+    setDownPaymentInput(0);
     setIsDetailModalOpen(true);
   }
 
@@ -396,13 +406,13 @@ export default function OrdersAdminPage() {
   const handleUpdateDiscount = () => {
     if (!selectedOrder) return;
     const subtotal = selectedOrder.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    const discountValue = parseFloat(discountInput.replace(',', '.'));
-    if (isNaN(discountValue) || discountValue < 0 || discountValue > subtotal) {
+    
+    if (isNaN(discountInput) || discountInput < 0 || discountInput > subtotal) {
       toast({ title: 'Desconto inválido', description: 'O valor do desconto não pode ser negativo ou maior que o subtotal do pedido.', variant: 'destructive' });
       return;
     }
 
-    const newTotal = subtotal - discountValue;
+    const newTotal = subtotal - discountInput;
     const newInstallmentValue = newTotal / selectedOrder.installments;
 
     const newInstallmentDetails: Installment[] = (selectedOrder.installmentDetails || []).map(inst => ({
@@ -414,7 +424,7 @@ export default function OrdersAdminPage() {
     }));
     
     const detailsToUpdate: Partial<Order> = {
-        discount: discountValue,
+        discount: discountInput,
         total: newTotal,
         installmentValue: newInstallmentValue,
         installmentDetails: newInstallmentDetails,
@@ -427,8 +437,8 @@ export default function OrdersAdminPage() {
           toast({ title: 'Erro', description: 'Este pedido não tem parcelas para adicionar uma entrada.', variant: 'destructive' });
           return;
       }
-      const downPaymentValue = parseFloat(downPaymentInput.replace(',', '.'));
-      if (isNaN(downPaymentValue) || downPaymentValue <= 0) {
+      
+      if (isNaN(downPaymentInput) || downPaymentInput <= 0) {
           toast({ title: 'Valor inválido', description: 'Por favor, insira um valor de entrada válido.', variant: 'destructive' });
           return;
       }
@@ -436,13 +446,13 @@ export default function OrdersAdminPage() {
       const firstInstallment = selectedOrder.installmentDetails[0];
       const payment: Omit<Payment, 'receivedBy'> = {
           id: `downpay-${Date.now()}`,
-          amount: downPaymentValue,
+          amount: downPaymentInput,
           date: new Date().toISOString(),
           method: 'Dinheiro', // Assuming down payment is cash/pix, can be changed
       };
       
       recordInstallmentPayment(selectedOrder.id, firstInstallment.installmentNumber, payment, logAction, user);
-      setDownPaymentInput('0,00');
+      setDownPaymentInput(0);
   };
   
   const handleUpdateObservations = () => {
@@ -1005,9 +1015,12 @@ Não esqueça de enviar o comprovante!`;
                                        <label className="text-sm font-medium">Desconto (R$)</label>
                                        <div className="flex gap-2">
                                             <Input
-                                                type="text"
-                                                value={discountInput}
-                                                onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, '').replace(/(\d)(\d{2})$/, '$1,$2'))}
+                                                inputMode="decimal"
+                                                value={formatBRL(discountInput)}
+                                                onChange={(e) => {
+                                                    const rawValue = e.target.value.replace(/\D/g, '');
+                                                    setDiscountInput(Number(rawValue) / 100);
+                                                }}
                                                 className="h-9"
                                             />
                                             <Button size="sm" variant="outline" onClick={handleUpdateDiscount}>
@@ -1019,9 +1032,12 @@ Não esqueça de enviar o comprovante!`;
                                        <label className="text-sm font-medium">Dar Entrada (R$)</label>
                                        <div className="flex gap-2">
                                             <Input
-                                                type="text"
-                                                value={downPaymentInput}
-                                                onChange={(e) => setDownPaymentInput(e.target.value.replace(/\D/g, '').replace(/(\d)(\d{2})$/, '$1,$2'))}
+                                                inputMode="decimal"
+                                                value={formatBRL(downPaymentInput)}
+                                                onChange={(e) => {
+                                                    const rawValue = e.target.value.replace(/\D/g, '');
+                                                    setDownPaymentInput(Number(rawValue) / 100);
+                                                }}
                                                 className="h-9"
                                             />
                                             <Button size="sm" variant="outline" onClick={handleAddDownPayment}>
