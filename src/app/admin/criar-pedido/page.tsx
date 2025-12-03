@@ -34,6 +34,7 @@ const createOrderSchema = z.object({
   customerId: z.string().min(1, 'É obrigatório selecionar um cliente.'),
   sellerId: z.string().min(1, 'É obrigatório selecionar um vendedor.'),
   date: z.date({ required_error: 'A data do pedido é obrigatória.' }),
+  firstDueDate: z.date({ required_error: 'O vencimento da 1ª parcela é obrigatório.' }),
   items: z.array(z.object({
     id: z.string(),
     name: z.string(),
@@ -188,6 +189,7 @@ export default function CreateOrderPage() {
       customerId: '',
       sellerId: user?.id || '',
       date: new Date(),
+      firstDueDate: addMonths(new Date(), 1),
       items: [],
       installments: 1,
       discount: 0,
@@ -268,7 +270,7 @@ export default function CreateOrderPage() {
       .reduce((max, current) => Math.max(max, current), 0);
       
     const orderId = `PED-${String(lastOrderNumber + 1).padStart(4, '0')}`;
-    const orderDate = values.date;
+    const firstDueDate = values.firstDueDate;
     
     const installmentValue = total / values.installments;
 
@@ -276,7 +278,7 @@ export default function CreateOrderPage() {
       id: `inst-${orderId}-${i + 1}`,
       installmentNumber: i + 1,
       amount: installmentValue,
-      dueDate: addMonths(orderDate, i + 1).toISOString(),
+      dueDate: addMonths(firstDueDate, i).toISOString(),
       status: 'Pendente' as const,
       paidAmount: 0,
       payments: [],
@@ -290,7 +292,7 @@ export default function CreateOrderPage() {
         discount: values.discount,
         installments: values.installments,
         installmentValue,
-        date: orderDate.toISOString(),
+        date: values.date.toISOString(),
         status: 'Processando' as const,
         paymentMethod: 'Crediário' as const,
         installmentDetails,
@@ -329,7 +331,7 @@ export default function CreateOrderPage() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid md:grid-cols-3 gap-8 items-start">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 items-start">
               <FormField
                 control={form.control}
                 name="customerId"
@@ -444,6 +446,45 @@ export default function CreateOrderPage() {
                               disabled={(date) =>
                                 date > new Date() || date < new Date("1900-01-01")
                               }
+                              initialFocus
+                              locale={ptBR}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="firstDueDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Vencimento da 1ª Parcela</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP", {locale: ptBR})
+                                ) : (
+                                  <span>Escolha uma data</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
                               initialFocus
                               locale={ptBR}
                             />
@@ -631,3 +672,5 @@ export default function CreateOrderPage() {
     </Card>
   );
 }
+
+    
