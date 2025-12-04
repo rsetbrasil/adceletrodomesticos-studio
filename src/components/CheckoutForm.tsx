@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -231,13 +232,8 @@ export default function CheckoutForm() {
     }
     
     const lastOrderNumber = orders
-      .map(o => {
-          const orderId = o.id;
-          if (!orderId.startsWith('PED-')) return 0;
-          const numberPart = orderId.split('-')[1];
-          const number = parseInt(numberPart, 10);
-          return isNaN(number) ? 0 : number;
-      })
+      .map(o => parseInt(o.id.split('-')[1] || '0', 10))
+      .filter(n => !isNaN(n))
       .reduce((max, current) => Math.max(max, current), 0);
       
     const orderId = `PED-${String(lastOrderNumber + 1).padStart(4, '0')}`;

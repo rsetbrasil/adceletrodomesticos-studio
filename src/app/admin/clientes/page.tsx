@@ -388,8 +388,14 @@ export default function CustomersAdminPage() {
         toast({ title: 'Erro', description: 'Um cliente com este CPF já existe.', variant: 'destructive' });
         return;
     }
+    
+    const lastOrderNumber = orders
+        .map(o => parseInt(o.id.split('-')[1] || '0', 10))
+        .filter(n => !isNaN(n))
+        .reduce((max, current) => Math.max(max, current), 0);
 
-    const orderId = `REG-${customerData.cpf ? customerData.cpf.replace(/\D/g, '') : Date.now()}`;
+    const orderId = `REG-${String(lastOrderNumber + 1).padStart(4, '0')}`;
+
     const newCustomerOrder: Partial<Order> = {
       id: orderId,
       customer: { ...customerData, password: customerData.cpf?.substring(0, 6) },
