@@ -559,11 +559,13 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const orderToSave = {
         ...order,
         id: orderId, // Set the new sequential ID here
-        sellerId: user?.id || '',
-        sellerName: user?.name || 'Não atribuído',
-        commission: 0,
+        sellerId: order.sellerId || user?.id || '',
+        sellerName: order.sellerName || user?.name || 'Não atribuído',
         commissionPaid: false,
     } as Order;
+
+    // Calculate commission on creation
+    orderToSave.commission = calculateCommission(orderToSave, products);
     
     const subtotal = order.items?.reduce((acc, item) => acc + item.price * item.quantity, 0) || 0;
     const total = subtotal - (order.discount || 0);
