@@ -394,8 +394,9 @@ export default function OrdersAdminPage() {
     const customerPhone = order.customer.phone.replace(/\D/g, '');
     const dueDate = format(parseISO(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR });
     const amount = formatCurrency(installment.amount - (installment.paidAmount || 0));
+    const productNames = order.items.map(item => item.name).join(', ');
     
-    const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da sua parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}).
+    const message = `Olá, ${customerName}! Passando para lembrar sobre a sua parcela do carnê (pedido ${order.id}) referente a compra de *${productNames}*.
 
 Vencimento: *${dueDate}*
 Valor: *${amount}*
@@ -868,7 +869,7 @@ Não esqueça de enviar o comprovante!`;
                                 <Separator className="my-3" />
                                 <div className="flex justify-between font-bold text-base">
                                     <span>TOTAL</span>
-                                    <span>{formatCurrency(selectedOrder.total)}</span>
+                                    <span>{formatCurrency(selectedOrder.items.reduce((acc, item) => acc + (item.price * item.quantity), 0) - (selectedOrder.discount || 0) - (selectedOrder.downPayment || 0))}</span>
                                 </div>
                                 <div className="flex justify-between text-sm mt-2">
                                     <span>Vendedor:</span>
