@@ -27,17 +27,20 @@ export default function MyCommissionsPage() {
   const { orders, commissionPayments } = useData();
   const { user } = useAuth();
   const { logAction } = useAudit();
+
+  const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'gerente';
   
   const pendingCommissions = useMemo(() => {
     if (!user || !orders) return [];
     
-    let userOrders = orders.filter(o => 
-        o.status === 'Entregue' && 
-        o.sellerId === user.id && 
-        !o.commissionPaid
-    );
+    let userOrders = orders.filter(o => {
+      const isPending = o.status === 'Entregue' && typeof o.commission === 'number' && o.commission > 0 && !o.commissionPaid;
+      if (!isPending) return false;
+      if (isManagerOrAdmin) return true; // Manager/Admin sees all
+      return o.sellerId === user.id; // Seller sees only their own
+    });
     return userOrders;
-  }, [orders, user]);
+  }, [orders, user, isManagerOrAdmin]);
 
   const totalPending = pendingCommissions.reduce((acc, order) => acc + (order.commission || 0), 0);
 
@@ -53,7 +56,6 @@ export default function MyCommissionsPage() {
     return <p>Carregando...</p>;
   }
 
-  const isManagerOrAdmin = user.role === 'admin' || user.role === 'gerente';
 
   return (
     <div className="space-y-8">
@@ -94,14 +96,14 @@ export default function MyCommissionsPage() {
             <Tabs defaultValue="pending">
                 <TabsList>
                     <TabsTrigger value="pending">Comissões Pendentes</TabsTrigger>
-                    <TabsTrigger value="history">Histórico de Pagamentos</TabsTrigger>
+                    <TabsTrigger value="history">Meus Pagamentos</TabsTrigger>
                     {isManagerOrAdmin && <TabsTrigger value="all_history">Histórico Geral</TabsTrigger>}
                 </TabsList>
                 <TabsContent value="pending" className="mt-4">
                      <Card>
                         <CardHeader>
-                            <CardTitle>Comissões a Receber</CardTitle>
-                            <CardDescription>Esta é a lista de todas as vendas concluídas cuja comissão ainda não foi paga.</CardDescription>
+                            <CardTitle>{isManagerOrAdmin ? 'Comissões Pendentes (Todos os Vendedores)' : 'Minhas Comissões a Receber'}</CardTitle>
+                            <CardDescription>{isManagerOrAdmin ? 'Lista de todas as vendas concluídas de todos os vendedores, cuja comissão ainda não foi paga.' : 'Esta é a lista de todas as suas vendas concluídas cuja comissão ainda não foi paga.'}</CardDescription>
                         </CardHeader>
                         <CardContent>
                              <div className="rounded-md border">
@@ -109,6 +111,7 @@ export default function MyCommissionsPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Data da Venda</TableHead>
+                                            {isManagerOrAdmin && <TableHead>Vendedor</TableHead>}
                                             <TableHead>Pedido ID</TableHead>
                                             <TableHead>Cliente</TableHead>
                                             <TableHead className="text-right">Valor da Comissão</TableHead>
@@ -119,6 +122,7 @@ export default function MyCommissionsPage() {
                                             pendingCommissions.map(order => (
                                                 <TableRow key={order.id}>
                                                     <TableCell>{format(parseISO(order.date), "dd/MM/yyyy")}</TableCell>
+                                                    {isManagerOrAdmin && <TableCell>{order.sellerName}</TableCell>}
                                                     <TableCell className="font-mono">{order.id}</TableCell>
                                                     <TableCell>{order.customer.name}</TableCell>
                                                     <TableCell className="text-right font-semibold">{formatCurrency(order.commission || 0)}</TableCell>
@@ -126,7 +130,9 @@ export default function MyCommissionsPage() {
                                             ))
                                         ) : (
                                             <TableRow>
-                                                <TableCell colSpan={4} className="h-24 text-center">Você não tem comissões pendentes.</TableCell>
+                                                <TableCell colSpan={isManagerOrAdmin ? 5 : 4} className="h-24 text-center">
+                                                  {isManagerOrAdmin ? 'Nenhuma comissão pendente para a equipe.' : 'Você não tem comissões pendentes.'}
+                                                </TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>
