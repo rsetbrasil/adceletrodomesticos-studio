@@ -364,25 +364,13 @@ export default function OrdersAdminPage() {
   };
   
   const handleAddDownPayment = () => {
-      if (!selectedOrder || !selectedOrder.installmentDetails?.length) {
-          toast({ title: 'Erro', description: 'Este pedido não tem parcelas para adicionar uma entrada.', variant: 'destructive' });
-          return;
-      }
-      
+      if (!selectedOrder) return;
       if (isNaN(downPaymentInput) || downPaymentInput <= 0) {
           toast({ title: 'Valor inválido', description: 'Por favor, insira um valor de entrada válido.', variant: 'destructive' });
           return;
       }
 
-      const firstInstallment = selectedOrder.installmentDetails[0];
-      const payment: Omit<Payment, 'receivedBy'> = {
-          id: `downpay-${Date.now()}`,
-          amount: downPaymentInput,
-          date: new Date().toISOString(),
-          method: 'Dinheiro', // Assuming down payment is cash/pix, can be changed
-      };
-      
-      recordInstallmentPayment(selectedOrder.id, firstInstallment.installmentNumber, payment, logAction, user);
+      updateOrderDetails(selectedOrder.id, { downPayment: downPaymentInput }, logAction, user);
       setDownPaymentInput(0);
   };
   
@@ -1163,5 +1151,3 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
-
-    

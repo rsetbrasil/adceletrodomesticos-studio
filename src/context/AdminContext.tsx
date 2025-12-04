@@ -39,24 +39,24 @@ const calculateCommission = (order: Order, allProducts: Product[]) => {
 
 function recalculateInstallments(total: number, installmentsCount: number, orderId: string, orderDate: string): Installment[] {
     if (installmentsCount <= 0) return [];
-
+    
     const totalInCents = Math.round(total * 100);
     const baseInstallmentValueInCents = Math.floor(totalInCents / installmentsCount);
     let remainderInCents = totalInCents % installmentsCount;
 
     const newInstallmentDetails: Installment[] = [];
-
+    
     for (let i = 0; i < installmentsCount; i++) {
-        let installmentValue = baseInstallmentValueInCents;
+        let installmentValueCents = baseInstallmentValueInCents;
         if (remainderInCents > 0) {
-            installmentValue++;
+            installmentValueCents++;
             remainderInCents--;
         }
         
         newInstallmentDetails.push({
             id: `inst-${orderId}-${i + 1}`,
             installmentNumber: i + 1,
-            amount: installmentValue / 100,
+            amount: installmentValueCents / 100,
             dueDate: addMonths(new Date(orderDate), i + 1).toISOString(),
             status: 'Pendente',
             paidAmount: 0,
@@ -78,7 +78,7 @@ interface AdminContextType {
   updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date, logAction: LogAction, user: User | null) => Promise<void>;
   updateCustomer: (updatedCustomer: CustomerInfo, logAction: LogAction, user: User | null) => Promise<void>;
   importCustomers: (csvData: string, logAction: LogAction, user: User | null) => Promise<void>;
-  updateOrderDetails: (orderId: string, details: Partial<Order>, logAction: LogAction, user: User | null) => Promise<void>;
+  updateOrderDetails: (orderId: string, details: Partial<Order> & { downPayment?: number }, logAction: LogAction, user: User | null) => Promise<void>;
   addProduct: (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => Promise<void>;
   updateProduct: (product: Product, logAction: LogAction, user: User | null) => Promise<void>;
   deleteProduct: (productId: string, logAction: LogAction, user: User | null) => Promise<void>;
@@ -933,27 +933,53 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [orders, toast]);
 
 
-  const updateOrderDetails = useCallback(async (orderId: string, details: Partial<Order>, logAction: LogAction, user: User | null) => {
+  const updateOrderDetails = useCallback(async (orderId: string, details: Partial<Order> & { downPayment?: number }, logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
 
     let detailsToUpdate: Partial<Order> = { ...details };
+    const { downPayment, ...otherDetails } = details;
+    detailsToUpdate = otherDetails;
+    
+    const subtotal = order.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
     const hasInstallmentsChanged = details.installments && details.installments !== order.installments;
     const hasDiscountChanged = details.discount !== undefined && details.discount !== order.discount;
+    const hasDownPayment = downPayment !== undefined && downPayment > 0;
 
-    if (hasInstallmentsChanged || hasDiscountChanged) {
-        const subtotal = order.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    if (hasInstallmentsChanged || hasDiscountChanged || hasDownPayment) {
         const currentDiscount = hasDiscountChanged ? details.discount! : (order.discount || 0);
-        const currentTotal = subtotal - currentDiscount;
+        const totalAfterDiscount = subtotal - currentDiscount;
+        const amountToFinance = totalAfterDiscount - (downPayment || 0);
+
         const currentInstallments = hasInstallmentsChanged ? details.installments! : order.installments;
         
-        const newInstallmentDetails = recalculateInstallments(currentTotal, currentInstallments, orderId, order.date);
+        let newInstallmentDetails = recalculateInstallments(amountToFinance, currentInstallments, orderId, order.date);
+
+        if (hasDownPayment) {
+            logAction('Registro de Entrada', `Registrada entrada de R$${downPayment?.toFixed(2)} no pedido #${orderId}.`, user);
+            const downPaymentRecord: Payment = {
+                id: `downpay-${Date.now()}`,
+                amount: downPayment,
+                date: new Date().toISOString(),
+                method: 'Dinheiro', // Default, can be adjusted
+                receivedBy: user?.name || 'Sistema'
+            };
+            
+            // Record down payment against the first installment
+            if (newInstallmentDetails.length > 0) {
+                newInstallmentDetails[0].payments = [downPaymentRecord];
+                newInstallmentDetails[0].paidAmount = downPayment;
+                if (Math.abs(newInstallmentDetails[0].paidAmount - newInstallmentDetails[0].amount) < 0.01) {
+                    newInstallmentDetails[0].status = 'Pago';
+                }
+            }
+        }
 
         detailsToUpdate = {
             ...detailsToUpdate,
-            total: currentTotal,
+            total: totalAfterDiscount,
             discount: currentDiscount,
             installments: currentInstallments,
             installmentValue: newInstallmentDetails[0]?.amount || 0,
