@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -20,7 +19,6 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
     DialogFooter,
 } from '@/components/ui/dialog';
 import {
@@ -269,67 +267,21 @@ export default function OrdersAdminPage() {
 
   const handleUpdatePaymentMethod = (paymentMethod: PaymentMethod) => {
     if (!selectedOrder) return;
-    
-    let newDetails: Partial<Order> = { paymentMethod };
-    
-    if (paymentMethod === 'Crediário') {
-        const currentInstallments = selectedOrder.installments > 0 ? selectedOrder.installments : 1;
-        const newInstallmentValue = selectedOrder.total / currentInstallments;
-        const newInstallmentDetails: Installment[] = Array.from({ length: currentInstallments }, (_, i) => ({
-            installmentNumber: i + 1,
-            amount: newInstallmentValue,
-            dueDate: addMonths(new Date(selectedOrder.date), i + 1).toISOString(),
-            status: 'Pendente',
-            paidAmount: 0,
-            payments: [],
-            id: `inst-${selectedOrder.id}-${i + 1}`
-        }));
-        newDetails = { 
-            ...newDetails,
-            installments: currentInstallments,
-            installmentValue: newInstallmentValue,
-            installmentDetails: newInstallmentDetails
-        };
-        setInstallmentsInput(currentInstallments);
-    } else {
-        newDetails = { ...newDetails, installments: 1, installmentValue: selectedOrder.total, installmentDetails: [] };
-    }
-    
-    updateOrderDetails(selectedOrder.id, newDetails, logAction, user);
+    updateOrderDetails(selectedOrder.id, { paymentMethod }, logAction, user);
   };
 
   const handleUpdateInstallments = () => {
-    if (!selectedOrder || selectedOrder.paymentMethod !== 'Crediário' || !installmentsInput) return;
-    
-    const newInstallmentsCount = Number(installmentsInput);
-    if (isNaN(newInstallmentsCount) || newInstallmentsCount < 1) {
-        toast({ title: "Erro", description: "Por favor, insira um número de parcelas válido.", variant: "destructive" });
-        return;
-    }
+    if (!selectedOrder || !installmentsInput) return;
 
-    if (newInstallmentsCount > maxAllowedInstallmentsForSelectedOrder) {
+    if (installmentsInput > maxAllowedInstallmentsForSelectedOrder) {
         toast({ title: "Limite de Parcelas Excedido", description: `O número máximo de parcelas para este pedido é ${maxAllowedInstallmentsForSelectedOrder}.`, variant: "destructive" });
         return;
     }
-
-    const newInstallmentValue = selectedOrder.total / newInstallmentsCount;
-    const newInstallmentDetails: Installment[] = Array.from({ length: newInstallmentsCount }, (_, i) => ({
-        installmentNumber: i + 1,
-        amount: newInstallmentValue,
-        dueDate: addMonths(new Date(selectedOrder.date), i + 1).toISOString(),
-        status: 'Pendente',
-        paidAmount: 0,
-        payments: [],
-        id: `inst-${selectedOrder.id}-${i + 1}`
-    }));
     
-    const newDetails: Partial<Order> = {
-        installments: newInstallmentsCount,
-        installmentValue: newInstallmentValue,
-        installmentDetails: newInstallmentDetails
-    };
-    
-    updateOrderDetails(selectedOrder.id, newDetails, logAction, user);
+    updateOrderDetails(selectedOrder.id, { 
+      installments: installmentsInput, 
+      discount: discountInput
+    }, logAction, user);
   };
   
   const handleOpenPaymentDialog = (installment: Installment) => {
@@ -356,10 +308,6 @@ export default function OrdersAdminPage() {
 
   const handleDeleteOrder = (orderId: string) => {
     deleteOrder(orderId, logAction, user);
-    toast({
-      title: 'Pedido Movido para Lixeira!',
-      description: 'O pedido foi movido para a lixeira e pode ser restaurado.',
-    });
   };
 
   const handlePermanentlyDeleteOrder = (orderId: string) => {
@@ -411,25 +359,8 @@ export default function OrdersAdminPage() {
       toast({ title: 'Desconto inválido', description: 'O valor do desconto não pode ser negativo ou maior que o subtotal do pedido.', variant: 'destructive' });
       return;
     }
-
-    const newTotal = subtotal - discountInput;
-    const newInstallmentValue = newTotal / selectedOrder.installments;
-
-    const newInstallmentDetails: Installment[] = (selectedOrder.installmentDetails || []).map(inst => ({
-        ...inst,
-        amount: newInstallmentValue,
-        paidAmount: 0,
-        payments: [],
-        status: 'Pendente' as const,
-    }));
     
-    const detailsToUpdate: Partial<Order> = {
-        discount: discountInput,
-        total: newTotal,
-        installmentValue: newInstallmentValue,
-        installmentDetails: newInstallmentDetails,
-    };
-    updateOrderDetails(selectedOrder.id, detailsToUpdate, logAction, user);
+    updateOrderDetails(selectedOrder.id, { discount: discountInput }, logAction, user);
   };
   
   const handleAddDownPayment = () => {
@@ -892,9 +823,9 @@ Não esqueça de enviar o comprovante!`;
                   <>
                   <DialogHeader>
                       <DialogTitle>Pedido: {selectedOrder.id}</DialogTitle>
-                      <DialogDescription>
+                      <CardDescription>
                           Gerencie o status, faturamento e detalhes do pedido.
-                      </DialogDescription>
+                      </CardDescription>
                   </DialogHeader>
                   <div className="flex-grow overflow-y-auto p-1 pr-4 -mr-4 space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -908,6 +839,9 @@ Não esqueça de enviar o comprovante!`;
                                 <p><strong>CPF:</strong> {selectedOrder.customer.cpf}</p>
                                 <p><strong>Telefone:</strong> {selectedOrder.customer.phone}</p>
                                 <p><strong>Endereço:</strong> {`${selectedOrder.customer.address}, ${selectedOrder.customer.city}`}</p>
+                                <Link href={`/admin/clientes?cpf=${selectedOrder.customer.cpf}`} className={cn(buttonVariants({ variant: 'outline', size: 'sm'}), 'mt-2')}>
+                                  <Eye className='mr-2' /> Ver Cadastro Completo
+                               </Link>
                             </CardContent>
                           </Card>
 
@@ -1110,7 +1044,7 @@ Não esqueça de enviar o comprovante!`;
                                                         <TableCell>
                                                             <Popover open={openDueDatePopover === uniqueKey} onOpenChange={(isOpen) => setOpenDueDatePopover(isOpen ? uniqueKey : null)}>
                                                                 <PopoverTrigger asChild>
-                                                                    <Button variant={"outline"} className="w-[150px] justify-start text-left font-normal text-xs" disabled={inst.status === 'Pago'}>
+                                                                    <Button variant={"outline"} className="w-auto px-3 justify-start text-left font-normal text-xs" disabled={inst.status === 'Pago'}>
                                                                         <CalendarIcon className="mr-2 h-4 w-4" />
                                                                         Venc: {format(new Date(inst.dueDate), 'dd/MM/yyyy')}
                                                                     </Button>
@@ -1173,7 +1107,7 @@ Não esqueça de enviar o comprovante!`;
                                                                                                 <AlertDialogContent>
                                                                                                     <AlertDialogHeader>
                                                                                                         <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
-                                                                                                        <AlertDialogDescription>Esta ação irá reverter o pagamento de {formatCurrency(p.amount)} feito em {format(new Date(p.date), 'dd/MM/yy')}. Isso não pode ser desfeito.</AlertDialogDescription>
+                                                                                                        <CardDescription>Esta ação irá reverter o pagamento de {formatCurrency(p.amount)} feito em {format(new Date(p.date), 'dd/MM/yy')}. Isso não pode ser desfeito.</CardDescription>
                                                                                                     </AlertDialogHeader>
                                                                                                     <AlertDialogFooter>
                                                                                                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -1229,3 +1163,5 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
+
+    
