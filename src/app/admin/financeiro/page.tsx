@@ -110,10 +110,13 @@ export default function FinanceiroPage() {
     setIsPerformanceDetailModalOpen(true);
   };
 
-  const handlePrint = (type: 'sales' | 'profits' | 'commissions' | 'sellers' | 'single-seller' | 'all') => {
+  const handlePrint = (type: 'sales' | 'profits' | 'commissions' | 'sellers' | 'single-seller' | 'all', seller?: SellerPerformanceDetails) => {
     let title = 'Relatório Financeiro';
     
     document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only', 'print-sellers-only', 'print-single-seller-report');
+    
+    // Always clear the previously selected seller for printing
+    setSelectedPerformanceSeller(null);
 
     if (type === 'sales') {
         title = 'Relatório de Vendas';
@@ -127,8 +130,9 @@ export default function FinanceiroPage() {
     } else if (type === 'sellers') {
         title = 'Relatório de Vendas por Vendedor';
         document.body.classList.add('print-sellers-only');
-    } else if (type === 'single-seller' && selectedPerformanceSeller) {
-        title = `Relatório de Vendas - ${selectedPerformanceSeller.name}`;
+    } else if (type === 'single-seller' && seller) {
+        title = `Relatório de Vendas - ${seller.name}`;
+        setSelectedPerformanceSeller(seller);
         document.body.classList.add('print-single-seller-report');
     }
     
@@ -137,6 +141,7 @@ export default function FinanceiroPage() {
     setTimeout(() => {
         window.print();
         document.body.className = '';
+        setSelectedPerformanceSeller(null); // Clean up after print
     }, 100);
 };
 
@@ -285,7 +290,7 @@ export default function FinanceiroPage() {
                                             <TableCell className="text-right">{formatCurrency(seller.totalSold)}</TableCell>
                                             <TableCell className="text-right font-semibold">{formatCurrency(seller.totalCommission)}</TableCell>
                                             <TableCell className="text-right">
-                                                 <Button variant="outline" size="sm" onClick={() => { setSelectedPerformanceSeller(seller); handlePrint('single-seller');}}>
+                                                 <Button variant="outline" size="sm" onClick={() => handlePrint('single-seller', seller)}>
                                                     <Printer className="mr-2 h-4 w-4" /> imprimir relatorio
                                                 </Button>
                                             </TableCell>
