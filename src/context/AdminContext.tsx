@@ -933,7 +933,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [orders, toast]);
 
 
-  const updateOrderDetails = useCallback(async (orderId: string, details: Partial<Order> & { downPayment?: number }, logAction: LogAction, user: User | null) => {
+  const updateOrderDetails = useCallback(async (orderId: string, details: Partial<Order>, logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
@@ -951,7 +951,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     if (hasInstallmentsChanged || hasDiscountChanged || hasDownPayment) {
         const currentDiscount = hasDiscountChanged ? details.discount! : (order.discount || 0);
         const totalAfterDiscount = subtotal - currentDiscount;
-        const amountToFinance = totalAfterDiscount - (downPayment || 0);
+        const currentDownPayment = (order.downPayment || 0) + (downPayment || 0);
+        const amountToFinance = totalAfterDiscount - currentDownPayment;
         const currentInstallments = hasInstallmentsChanged ? details.installments! : order.installments;
         
         let newInstallmentDetails = recalculateInstallments(amountToFinance, currentInstallments, orderId, order.date);
@@ -966,7 +967,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
                 receivedBy: user?.name || 'Sistema'
             };
             
-            // Record down payment against the first installment
             if (newInstallmentDetails.length > 0) {
                 newInstallmentDetails[0].payments = [...(newInstallmentDetails[0].payments || []), downPaymentRecord];
                 newInstallmentDetails[0].paidAmount = (newInstallmentDetails[0].paidAmount || 0) + downPayment;
@@ -983,7 +983,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             installments: currentInstallments,
             installmentValue: newInstallmentDetails[0]?.amount || 0,
             installmentDetails: newInstallmentDetails,
-            downPayment: (order.downPayment || 0) + (downPayment || 0),
+            downPayment: currentDownPayment,
         };
     }
     
@@ -1234,4 +1234,3 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
-

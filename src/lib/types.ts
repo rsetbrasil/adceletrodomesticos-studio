@@ -93,6 +93,7 @@ export type Order = {
   items: CartItem[];
   total: number;
   discount?: number;
+  downPayment?: number;
   installments: number;
   installmentValue: number;
   date: string;
