@@ -848,10 +848,18 @@ Não esqueça de enviar o comprovante!`;
                                         </div>
                                     ))}
                                     <Separator />
-                                     <div className="flex justify-between items-center text-destructive">
-                                        <span>Desconto</span>
-                                        <span>- {formatCurrency(selectedOrder.discount || 0)}</span>
-                                     </div>
+                                     {(selectedOrder.downPayment || 0) > 0 && (
+                                        <div className="flex justify-between items-center text-green-600">
+                                            <span>Entrada</span>
+                                            <span>- {formatCurrency(selectedOrder.downPayment || 0)}</span>
+                                        </div>
+                                     )}
+                                     {(selectedOrder.discount || 0) > 0 && (
+                                        <div className="flex justify-between items-center text-destructive">
+                                            <span>Desconto</span>
+                                            <span>- {formatCurrency(selectedOrder.discount || 0)}</span>
+                                        </div>
+                                     )}
                                 </div>
                                 <Separator className="my-3" />
                                 <div className="flex justify-between font-bold text-base">
