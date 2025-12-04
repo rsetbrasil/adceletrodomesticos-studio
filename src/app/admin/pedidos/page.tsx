@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useAdmin } from '@/context/AdminContext';
-import type { Order, Installment, PaymentMethod, User, Payment } from '@/lib/types';
+import type { Order, Installment, PaymentMethod, User, Payment, Product } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
 import {
   Table,
@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus, Clock, MessageSquare, Eye } from 'lucide-react';
+import { PackageSearch, FileText, CheckCircle, Pencil, User as UserIcon, ShoppingBag, CreditCard, Printer, Undo2, Save, CalendarIcon, MoreHorizontal, Trash2, Users, Filter, X, Trash, History, Percent, UserPlus, Clock, MessageSquare, Eye, Calculator } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, parseISO, addMonths, getMonth, getYear, getDate } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -341,6 +341,25 @@ export default function OrdersAdminPage() {
     if (!user) return;
     handleAssignSeller(order, user);
   }
+
+  const handleCalculateCommission = () => {
+    if (!selectedOrder || !products) return;
+
+    const commission = selectedOrder.items.reduce((totalCommission, item) => {
+        const product = products.find(p => p.id === item.id);
+        if (!product || typeof product.commissionValue === 'undefined') return totalCommission;
+
+        if (product.commissionType === 'fixed') {
+            return totalCommission + (product.commissionValue * item.quantity);
+        }
+        if (product.commissionType === 'percentage') {
+            return totalCommission + (item.price * item.quantity * product.commissionValue / 100);
+        }
+        return totalCommission;
+    }, 0);
+    
+    setCommissionInput(commission.toFixed(2).replace('.', ','));
+  };
 
   const handleUpdateCommission = () => {
     if (!selectedOrder) return;
@@ -889,7 +908,10 @@ Não esqueça de enviar o comprovante!`;
                                               onKeyDown={(e) => { if (e.key === 'Enter') handleUpdateCommission() }}
                                               className="w-24 h-8 text-right"
                                           />
-                                          <Button size="sm" variant="outline" onClick={handleUpdateCommission}>
+                                          <Button size="icon" variant="outline" onClick={handleCalculateCommission} className="h-8 w-8">
+                                              <Calculator className="h-4 w-4" />
+                                          </Button>
+                                          <Button size="icon" variant="outline" onClick={handleUpdateCommission} className="h-8 w-8">
                                               <Save className="h-4 w-4" />
                                           </Button>
                                       </div>
