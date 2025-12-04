@@ -95,7 +95,7 @@ export default function FinanceiroPage() {
     return orders.filter(o => selectedSeller.orderIds.includes(o.id));
   }, [selectedSeller, orders]);
 
-  const handlePrint = (type: 'sales' | 'profits' | 'commissions') => {
+  const handlePrint = (type: 'sales' | 'profits' | 'commissions' | 'all') => {
     let title = 'Relatório Financeiro';
     
     document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only');
@@ -115,6 +115,7 @@ export default function FinanceiroPage() {
 
     setTimeout(() => {
         window.print();
+        // Clean up classes after printing
         document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only');
     }, 100);
 };
@@ -136,17 +137,21 @@ export default function FinanceiroPage() {
                 <CardDescription>Resumo de vendas, lucros e comissões. Use os botões para imprimir seções específicas.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
-                <Button onClick={() => handlePrint('sales')}>
+                <Button onClick={() => handlePrint('all')}>
                     <Printer className="mr-2 h-4 w-4" />
-                    Imprimir Vendas
+                    Imprimir Relatório Completo
                 </Button>
-                <Button onClick={() => handlePrint('profits')}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Imprimir Lucros
+                <Button variant="outline" onClick={() => handlePrint('sales')}>
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Apenas Vendas
                 </Button>
-                <Button onClick={() => handlePrint('commissions')}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Imprimir Comissões
+                <Button variant="outline" onClick={() => handlePrint('profits')}>
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Apenas Lucros
+                </Button>
+                <Button variant="outline" onClick={() => handlePrint('commissions')}>
+                    <Award className="mr-2 h-4 w-4" />
+                    Apenas Comissões
                 </Button>
             </CardContent>
           </Card>

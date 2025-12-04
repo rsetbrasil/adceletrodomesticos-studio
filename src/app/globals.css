@@ -81,7 +81,7 @@
   }
   
   .print-only {
-    display: none;
+    display: block !important;
   }
 
   body.print-overdue-report .print-only {
