@@ -31,6 +31,13 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
     const isPaid = installment.status === 'Pago';
     const remainingBalance = isPaid ? 0 : installment.amount - totalPaidOnInstallment;
     
+    const valorOriginal = useMemo(() => {
+        const subtotal = order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        return subtotal;
+    }, [order.items]);
+    
+    const valorFinanciado = order.total;
+
     return (
         <div className="bg-white break-inside-avoid-page text-black font-mono text-xs relative print:p-0">
              <div className="flex justify-between items-start mb-4">
@@ -61,13 +68,15 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
                 <div className="space-y-1 text-right">
                     <p>PARCELA: {installment.installmentNumber}/{order.installments}</p>
                     <p>VENCIMENTO: {format(new Date(installment.dueDate), 'dd/MM/yyyy')}</p>
-                    <p>VALOR ORIGINAL: {formatCurrency(installment.amount)}</p>
-                    {(order.discount || 0) > 0 && <p className="text-red-600">DESCONTO NO PEDIDO: {formatCurrency(order.discount || 0)}</p>}
+                    <p>VALOR ORIGINAL: {formatCurrency(valorOriginal)}</p>
+                    {(order.discount || 0) > 0 && <p>DESCONTO: -{formatCurrency(order.discount || 0)}</p>}
+                    {(order.downPayment || 0) > 0 && <p>ENTRADA: -{formatCurrency(order.downPayment || 0)}</p>}
+                    <p className="font-bold">VALOR FINANCIADO: {formatCurrency(valorFinanciado)}</p>
                 </div>
             </div>
 
             <div className="py-4">
-                <h2 className="font-bold text-center mb-2">HISTÓRICO DE PAGAMENTOS</h2>
+                <h2 className="font-bold text-center mb-2">HISTÓRICO DE PAGAMENTOS DA PARCELA</h2>
                 {sortedPayments.length > 0 ? (
                     <table className="w-full">
                         <thead className="border-b border-black">
@@ -94,13 +103,13 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
 
             <div className="grid grid-cols-3 gap-x-4 border-y border-black py-2 mt-2">
                 <div className="font-bold">
-                    <p>TOTAL PAGO:</p>
+                    <p>TOTAL PAGO NA PARCELA:</p>
                     <p>{formatCurrency(totalPaidOnInstallment)}</p>
                 </div>
                 <div className="flex-grow">
                     {!isPaid && (
                         <div className="font-bold text-red-600">
-                            <p>SALDO PENDENTE:</p>
+                            <p>SALDO PENDENTE DA PARCELA:</p>
                             <p>{formatCurrency(remainingBalance)}</p>
                         </div>
                     )}

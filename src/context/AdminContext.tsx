@@ -38,7 +38,7 @@ const calculateCommission = (order: Order, allProducts: Product[]) => {
   };
 
 function recalculateInstallments(total: number, installmentsCount: number, orderId: string, orderDate: string): Installment[] {
-    if (installmentsCount <= 0) return [];
+    if (installmentsCount <= 0 || total < 0) return [];
     
     const totalInCents = Math.round(total * 100);
     const baseInstallmentValueInCents = Math.floor(totalInCents / installmentsCount);
@@ -952,7 +952,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const currentDiscount = hasDiscountChanged ? details.discount! : (order.discount || 0);
         const totalAfterDiscount = subtotal - currentDiscount;
         const amountToFinance = totalAfterDiscount - (downPayment || 0);
-
         const currentInstallments = hasInstallmentsChanged ? details.installments! : order.installments;
         
         let newInstallmentDetails = recalculateInstallments(amountToFinance, currentInstallments, orderId, order.date);
@@ -969,8 +968,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             
             // Record down payment against the first installment
             if (newInstallmentDetails.length > 0) {
-                newInstallmentDetails[0].payments = [downPaymentRecord];
-                newInstallmentDetails[0].paidAmount = downPayment;
+                newInstallmentDetails[0].payments = [...(newInstallmentDetails[0].payments || []), downPaymentRecord];
+                newInstallmentDetails[0].paidAmount = (newInstallmentDetails[0].paidAmount || 0) + downPayment;
                 if (Math.abs(newInstallmentDetails[0].paidAmount - newInstallmentDetails[0].amount) < 0.01) {
                     newInstallmentDetails[0].status = 'Pago';
                 }
@@ -984,6 +983,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             installments: currentInstallments,
             installmentValue: newInstallmentDetails[0]?.amount || 0,
             installmentDetails: newInstallmentDetails,
+            downPayment: (order.downPayment || 0) + (downPayment || 0),
         };
     }
     

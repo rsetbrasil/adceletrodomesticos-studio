@@ -130,6 +130,13 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                                 <td className="p-1"></td>
                             </tr>
                         )}
+                         {(order.downPayment || 0) > 0 && (
+                            <tr className="border-t">
+                                <td colSpan={2} className="p-1 text-right text-green-600">ENTRADA:</td>
+                                <td className="p-1 text-right font-mono text-green-600">{formatCurrency(order.downPayment || 0)}</td>
+                                <td className="p-1"></td>
+                            </tr>
+                        )}
                         <tr className="border-t text-base">
                             <td colSpan={2} className="p-1 text-right">VALOR TOTAL:</td>
                             <td className="p-1 text-right font-mono">{formatCurrency(order.total)}</td>
