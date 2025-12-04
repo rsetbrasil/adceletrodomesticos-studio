@@ -101,16 +101,15 @@
   }
 
   /* Default state for financial reports: hide all specific sections */
-  .print-only .print-section-sales,
-  .print-only .print-section-profits,
-  .print-only .print-section-commissions {
+  .print-only .print-section {
     display: none;
   }
   
   /* When a specific print mode is active on the body, show the relevant section(s) */
   body.print-sales-only .print-section-sales,
   body.print-profits-only .print-section-profits,
-  body.print-commissions-only .print-section-commissions {
+  body.print-commissions-only .print-section-commissions,
+  body.print-sellers-only .print-section-sellers {
     display: block !important;
   }
 }

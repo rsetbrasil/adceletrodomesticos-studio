@@ -95,10 +95,10 @@ export default function FinanceiroPage() {
     return orders.filter(o => selectedSeller.orderIds.includes(o.id));
   }, [selectedSeller, orders]);
 
-  const handlePrint = (type: 'sales' | 'profits' | 'commissions' | 'all') => {
+  const handlePrint = (type: 'sales' | 'profits' | 'commissions' | 'sellers' | 'all') => {
     let title = 'Relatório Financeiro';
     
-    document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only');
+    document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only', 'print-sellers-only');
 
     if (type === 'sales') {
         title = 'Relatório de Vendas';
@@ -109,6 +109,9 @@ export default function FinanceiroPage() {
     } else if (type === 'commissions') {
         title = 'Relatório de Comissões';
         document.body.classList.add('print-commissions-only');
+    } else if (type === 'sellers') {
+        title = 'Relatório de Vendas por Vendedor';
+        document.body.classList.add('print-sellers-only');
     }
     
     setPrintTitle(title);
@@ -116,7 +119,7 @@ export default function FinanceiroPage() {
     setTimeout(() => {
         window.print();
         // Clean up classes after printing
-        document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only');
+        document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only', 'print-sellers-only');
     }, 100);
 };
 
@@ -144,6 +147,10 @@ export default function FinanceiroPage() {
                 <Button variant="outline" onClick={() => handlePrint('sales')}>
                     <ShoppingCart className="mr-2 h-4 w-4" />
                     Apenas Vendas
+                </Button>
+                <Button variant="outline" onClick={() => handlePrint('sellers')}>
+                    <UsersIcon className="mr-2 h-4 w-4" />
+                    Vendas por Vendedor
                 </Button>
                 <Button variant="outline" onClick={() => handlePrint('profits')}>
                     <TrendingUp className="mr-2 h-4 w-4" />
@@ -235,7 +242,7 @@ export default function FinanceiroPage() {
                   </ChartContainer>
                 </CardContent>
             </Card>
-            <Card>
+            <Card id="seller-performance-card">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><UsersIcon className="h-5 w-5" /> Desempenho dos Vendedores</CardTitle>
                     <CardDescription>Resumo de vendas geral por vendedor.</CardDescription>
@@ -342,7 +349,7 @@ export default function FinanceiroPage() {
             </div>
         </div>
         
-        <div className="print-section-profits print-section-sales space-y-6">
+        <div className="print-section print-section-profits print-section-sales space-y-6">
             <h2 className="text-xl font-semibold text-center">Resumo Financeiro</h2>
             <table className="w-full text-base border-collapse">
                  <tbody>
@@ -366,7 +373,7 @@ export default function FinanceiroPage() {
             </table>
         </div>
 
-        <div className="print-section-sales mt-8">
+        <div className="print-section print-section-sales mt-8">
             <h2 className="text-xl font-semibold text-center mb-4">Vendas Mensais</h2>
             {/* The chart won't be printed as it's complex to render in print. A table is better */}
             <table className="w-full text-sm border-collapse">
@@ -423,7 +430,31 @@ export default function FinanceiroPage() {
 
         </div>
 
-        <div className="print-section-commissions mt-8">
+        <div className="print-section print-section-sellers mt-8">
+            <h2 className="text-xl font-semibold text-center mb-4">Desempenho dos Vendedores</h2>
+            <table className="w-full text-sm border-collapse">
+                <thead>
+                    <tr className="border-b-2">
+                        <th className="text-left p-2 font-bold">Vendedor</th>
+                        <th className="text-center p-2 font-bold">Vendas</th>
+                        <th className="text-right p-2 font-bold">Total Vendido</th>
+                        <th className="text-right p-2 font-bold">Comissão Gerada</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {sellerPerformance.map(seller => (
+                        <tr key={seller.id} className="border-b last:border-none">
+                            <td className="p-2">{seller.name}</td>
+                            <td className="text-center p-2">{seller.salesCount}</td>
+                            <td className="text-right p-2">{formatCurrency(seller.totalSold)}</td>
+                            <td className="text-right p-2 font-semibold">{formatCurrency(seller.totalCommission)}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+
+        <div className="print-section print-section-commissions mt-8">
             <h2 className="text-xl font-semibold text-center mb-4">Comissões a Pagar</h2>
             <table className="w-full text-sm border-collapse">
                 <thead>
