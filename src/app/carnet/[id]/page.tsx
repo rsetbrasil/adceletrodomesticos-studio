@@ -25,6 +25,7 @@ const formatCurrency = (value: number) => {
 const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings: any, pixPayload: string | null }) => {
     
     const subtotal = useMemo(() => order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0), [order.items]);
+    const valorFinanciado = order.total;
 
     return (
     <div className="carnet-content-wrapper bg-white break-inside-avoid print:p-0 text-sm print:text-[9px]">
@@ -140,7 +141,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                         )}
                         <tr className="border-t text-base">
                             <td colSpan={2} className="p-1 text-right">VALOR TOTAL:</td>
-                            <td className="p-1 text-right font-mono">{formatCurrency(order.total)}</td>
+                            <td className="p-1 text-right font-mono">{formatCurrency(valorFinanciado)}</td>
                             <td className="p-1"></td>
                         </tr>
                     </tfoot>
@@ -270,3 +271,4 @@ export default function CarnetPage() {
     </div>
   );
 }
+

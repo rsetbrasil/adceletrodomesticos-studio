@@ -952,46 +952,26 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     if (resetDownPayment) {
         currentDownPayment = 0;
         logAction('Redefinição de Entrada', `A entrada do pedido #${orderId} foi zerada.`, user);
+    } else if (hasDownPayment) {
+        currentDownPayment += downPayment;
     }
 
     if (hasInstallmentsChanged || hasDiscountChanged || hasDownPayment || resetDownPayment) {
         const currentDiscount = hasDiscountChanged ? details.discount! : (order.discount || 0);
-        const totalAfterDiscount = subtotal - currentDiscount;
+        const totalAfterDiscountAndEntry = subtotal - currentDiscount - currentDownPayment;
         
-        if (hasDownPayment) {
-            currentDownPayment += downPayment;
-        }
-
-        const amountToFinance = totalAfterDiscount - currentDownPayment;
+        detailsToUpdate.total = totalAfterDiscountAndEntry;
+        
         const currentInstallments = hasInstallmentsChanged ? details.installments! : order.installments;
         
-        let newInstallmentDetails = recalculateInstallments(amountToFinance, currentInstallments, orderId, order.date);
+        let newInstallmentDetails = recalculateInstallments(totalAfterDiscountAndEntry, currentInstallments, orderId, order.date);
 
         if (hasDownPayment) {
             logAction('Registro de Entrada', `Registrada entrada de R$${downPayment?.toFixed(2)} no pedido #${orderId}.`, user);
-            const downPaymentRecord: Payment = {
-                id: `downpay-${Date.now()}`,
-                amount: downPayment,
-                date: new Date().toISOString(),
-                method: 'Dinheiro', // Default, can be adjusted
-                receivedBy: user?.name || 'Sistema'
-            };
-            
-            if (newInstallmentDetails.length > 0) {
-                newInstallmentDetails[0].payments = [...(newInstallmentDetails[0].payments || []), downPaymentRecord];
-            }
         }
         
-        if (resetDownPayment) {
-             if (newInstallmentDetails.length > 0) {
-                newInstallmentDetails[0].payments = (newInstallmentDetails[0].payments || []).filter(p => !p.id.startsWith('downpay-'));
-            }
-        }
-
-
         detailsToUpdate = {
             ...detailsToUpdate,
-            total: totalAfterDiscount,
             discount: currentDiscount,
             installments: currentInstallments,
             installmentValue: newInstallmentDetails[0]?.amount || 0,
@@ -1247,3 +1227,4 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
+
