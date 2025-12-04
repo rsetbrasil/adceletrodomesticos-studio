@@ -78,7 +78,7 @@ interface AdminContextType {
   updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date, logAction: LogAction, user: User | null) => Promise<void>;
   updateCustomer: (updatedCustomer: CustomerInfo, logAction: LogAction, user: User | null) => Promise<void>;
   importCustomers: (csvData: string, logAction: LogAction, user: User | null) => Promise<void>;
-  updateOrderDetails: (orderId: string, details: Partial<Order> & { downPayment?: number }, logAction: LogAction, user: User | null) => Promise<void>;
+  updateOrderDetails: (orderId: string, details: Partial<Order> & { downPayment?: number, resetDownPayment?: boolean }, logAction: LogAction, user: User | null) => Promise<void>;
   addProduct: (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => Promise<void>;
   updateProduct: (product: Product, logAction: LogAction, user: User | null) => Promise<void>;
   deleteProduct: (productId: string, logAction: LogAction, user: User | null) => Promise<void>;
@@ -933,13 +933,13 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, [orders, toast]);
 
 
-  const updateOrderDetails = useCallback(async (orderId: string, details: Partial<Order>, logAction: LogAction, user: User | null) => {
+  const updateOrderDetails = useCallback(async (orderId: string, details: Partial<Order> & { resetDownPayment?: boolean }, logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
 
     let detailsToUpdate: Partial<Order> = { ...details };
-    const { downPayment, ...otherDetails } = details;
+    const { downPayment, resetDownPayment, ...otherDetails } = details;
     detailsToUpdate = otherDetails;
     
     const subtotal = order.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -948,10 +948,20 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const hasDiscountChanged = details.discount !== undefined && details.discount !== order.discount;
     const hasDownPayment = downPayment !== undefined && downPayment > 0;
 
-    if (hasInstallmentsChanged || hasDiscountChanged || hasDownPayment) {
+    let currentDownPayment = order.downPayment || 0;
+    if (resetDownPayment) {
+        currentDownPayment = 0;
+        logAction('Redefinição de Entrada', `A entrada do pedido #${orderId} foi zerada.`, user);
+    }
+
+    if (hasInstallmentsChanged || hasDiscountChanged || hasDownPayment || resetDownPayment) {
         const currentDiscount = hasDiscountChanged ? details.discount! : (order.discount || 0);
         const totalAfterDiscount = subtotal - currentDiscount;
-        const currentDownPayment = (order.downPayment || 0) + (downPayment || 0);
+        
+        if (hasDownPayment) {
+            currentDownPayment += downPayment;
+        }
+
         const amountToFinance = totalAfterDiscount - currentDownPayment;
         const currentInstallments = hasInstallmentsChanged ? details.installments! : order.installments;
         
@@ -969,12 +979,15 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             
             if (newInstallmentDetails.length > 0) {
                 newInstallmentDetails[0].payments = [...(newInstallmentDetails[0].payments || []), downPaymentRecord];
-                newInstallmentDetails[0].paidAmount = (newInstallmentDetails[0].paidAmount || 0) + downPayment;
-                if (Math.abs(newInstallmentDetails[0].paidAmount - newInstallmentDetails[0].amount) < 0.01) {
-                    newInstallmentDetails[0].status = 'Pago';
-                }
             }
         }
+        
+        if (resetDownPayment) {
+             if (newInstallmentDetails.length > 0) {
+                newInstallmentDetails[0].payments = (newInstallmentDetails[0].payments || []).filter(p => !p.id.startsWith('downpay-'));
+            }
+        }
+
 
         detailsToUpdate = {
             ...detailsToUpdate,

@@ -374,6 +374,11 @@ export default function OrdersAdminPage() {
       updateOrderDetails(selectedOrder.id, { downPayment: downPaymentInput }, logAction, user);
       setDownPaymentInput(0);
   };
+
+  const handleResetDownPayment = () => {
+    if (!selectedOrder) return;
+    updateOrderDetails(selectedOrder.id, { downPayment: 0, resetDownPayment: true }, logAction, user);
+  };
   
   const handleUpdateObservations = () => {
     if (!selectedOrder) return;
@@ -960,21 +965,32 @@ Não esqueça de enviar o comprovante!`;
                                         </div>
                                   </div>
                                   <div>
-                                       <label className="text-sm font-medium">Dar Entrada (R$)</label>
-                                       <div className="flex gap-2">
-                                            <Input
-                                                inputMode="decimal"
-                                                value={formatBRL(downPaymentInput)}
-                                                onChange={(e) => {
-                                                    const rawValue = e.target.value.replace(/\D/g, '');
-                                                    setDownPaymentInput(Number(rawValue) / 100);
-                                                }}
-                                                className="h-9"
-                                            />
-                                            <Button size="sm" variant="outline" onClick={handleAddDownPayment}>
-                                                <Save className="mr-2 h-4 w-4" /> Registrar
+                                      <label className="text-sm font-medium">Entrada</label>
+                                      {(selectedOrder.downPayment || 0) > 0 ? (
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-muted px-3 py-2 text-sm">
+                                            <span>{formatCurrency(selectedOrder.downPayment || 0)}</span>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={handleResetDownPayment}>
+                                                <Undo2 className="h-4 w-4" />
                                             </Button>
+                                          </div>
                                         </div>
+                                      ) : (
+                                        <div className="flex gap-2">
+                                          <Input
+                                            inputMode="decimal"
+                                            value={formatBRL(downPaymentInput)}
+                                            onChange={(e) => {
+                                                const rawValue = e.target.value.replace(/\D/g, '');
+                                                setDownPaymentInput(Number(rawValue) / 100);
+                                            }}
+                                            className="h-9"
+                                          />
+                                          <Button size="sm" variant="outline" onClick={handleAddDownPayment}>
+                                            <Save className="mr-2 h-4 w-4" /> Registrar
+                                          </Button>
+                                        </div>
+                                      )}
                                   </div>
                                    <div>
                                         <label className="text-sm font-medium">Forma de Pagamento</label>
@@ -1160,3 +1176,4 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
+
