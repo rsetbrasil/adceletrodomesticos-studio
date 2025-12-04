@@ -77,8 +77,8 @@
   }
 
   .print-hidden,
-  [data-radix-dialog-overlay], /* Oculta o fundo do modal */
-  [data-radix-dialog-content] { /* Oculta o conteúdo do modal */
+  [data-radix-dialog-overlay],
+  [data-radix-dialog-content] {
     display: none !important;
   }
 
@@ -92,7 +92,7 @@
   body.print-profits-only .print-only > *:not(.print-section-profits),
   body.print-commissions-only .print-only > *:not(.print-section-commissions),
   body.print-sellers-only .print-only > *:not(.print-section-sellers),
-  body.print-single-seller-report .print-only > *:not(.print-section-single-seller-report) {
+  body.print-single-seller-report .print-only > *:not(.print-section-single-seller-content) {
     display: none !important;
   }
   
@@ -101,7 +101,7 @@
   body.print-profits-only .print-section-profits,
   body.print-commissions-only .print-section-commissions,
   body.print-sellers-only .print-section-sellers,
-  body.print-single-seller-report .print-section-single-seller-report {
+  body.print-single-seller-report .print-section-single-seller-content {
     display: block !important;
   }
   
