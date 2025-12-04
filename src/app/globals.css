@@ -76,45 +76,40 @@
     print-color-adjust: exact !important;
   }
 
-  .print-hidden {
+  .print-hidden,
+  [data-radix-dialog-overlay], /* Oculta o fundo do modal */
+  [data-radix-dialog-content] { /* Oculta o conteúdo do modal */
     display: none !important;
   }
-  
-  body:not(.print-single-seller-report) .print-only {
+
+  /* Exibe a seção de impressão geral por padrão */
+  .print-only {
     display: block !important;
   }
   
-  body.print-single-seller-report .print-only .print-section-single-seller-content {
-      display: block !important;
+  /* Esconde todas as seções de impressão quando um modo específico está ativo */
+  body.print-sales-only .print-only > *:not(.print-section-sales),
+  body.print-profits-only .print-only > *:not(.print-section-profits),
+  body.print-commissions-only .print-only > *:not(.print-section-commissions),
+  body.print-sellers-only .print-only > *:not(.print-section-sellers),
+  body.print-single-seller-report .print-only > *:not(.print-section-single-seller-report) {
+    display: none !important;
   }
   
-  body.print-single-seller-report .print-hidden {
-      display: none !important;
+  /* Mostra a seção de impressão específica quando o modo está ativo */
+  body.print-sales-only .print-section-sales,
+  body.print-profits-only .print-section-profits,
+  body.print-commissions-only .print-section-commissions,
+  body.print-sellers-only .print-section-sellers,
+  body.print-single-seller-report .print-section-single-seller-report {
+    display: block !important;
   }
   
-  body.print-single-seller-report .print-only {
-      display: block !important;
-  }
-
-
   .print-only .border, 
   .print-only .border-b,
   .print-only .border-t,
   .print-only .border-b-2 {
       border-color: #000 !important;
-  }
-
-  /* Default state for financial reports: hide all specific sections */
-  .print-only .print-section {
-    display: none;
-  }
-  
-  /* When a specific print mode is active on the body, show the relevant section(s) */
-  body.print-sales-only .print-section-sales,
-  body.print-profits-only .print-section-profits,
-  body.print-commissions-only .print-section-commissions,
-  body.print-sellers-only .print-section-sellers {
-    display: block !important;
   }
 }
 
