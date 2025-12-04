@@ -265,9 +265,13 @@ export default function CreateOrderPage() {
     }
     
     const lastOrderNumber = orders
-      .map(o => parseInt(o.id.split('-')[1], 10))
-      .filter(n => !isNaN(n))
-      .reduce((max, current) => Math.max(max, current), 0);
+        .map(o => {
+            if (!o.id.startsWith('PED-')) return 0;
+            const numberPart = o.id.split('-')[1];
+            return parseInt(numberPart, 10);
+        })
+        .filter(n => !isNaN(n))
+        .reduce((max, current) => Math.max(max, current), 0);
       
     const orderId = `PED-${String(lastOrderNumber + 1).padStart(4, '0')}`;
     const firstDueDate = values.firstDueDate;

@@ -887,7 +887,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             });
         } else {
             if (!existingCpfSet.has(cpf)) {
-                const orderId = `IMP-${cpf}-${Date.now()}`;
+                const orderId = `REG-${cpf}`;
                 const completeCustomerData: CustomerInfo = {
                     cpf,
                     name: importedCustomer.name || 'Nome não informado',
@@ -1234,3 +1234,4 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
+
