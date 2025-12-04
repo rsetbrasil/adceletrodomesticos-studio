@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
-import { DollarSign, CheckCircle, Clock, Percent, Award, FileText, TrendingUp, Eye, Printer, TrendingDown, ShoppingCart } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, Percent, Award, FileText, TrendingUp, Eye, Printer, TrendingDown, ShoppingCart, Users as UsersIcon } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -38,7 +38,7 @@ export default function FinanceiroPage() {
   const { payCommissions } = useAdmin();
   const { orders, financialSummary, commissionSummary } = useData();
   const { settings } = useSettings();
-  const { user } = useAuth();
+  const { user, users } = useAuth();
   const { logAction } = useAudit();
   const router = useRouter();
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -49,6 +49,32 @@ export default function FinanceiroPage() {
     if (!orders) return [];
     return orders.filter(o => o.status === 'Entregue').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [orders]);
+
+  const sellerPerformance = useMemo(() => {
+    if (!orders || !users) return [];
+
+    const performanceMap = new Map<string, { name: string; salesCount: number; totalSold: number; totalCommission: number }>();
+
+    users.forEach(seller => {
+        if(seller.role === 'vendedor' || seller.role === 'gerente' || seller.role === 'admin') {
+            performanceMap.set(seller.id, { name: seller.name, salesCount: 0, totalSold: 0, totalCommission: 0 });
+        }
+    });
+
+    orders.forEach(order => {
+        if (order.sellerId && performanceMap.has(order.sellerId) && order.status !== 'Cancelado' && order.status !== 'Excluído') {
+            const sellerData = performanceMap.get(order.sellerId)!;
+            sellerData.salesCount += 1;
+            sellerData.totalSold += order.total;
+            sellerData.totalCommission += order.commission || 0;
+            performanceMap.set(order.sellerId, sellerData);
+        }
+    });
+
+    return Array.from(performanceMap.entries())
+        .map(([id, data]) => ({ id, ...data }))
+        .sort((a, b) => b.totalSold - a.totalSold);
+  }, [orders, users]);
 
 
   const handlePayCommission = async (seller: SellerCommissionDetails) => {
@@ -204,8 +230,44 @@ export default function FinanceiroPage() {
                   </ChartContainer>
                 </CardContent>
             </Card>
-
             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><UsersIcon className="h-5 w-5" /> Desempenho dos Vendedores</CardTitle>
+                    <CardDescription>Resumo de vendas geral por vendedor.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Vendedor</TableHead>
+                                    <TableHead className="text-center">Vendas</TableHead>
+                                    <TableHead className="text-right">Total Vendido</TableHead>
+                                    <TableHead className="text-right">Comissão Gerada</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {sellerPerformance.length > 0 ? (
+                                    sellerPerformance.map(seller => (
+                                        <TableRow key={seller.id}>
+                                            <TableCell className="font-medium">{seller.name}</TableCell>
+                                            <TableCell className="text-center">{seller.salesCount}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(seller.totalSold)}</TableCell>
+                                            <TableCell className="text-right font-semibold">{formatCurrency(seller.totalCommission)}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">Nenhuma venda registrada.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+          </div>
+           <Card>
               <CardHeader>
                   <div>
                     <CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" /> Comissões a Pagar</CardTitle>
@@ -256,7 +318,6 @@ export default function FinanceiroPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
       </div>
 
        {/* Print-only view */}
