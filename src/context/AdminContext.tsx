@@ -547,8 +547,18 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const addOrder = async (order: Partial<Order>, logAction: LogAction, user: User | null): Promise<Order | null> => {
     const { db } = getClientFirebase();
+
+    const lastOrderNumber = orders
+        .map(o => parseInt(o.id.split('-')[1] || '0', 10))
+        .filter(n => !isNaN(n))
+        .reduce((max, current) => Math.max(max, current), 0);
+        
+    const prefix = order.items && order.items.length > 0 ? 'PED' : 'REG';
+    const orderId = `${prefix}-${String(lastOrderNumber + 1).padStart(4, '0')}`;
+
     const orderToSave = {
         ...order,
+        id: orderId, // Set the new sequential ID here
         sellerId: user?.id || '',
         sellerName: user?.name || 'Não atribuído',
         commission: 0,
@@ -1227,4 +1237,3 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
-
