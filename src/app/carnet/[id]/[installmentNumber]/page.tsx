@@ -62,6 +62,7 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
                     <p>PARCELA: {installment.installmentNumber}/{order.installments}</p>
                     <p>VENCIMENTO: {format(new Date(installment.dueDate), 'dd/MM/yyyy')}</p>
                     <p>VALOR ORIGINAL: {formatCurrency(installment.amount)}</p>
+                    {(order.discount || 0) > 0 && <p className="text-red-600">DESCONTO NO PEDIDO: {formatCurrency(order.discount || 0)}</p>}
                 </div>
             </div>
 

@@ -21,7 +21,11 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings: any, pixPayload: string | null }) => (
+const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings: any, pixPayload: string | null }) => {
+    
+    const subtotal = useMemo(() => order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0), [order.items]);
+
+    return (
     <div className="carnet-content-wrapper bg-white break-inside-avoid print:p-0 text-sm print:text-[9px]">
         <div className="pb-2 print:pb-1 border-b">
             <div style={{ display: 'table', width: '100%' }}>
@@ -115,6 +119,18 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                     </tbody>
                      <tfoot className="bg-muted/50 print:bg-gray-100 font-bold">
                         <tr className="border-t">
+                            <td colSpan={2} className="p-1 text-right">SUBTOTAL:</td>
+                            <td className="p-1 text-right font-mono">{formatCurrency(subtotal)}</td>
+                            <td className="p-1"></td>
+                        </tr>
+                        {(order.discount || 0) > 0 && (
+                            <tr className="border-t">
+                                <td colSpan={2} className="p-1 text-right text-destructive">DESCONTO:</td>
+                                <td className="p-1 text-right font-mono text-destructive">{formatCurrency(order.discount || 0)}</td>
+                                <td className="p-1"></td>
+                            </tr>
+                        )}
+                        <tr className="border-t text-base">
                             <td colSpan={2} className="p-1 text-right">VALOR TOTAL:</td>
                             <td className="p-1 text-right font-mono">{formatCurrency(order.total)}</td>
                             <td className="p-1"></td>
@@ -137,7 +153,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
         </div>
     </div>
 );
-
+}
 
 export default function CarnetPage() {
   const params = useParams();
