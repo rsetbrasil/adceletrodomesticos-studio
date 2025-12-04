@@ -84,12 +84,22 @@
     display: block !important;
   }
 
-  body.print-overdue-report .print-only {
+  body.print-overdue-report .print-only,
+  body.print-single-seller-report .print-only {
     display: block !important;
   }
   
-  body.print-overdue-report .print-hidden {
+  body.print-overdue-report .print-hidden,
+  body.print-single-seller-report .print-hidden {
     display: none !important;
+  }
+
+  body.print-single-seller-report .print-only .print-section {
+    display: none !important;
+  }
+
+  body.print-single-seller-report .print-only .print-section-single-seller {
+    display: block !important;
   }
 
 

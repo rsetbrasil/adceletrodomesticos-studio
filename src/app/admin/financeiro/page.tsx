@@ -14,7 +14,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import Logo from '@/components/Logo';
 import { useSettings } from '@/context/SettingsContext';
 import { useAuth } from '@/context/AuthContext';
@@ -34,6 +34,15 @@ type SellerCommissionDetails = {
     orderIds: string[];
 };
 
+type SellerPerformanceDetails = {
+    id: string;
+    name: string;
+    salesCount: number;
+    totalSold: number;
+    totalCommission: number;
+    orders: Order[];
+}
+
 export default function FinanceiroPage() {
   const { payCommissions } = useAdmin();
   const { orders, financialSummary, commissionSummary } = useData();
@@ -41,8 +50,10 @@ export default function FinanceiroPage() {
   const { user, users } = useAuth();
   const { logAction } = useAudit();
   const router = useRouter();
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedSeller, setSelectedSeller] = useState<SellerCommissionDetails | null>(null);
+  const [isCommissionDetailModalOpen, setIsCommissionDetailModalOpen] = useState(false);
+  const [selectedCommissionSeller, setSelectedCommissionSeller] = useState<SellerCommissionDetails | null>(null);
+  const [isPerformanceDetailModalOpen, setIsPerformanceDetailModalOpen] = useState(false);
+  const [selectedPerformanceSeller, setSelectedPerformanceSeller] = useState<SellerPerformanceDetails | null>(null);
   const [printTitle, setPrintTitle] = useState('');
   
   const deliveredOrders = useMemo(() => {
@@ -53,11 +64,11 @@ export default function FinanceiroPage() {
   const sellerPerformance = useMemo(() => {
     if (!orders || !users) return [];
 
-    const performanceMap = new Map<string, { name: string; salesCount: number; totalSold: number; totalCommission: number }>();
+    const performanceMap = new Map<string, SellerPerformanceDetails>();
 
     users.forEach(seller => {
         if(seller.role === 'vendedor' || seller.role === 'gerente' || seller.role === 'admin') {
-            performanceMap.set(seller.id, { name: seller.name, salesCount: 0, totalSold: 0, totalCommission: 0 });
+            performanceMap.set(seller.id, { id: seller.id, name: seller.name, salesCount: 0, totalSold: 0, totalCommission: 0, orders: [] });
         }
     });
 
@@ -67,13 +78,12 @@ export default function FinanceiroPage() {
             sellerData.salesCount += 1;
             sellerData.totalSold += order.total;
             sellerData.totalCommission += order.commission || 0;
+            sellerData.orders.push(order);
             performanceMap.set(order.sellerId, sellerData);
         }
     });
 
-    return Array.from(performanceMap.entries())
-        .map(([id, data]) => ({ id, ...data }))
-        .sort((a, b) => b.totalSold - a.totalSold);
+    return Array.from(performanceMap.values()).sort((a, b) => b.totalSold - a.totalSold);
   }, [orders, users]);
 
 
@@ -85,20 +95,25 @@ export default function FinanceiroPage() {
       }
   };
   
-  const handleOpenDetails = (seller: SellerCommissionDetails) => {
-    setSelectedSeller(seller);
-    setIsDetailModalOpen(true);
+  const handleOpenCommissionDetails = (seller: SellerCommissionDetails) => {
+    setSelectedCommissionSeller(seller);
+    setIsCommissionDetailModalOpen(true);
   };
   
-  const ordersForSelectedSeller = useMemo(() => {
-    if (!selectedSeller) return [];
-    return orders.filter(o => selectedSeller.orderIds.includes(o.id));
-  }, [selectedSeller, orders]);
+  const ordersForSelectedCommissionSeller = useMemo(() => {
+    if (!selectedCommissionSeller) return [];
+    return orders.filter(o => selectedCommissionSeller.orderIds.includes(o.id));
+  }, [selectedCommissionSeller, orders]);
+  
+  const handleOpenPerformanceDetails = (seller: SellerPerformanceDetails) => {
+    setSelectedPerformanceSeller(seller);
+    setIsPerformanceDetailModalOpen(true);
+  };
 
-  const handlePrint = (type: 'sales' | 'profits' | 'commissions' | 'sellers' | 'all') => {
+  const handlePrint = (type: 'sales' | 'profits' | 'commissions' | 'sellers' | 'single-seller' | 'all') => {
     let title = 'Relatório Financeiro';
     
-    document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only', 'print-sellers-only');
+    document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only', 'print-sellers-only', 'print-single-seller-report');
 
     if (type === 'sales') {
         title = 'Relatório de Vendas';
@@ -112,14 +127,16 @@ export default function FinanceiroPage() {
     } else if (type === 'sellers') {
         title = 'Relatório de Vendas por Vendedor';
         document.body.classList.add('print-sellers-only');
+    } else if (type === 'single-seller' && selectedPerformanceSeller) {
+        title = `Relatório de Vendas - ${selectedPerformanceSeller.name}`;
+        document.body.classList.add('print-single-seller-report');
     }
     
     setPrintTitle(title);
 
     setTimeout(() => {
         window.print();
-        // Clean up classes after printing
-        document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only', 'print-sellers-only');
+        document.body.className = '';
     }, 100);
 };
 
@@ -256,6 +273,7 @@ export default function FinanceiroPage() {
                                     <TableHead className="text-center">Vendas</TableHead>
                                     <TableHead className="text-right">Total Vendido</TableHead>
                                     <TableHead className="text-right">Comissão Gerada</TableHead>
+                                    <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -266,11 +284,16 @@ export default function FinanceiroPage() {
                                             <TableCell className="text-center">{seller.salesCount}</TableCell>
                                             <TableCell className="text-right">{formatCurrency(seller.totalSold)}</TableCell>
                                             <TableCell className="text-right font-semibold">{formatCurrency(seller.totalCommission)}</TableCell>
+                                            <TableCell className="text-right">
+                                                 <Button variant="outline" size="sm" onClick={() => handleOpenPerformanceDetails(seller)}>
+                                                    <Eye className="mr-2 h-4 w-4" /> Ver Vendas
+                                                </Button>
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">Nenhuma venda registrada.</TableCell>
+                                        <TableCell colSpan={5} className="h-24 text-center">Nenhuma venda registrada.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
@@ -306,7 +329,7 @@ export default function FinanceiroPage() {
                             <TableCell className="text-right font-semibold">{formatCurrency(seller.total)}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(seller)}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenCommissionDetails(seller)}>
                                         <Eye className="h-4 w-4" />
                                         <span className="sr-only">Ver detalhes</span>
                                     </Button>
@@ -483,14 +506,40 @@ export default function FinanceiroPage() {
                 </tbody>
             </table>
         </div>
+        
+        {selectedPerformanceSeller && (
+             <div className="print-section print-section-single-seller mt-8">
+                <h2 className="text-xl font-semibold text-center mb-4">Relatório de Vendas - {selectedPerformanceSeller.name}</h2>
+                <table className="w-full text-sm border-collapse">
+                    <thead>
+                        <tr className="border-b-2">
+                            <th className="text-left p-2 font-bold">Data</th>
+                            <th className="text-left p-2 font-bold">Pedido</th>
+                            <th className="text-left p-2 font-bold">Cliente</th>
+                            <th className="text-right p-2 font-bold">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {selectedPerformanceSeller.orders.map(order => (
+                            <tr key={order.id} className="border-b last:border-none">
+                                <td className="p-2">{format(parseISO(order.date), "dd/MM/yy")}</td>
+                                <td className="p-2 font-mono">{order.id}</td>
+                                <td className="p-2">{order.customer.name}</td>
+                                <td className="p-2 text-right font-semibold">{formatCurrency(order.total)}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        )}
       </div>
     
-    <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+    <Dialog open={isCommissionDetailModalOpen} onOpenChange={setIsCommissionDetailModalOpen}>
         <DialogContent className="max-w-4xl">
             <DialogHeader>
                 <DialogTitle>Vendas Pendentes de Comissão</DialogTitle>
                 <DialogDescription>
-                    Lista de vendas para o vendedor <span className="font-bold">{selectedSeller?.name}</span> que compõem o total da comissão.
+                    Lista de vendas para o vendedor <span className="font-bold">{selectedCommissionSeller?.name}</span> que compõem o total da comissão.
                 </DialogDescription>
             </DialogHeader>
             <div className="rounded-md border max-h-[60vh] overflow-y-auto">
@@ -505,8 +554,8 @@ export default function FinanceiroPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {ordersForSelectedSeller.length > 0 ? (
-                            ordersForSelectedSeller.map(order => (
+                        {ordersForSelectedCommissionSeller.length > 0 ? (
+                            ordersForSelectedCommissionSeller.map(order => (
                                 <TableRow key={order.id}>
                                     <TableCell>{format(parseISO(order.date), "dd/MM/yy")}</TableCell>
                                     <TableCell className="font-mono">{order.id}</TableCell>
@@ -525,6 +574,53 @@ export default function FinanceiroPage() {
             </div>
         </DialogContent>
     </Dialog>
+    
+    <Dialog open={isPerformanceDetailModalOpen} onOpenChange={setIsPerformanceDetailModalOpen}>
+        <DialogContent className="max-w-4xl">
+            <DialogHeader>
+                <DialogTitle>Relatório de Vendas - {selectedPerformanceSeller?.name}</DialogTitle>
+                <DialogDescription>
+                    Lista de todas as vendas realizadas pelo vendedor.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-md border max-h-[60vh] overflow-y-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Data</TableHead>
+                            <TableHead>Pedido</TableHead>
+                            <TableHead>Cliente</TableHead>
+                            <TableHead className="text-right">Valor da Venda</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {(selectedPerformanceSeller?.orders.length ?? 0) > 0 ? (
+                            selectedPerformanceSeller?.orders.map(order => (
+                                <TableRow key={order.id}>
+                                    <TableCell>{format(parseISO(order.date), "dd/MM/yy")}</TableCell>
+                                    <TableCell className="font-mono">{order.id}</TableCell>
+                                    <TableCell>{order.customer.name}</TableCell>
+                                    <TableCell className="text-right font-semibold">{formatCurrency(order.total)}</TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={4} className="h-24 text-center">Nenhuma venda encontrada para este vendedor.</TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsPerformanceDetailModalOpen(false)}>Fechar</Button>
+                <Button onClick={() => handlePrint('single-seller')}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Imprimir Relatório
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
     </div>
   );
 }
