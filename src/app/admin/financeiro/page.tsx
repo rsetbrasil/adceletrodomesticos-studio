@@ -285,8 +285,8 @@ export default function FinanceiroPage() {
                                             <TableCell className="text-right">{formatCurrency(seller.totalSold)}</TableCell>
                                             <TableCell className="text-right font-semibold">{formatCurrency(seller.totalCommission)}</TableCell>
                                             <TableCell className="text-right">
-                                                 <Button variant="outline" size="sm" onClick={() => handleOpenPerformanceDetails(seller)}>
-                                                    <Eye className="mr-2 h-4 w-4" /> Ver Vendas
+                                                 <Button variant="outline" size="sm" onClick={() => { setSelectedPerformanceSeller(seller); handlePrint('single-seller');}}>
+                                                    <Printer className="mr-2 h-4 w-4" /> imprimir relatorio
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
@@ -508,7 +508,7 @@ export default function FinanceiroPage() {
         </div>
         
         {selectedPerformanceSeller && (
-             <div className="print-section print-section-single-seller-content mt-8">
+             <div className="print-section print-section-single-seller-report mt-8">
                 <h2 className="text-xl font-semibold text-center mb-4">Relatório de Vendas - {selectedPerformanceSeller.name}</h2>
                 <table className="w-full text-sm border-collapse">
                     <thead>
