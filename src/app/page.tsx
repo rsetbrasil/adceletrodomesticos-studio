@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -48,11 +49,11 @@ export default function Home() {
   };
 
   const saleProducts = useMemo(() => {
-    return allProducts.filter(p => p.onSale);
+    return allProducts.filter(p => p.onSale && !p.isHidden);
   }, [allProducts]);
 
   const filteredAndSortedProducts = useMemo(() => {
-    let filtered = [...allProducts];
+    let filtered = [...allProducts].filter(p => !p.isHidden);
 
     if (filters.category !== 'all') {
       filtered = filtered.filter((p) => p.category === filters.category);

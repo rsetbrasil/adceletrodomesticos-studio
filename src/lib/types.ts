@@ -21,6 +21,7 @@ export type Product = {
   cost?: number;
   onSale?: boolean;
   promotionEndDate?: string;
+  isHidden?: boolean;
   category: string;
   subcategory?: string;
   stock: number;

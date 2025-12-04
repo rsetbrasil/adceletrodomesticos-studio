@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -9,7 +10,7 @@ import type { Product } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, PlusCircle, Trash, Edit, PackageSearch } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash, Edit, PackageSearch, Eye, EyeOff } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,7 @@ import {
 import ProductForm from '@/components/ProductForm';
 import { useAuth } from '@/context/AuthContext';
 import { useAudit } from '@/context/AuditContext';
+import { Badge } from '@/components/ui/badge';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -77,6 +79,7 @@ export default function ManageProductsPage() {
                                         <TableHead>Categoria</TableHead>
                                         <TableHead className="text-right">Preço</TableHead>
                                         <TableHead className="text-center">Estoque</TableHead>
+                                        <TableHead className="text-center">Status</TableHead>
                                         <TableHead className="text-right">Ações</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -97,6 +100,19 @@ export default function ManageProductsPage() {
                                             <TableCell className="capitalize">{product.category}</TableCell>
                                             <TableCell className="text-right">{formatCurrency(product.price)}</TableCell>
                                             <TableCell className="text-center">{product.stock}</TableCell>
+                                            <TableCell className="text-center">
+                                                {product.isHidden ? (
+                                                    <Badge variant="outline" className="text-muted-foreground">
+                                                        <EyeOff className="mr-2 h-4 w-4" />
+                                                        Oculto
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="secondary" className="bg-green-500/20 text-green-700">
+                                                        <Eye className="mr-2 h-4 w-4" />
+                                                        Visível
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end items-center gap-2">
                                                     <Button variant="outline" size="sm" onClick={() => handleEdit(product)}>
