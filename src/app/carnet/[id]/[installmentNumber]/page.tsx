@@ -67,7 +67,7 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
                 </div>
                 <div className="space-y-1 text-right">
                     <p>PARCELA: {installment.installmentNumber}/{order.installments}</p>
-                    <p>VENCIMENTO: {format(new Date(installment.dueDate), 'dd/MM/yyyy')}</p>
+                    <p>VENCIMENTO: {format(parseISO(installment.dueDate), 'dd/MM/yyyy')}</p>
                     <p>VALOR ORIGINAL: {formatCurrency(valorOriginal)}</p>
                     {(order.discount || 0) > 0 && <p>DESCONTO: -{formatCurrency(order.discount || 0)}</p>}
                     {(order.downPayment || 0) > 0 && <p>ENTRADA: -{formatCurrency(order.downPayment || 0)}</p>}
@@ -132,7 +132,7 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
             <div className="flex justify-between items-center mt-8 border-t border-black pt-1">
                 <p>{settings.storeCity}/{order.customer.state}</p>
                 <p className="font-bold">Via {via}</p>
-                <p>Data da Compra: {format(new Date(order.date), "dd/MM/yyyy 'às' HH:mm")}</p>
+                <p>Data da Compra: {format(parseISO(order.date), "dd/MM/yyyy 'às' HH:mm")}</p>
             </div>
         </div>
     );

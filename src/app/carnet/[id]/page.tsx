@@ -8,7 +8,7 @@ import type { Order } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer, ShoppingCart, Phone } from 'lucide-react';
 import Logo from '@/components/Logo';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { generatePixPayload } from '@/lib/pix';
 import PixQRCode from '@/components/PixQRCode';
@@ -106,11 +106,11 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                         {(order.installmentDetails || []).map((installment) => (
                             <tr key={installment.installmentNumber} className="border-b last:border-none">
                                 <td className="p-1 text-center font-medium">{installment.installmentNumber}/{order.installments}</td>
-                                <td className="p-1">{format(new Date(installment.dueDate), 'dd/MM/yy')}</td>
+                                <td className="p-1">{format(parseISO(installment.dueDate), 'dd/MM/yy')}</td>
                                 <td className="p-1 text-right font-mono">{formatCurrency(installment.amount)}</td>
                                 <td className="p-1 border-l">
                                     {installment.status === 'Pago' 
-                                        ? (installment.paymentDate ? format(new Date(installment.paymentDate), 'dd/MM/yy') : 'Pago')
+                                        ? (installment.paymentDate ? format(parseISO(installment.paymentDate), 'dd/MM/yy') : 'Pago')
                                         : '___/__/____'
                                     }
                                 </td>
