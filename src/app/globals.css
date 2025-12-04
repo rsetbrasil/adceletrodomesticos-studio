@@ -76,9 +76,13 @@
     print-color-adjust: exact !important;
   }
 
+  .print-container {
+    padding: 1rem;
+  }
+  
   .print-hidden,
-  [data-radix-dialog-overlay],
-  [data-radix-dialog-content] {
+  [data-radix-popper-content-wrapper],
+  [role="dialog"] {
     display: none !important;
   }
 
@@ -93,15 +97,13 @@
   body.print-sales-only .print-only .print-section-sales,
   body.print-profits-only .print-only .print-section-profits,
   body.print-commissions-only .print-only .print-section-commissions,
-  body.print-sellers-only .print-only .print-section-sellers,
-  body.print-single-seller-report .print-only .print-section-single-seller-content {
+  body.print-sellers-only .print-only .print-section-sellers {
       display: block !important;
   }
 
-  body:not(.print-sales-only):not(.print-profits-only):not(.print-commissions-only):not(.print-sellers-only):not(.print-single-seller-report) .print-only > * {
+  body:not(.print-sales-only):not(.print-profits-only):not(.print-commissions-only):not(.print-sellers-only) .print-only > * {
     display: block !important;
   }
-
   
   .print-only .border, 
   .print-only .border-b,

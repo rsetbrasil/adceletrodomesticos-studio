@@ -110,18 +110,10 @@ export default function FinanceiroPage() {
     setIsPerformanceDetailModalOpen(true);
   };
 
-  const handlePrint = (type: 'sales' | 'profits' | 'commissions' | 'sellers' | 'single-seller' | 'all', seller?: SellerPerformanceDetails) => {
+  const handlePrint = (type: 'sales' | 'profits' | 'commissions' | 'sellers' | 'all') => {
     let title = 'Relatório Financeiro';
     
-    document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only', 'print-sellers-only', 'print-single-seller-report');
-    
-    if (type === 'single-seller' && seller) {
-        setSelectedPerformanceSeller(seller);
-        title = `Relatório de Vendas - ${seller.name}`;
-        document.body.classList.add('print-single-seller-report');
-    } else {
-        setSelectedPerformanceSeller(null);
-    }
+    document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only', 'print-sellers-only');
     
     if (type === 'sales') {
         title = 'Relatório de Vendas';
@@ -141,12 +133,29 @@ export default function FinanceiroPage() {
 
     setTimeout(() => {
         window.print();
-        if (type === 'single-seller') {
-          setSelectedPerformanceSeller(null); // Clean up after print
-        }
         document.body.className = '';
     }, 100);
-};
+  };
+
+  const handlePrintSingleSeller = () => {
+    if (!selectedPerformanceSeller) return;
+    const printContents = document.getElementById('seller-report-modal-content')?.innerHTML;
+    const originalContents = document.body.innerHTML;
+    
+    const header = `
+      <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 1rem; border-bottom: 1px solid #ccc;">
+        <div>
+          <h1 style="font-size: 1.5rem; font-weight: bold;">Relatório de Vendas - ${selectedPerformanceSeller.name}</h1>
+          <p style="font-size: 0.9rem; color: #666;">Gerado em: ${new Date().toLocaleDateString('pt-BR')}</p>
+        </div>
+      </div>
+    `;
+
+    document.body.innerHTML = `<div class="print-container">${header}${printContents}</div>`;
+    window.print();
+    document.body.innerHTML = originalContents;
+    window.location.reload(); // To re-attach React event listeners
+  }
 
   
   const chartConfig = {
@@ -293,8 +302,8 @@ export default function FinanceiroPage() {
                                             <TableCell className="text-right">{formatCurrency(seller.totalSold)}</TableCell>
                                             <TableCell className="text-right font-semibold">{formatCurrency(seller.totalCommission)}</TableCell>
                                             <TableCell className="text-right">
-                                                 <Button variant="outline" size="sm" onClick={() => handlePrint('single-seller', seller)}>
-                                                    <Printer className="mr-2 h-4 w-4" /> imprimir relatorio
+                                                 <Button variant="outline" size="sm" onClick={() => handleOpenPerformanceDetails(seller)}>
+                                                    <Eye className="mr-2 h-4 w-4" /> Ver Vendas
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
@@ -514,32 +523,6 @@ export default function FinanceiroPage() {
                 </tbody>
             </table>
         </div>
-        
-        {selectedPerformanceSeller && (
-             <div className="print-section print-single-seller-report mt-8">
-                <h2 className="text-xl font-semibold text-center mb-4">Relatório de Vendas - {selectedPerformanceSeller.name}</h2>
-                <table className="w-full text-sm border-collapse">
-                    <thead>
-                        <tr className="border-b-2">
-                            <th className="text-left p-2 font-bold">Data</th>
-                            <th className="text-left p-2 font-bold">Pedido</th>
-                            <th className="text-left p-2 font-bold">Cliente</th>
-                            <th className="text-right p-2 font-bold">Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {selectedPerformanceSeller.orders.map(order => (
-                            <tr key={order.id} className="border-b last:border-none">
-                                <td className="p-2">{format(parseISO(order.date), "dd/MM/yy")}</td>
-                                <td className="p-2 font-mono">{order.id}</td>
-                                <td className="p-2">{order.customer.name}</td>
-                                <td className="p-2 text-right font-semibold">{formatCurrency(order.total)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        )}
       </div>
     
     <Dialog open={isCommissionDetailModalOpen} onOpenChange={setIsCommissionDetailModalOpen}>
@@ -591,36 +574,42 @@ export default function FinanceiroPage() {
                     Lista de todas as vendas realizadas pelo vendedor.
                 </DialogDescription>
             </DialogHeader>
-            <div className="rounded-md border max-h-[60vh] overflow-y-auto">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Data</TableHead>
-                            <TableHead>Pedido</TableHead>
-                            <TableHead>Cliente</TableHead>
-                            <TableHead className="text-right">Valor da Venda</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {(selectedPerformanceSeller?.orders.length ?? 0) > 0 ? (
-                            selectedPerformanceSeller?.orders.map(order => (
-                                <TableRow key={order.id}>
-                                    <TableCell>{format(parseISO(order.date), "dd/MM/yy")}</TableCell>
-                                    <TableCell className="font-mono">{order.id}</TableCell>
-                                    <TableCell>{order.customer.name}</TableCell>
-                                    <TableCell className="text-right font-semibold">{formatCurrency(order.total)}</TableCell>
-                                </TableRow>
-                            ))
-                        ) : (
+            <div id="seller-report-modal-content">
+                <div className="rounded-md border max-h-[60vh] overflow-y-auto">
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center">Nenhuma venda encontrada para este vendedor.</TableCell>
+                                <TableHead>Data</TableHead>
+                                <TableHead>Pedido</TableHead>
+                                <TableHead>Cliente</TableHead>
+                                <TableHead className="text-right">Valor da Venda</TableHead>
                             </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {(selectedPerformanceSeller?.orders.length ?? 0) > 0 ? (
+                                selectedPerformanceSeller?.orders.map(order => (
+                                    <TableRow key={order.id}>
+                                        <TableCell>{format(parseISO(order.date), "dd/MM/yy")}</TableCell>
+                                        <TableCell className="font-mono">{order.id}</TableCell>
+                                        <TableCell>{order.customer.name}</TableCell>
+                                        <TableCell className="text-right font-semibold">{formatCurrency(order.total)}</TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center">Nenhuma venda encontrada para este vendedor.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="mt-4">
                 <Button variant="outline" onClick={() => setIsPerformanceDetailModalOpen(false)}>Fechar</Button>
+                <Button onClick={handlePrintSingleSeller}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Imprimir
+                </Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
