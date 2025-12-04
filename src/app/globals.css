@@ -80,26 +80,20 @@
     display: none !important;
   }
   
-  .print-only {
-    display: block !important;
-  }
-
-  body.print-overdue-report .print-only,
-  body.print-single-seller-report .print-only {
+  body:not(.print-single-seller-report) .print-only {
     display: block !important;
   }
   
-  body.print-overdue-report .print-hidden,
+  body.print-single-seller-report .print-only .print-section-single-seller-content {
+      display: block !important;
+  }
+  
   body.print-single-seller-report .print-hidden {
-    display: none !important;
+      display: none !important;
   }
-
-  body.print-single-seller-report .print-only .print-section {
-    display: none !important;
-  }
-
-  body.print-single-seller-report .print-only .print-section-single-seller {
-    display: block !important;
+  
+  body.print-single-seller-report .print-only {
+      display: block !important;
   }
 
 

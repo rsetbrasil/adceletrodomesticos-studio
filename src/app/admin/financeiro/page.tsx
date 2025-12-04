@@ -508,7 +508,7 @@ export default function FinanceiroPage() {
         </div>
         
         {selectedPerformanceSeller && (
-             <div className="print-section print-section-single-seller mt-8">
+             <div className="print-section print-section-single-seller-content mt-8">
                 <h2 className="text-xl font-semibold text-center mb-4">Relatório de Vendas - {selectedPerformanceSeller.name}</h2>
                 <table className="w-full text-sm border-collapse">
                     <thead>
