@@ -594,6 +594,9 @@ Não esqueça de enviar o comprovante!`;
                                                           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenDetails(order)}>
                                                               <Eye className="h-4 w-4" />
                                                           </Button>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAssignToMe(order)}>
+                                                                <UserPlus className="h-4 w-4" />
+                                                            </Button>
                                                           <DropdownMenu>
                                                               <DropdownMenuTrigger asChild>
                                                                   <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -601,10 +604,6 @@ Não esqueça de enviar o comprovante!`;
                                                                   </Button>
                                                               </DropdownMenuTrigger>
                                                               <DropdownMenuContent align="end">
-                                                                  <DropdownMenuItem onClick={() => handleAssignToMe(order)}>
-                                                                    <UserPlus className="mr-2 h-4 w-4" />
-                                                                    Atribuir a mim
-                                                                  </DropdownMenuItem>
                                                                   <DropdownMenuItem onClick={() => handleDeleteOrder(order.id)} className="text-destructive">
                                                                       <Trash className="mr-2 h-4 w-4" />
                                                                       Mover para Lixeira
