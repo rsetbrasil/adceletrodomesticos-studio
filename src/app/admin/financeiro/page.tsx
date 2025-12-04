@@ -115,9 +115,14 @@ export default function FinanceiroPage() {
     
     document.body.classList.remove('print-sales-only', 'print-profits-only', 'print-commissions-only', 'print-sellers-only', 'print-single-seller-report');
     
-    // Always clear the previously selected seller for printing
-    setSelectedPerformanceSeller(null);
-
+    if (type === 'single-seller' && seller) {
+        setSelectedPerformanceSeller(seller);
+        title = `Relatório de Vendas - ${seller.name}`;
+        document.body.classList.add('print-single-seller-report');
+    } else {
+        setSelectedPerformanceSeller(null);
+    }
+    
     if (type === 'sales') {
         title = 'Relatório de Vendas';
         document.body.classList.add('print-sales-only');
@@ -130,18 +135,16 @@ export default function FinanceiroPage() {
     } else if (type === 'sellers') {
         title = 'Relatório de Vendas por Vendedor';
         document.body.classList.add('print-sellers-only');
-    } else if (type === 'single-seller' && seller) {
-        title = `Relatório de Vendas - ${seller.name}`;
-        setSelectedPerformanceSeller(seller);
-        document.body.classList.add('print-single-seller-report');
     }
     
     setPrintTitle(title);
 
     setTimeout(() => {
         window.print();
+        if (type === 'single-seller') {
+          setSelectedPerformanceSeller(null); // Clean up after print
+        }
         document.body.className = '';
-        setSelectedPerformanceSeller(null); // Clean up after print
     }, 100);
 };
 
@@ -513,7 +516,7 @@ export default function FinanceiroPage() {
         </div>
         
         {selectedPerformanceSeller && (
-             <div className="print-section print-section-single-seller-report mt-8">
+             <div className="print-section print-single-seller-report mt-8">
                 <h2 className="text-xl font-semibold text-center mb-4">Relatório de Vendas - {selectedPerformanceSeller.name}</h2>
                 <table className="w-full text-sm border-collapse">
                     <thead>
