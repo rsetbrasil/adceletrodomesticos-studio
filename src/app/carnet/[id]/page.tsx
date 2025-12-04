@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -126,14 +127,14 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                         {(order.downPayment || 0) > 0 && (
                             <tr className="border-t">
                                 <td colSpan={2} className="p-1 text-right text-green-600">ENTRADA:</td>
-                                <td className="p-1 text-right font-mono text-green-600">{formatCurrency(order.downPayment || 0)}</td>
+                                <td className="p-1 text-right font-mono text-green-600">- {formatCurrency(order.downPayment || 0)}</td>
                                 <td className="p-1"></td>
                             </tr>
                         )}
                         {(order.discount || 0) > 0 && (
                             <tr className="border-t">
                                 <td colSpan={2} className="p-1 text-right text-destructive">DESCONTO:</td>
-                                <td className="p-1 text-right font-mono text-destructive">{formatCurrency(order.discount || 0)}</td>
+                                <td className="p-1 text-right font-mono text-destructive">- {formatCurrency(order.discount || 0)}</td>
                                 <td className="p-1"></td>
                             </tr>
                         )}
