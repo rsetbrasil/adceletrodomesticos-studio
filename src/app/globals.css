@@ -82,34 +82,36 @@
     display: none !important;
   }
 
-  /* Exibe a seção de impressão geral por padrão */
   .print-only {
-    display: block !important;
+      display: block !important;
   }
   
-  /* Esconde todas as seções de impressão quando um modo específico está ativo */
-  body.print-sales-only .print-only > *:not(.print-section-sales),
-  body.print-profits-only .print-only > *:not(.print-section-profits),
-  body.print-commissions-only .print-only > *:not(.print-section-commissions),
-  body.print-sellers-only .print-only > *:not(.print-section-sellers),
-  body.print-single-seller-report .print-only > *:not(.print-section-single-seller-content) {
-    display: none !important;
+  .print-only > * {
+    display: none;
   }
-  
-  /* Mostra a seção de impressão específica quando o modo está ativo */
-  body.print-sales-only .print-section-sales,
-  body.print-profits-only .print-section-profits,
-  body.print-commissions-only .print-section-commissions,
-  body.print-sellers-only .print-section-sellers,
-  body.print-single-seller-report .print-section-single-seller-content {
+
+  body.print-sales-only .print-only .print-section-sales,
+  body.print-profits-only .print-only .print-section-profits,
+  body.print-commissions-only .print-only .print-section-commissions,
+  body.print-sellers-only .print-only .print-section-sellers,
+  body.print-single-seller-report .print-only .print-section-single-seller-content {
+      display: block !important;
+  }
+
+  body:not(.print-sales-only):not(.print-profits-only):not(.print-commissions-only):not(.print-sellers-only):not(.print-single-seller-report) .print-only > * {
     display: block !important;
   }
+
   
   .print-only .border, 
   .print-only .border-b,
   .print-only .border-t,
   .print-only .border-b-2 {
       border-color: #000 !important;
+  }
+  
+  .page-break-before {
+    page-break-before: always;
   }
 }
 

@@ -453,7 +453,7 @@ export default function FinanceiroPage() {
 
         </div>
 
-        <div className="print-section print-section-sellers mt-8">
+        <div className="print-section print-section-sellers mt-8 page-break-before">
             <h2 className="text-xl font-semibold text-center mb-4">Desempenho dos Vendedores</h2>
             <table className="w-full text-sm border-collapse">
                 <thead>
@@ -613,10 +613,6 @@ export default function FinanceiroPage() {
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setIsPerformanceDetailModalOpen(false)}>Fechar</Button>
-                <Button onClick={() => handlePrint('single-seller')}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Imprimir Relatório
-                </Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
