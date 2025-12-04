@@ -58,6 +58,14 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                 <p className="text-xs print:text-[8px] text-muted-foreground">CPF</p>
                 <p className="font-semibold">{order.customer.cpf}</p>
             </div>
+            <div>
+                <p className="text-xs print:text-[8px] text-muted-foreground">TELEFONE</p>
+                <p className="font-semibold">{order.customer.phone}</p>
+            </div>
+            <div className="col-span-2">
+                <p className="text-xs print:text-[8px] text-muted-foreground">ENDEREÇO</p>
+                <p className="font-semibold">{`${order.customer.address}, ${order.customer.number}, ${order.customer.neighborhood} - ${order.customer.city}/${order.customer.state}`}</p>
+            </div>
              <div>
                 <p className="text-xs print:text-[8px] text-muted-foreground">DATA DA COMPRA</p>
                 <p className="font-semibold">{format(new Date(order.date), 'dd/MM/yyyy', { locale: ptBR })}</p>

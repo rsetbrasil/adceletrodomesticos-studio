@@ -10,6 +10,7 @@ import { collection, doc, writeBatch, setDoc, updateDoc, deleteDoc, getDocs } fr
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useData } from './DataContext';
+import { addMonths } from 'date-fns';
 
 // Helper function to log actions, passed as an argument now
 type LogAction = (action: string, details: string, user: User | null) => void;
@@ -35,6 +36,36 @@ const calculateCommission = (order: Order, allProducts: Product[]) => {
           return totalCommission;
       }, 0);
   };
+
+function recalculateInstallments(total: number, installmentsCount: number, orderId: string, orderDate: string): Installment[] {
+    if (installmentsCount <= 0) return [];
+
+    const totalInCents = Math.round(total * 100);
+    const baseInstallmentValueInCents = Math.floor(totalInCents / installmentsCount);
+    let remainderInCents = totalInCents % installmentsCount;
+
+    const newInstallmentDetails: Installment[] = [];
+
+    for (let i = 0; i < installmentsCount; i++) {
+        let installmentValue = baseInstallmentValueInCents;
+        if (remainderInCents > 0) {
+            installmentValue++;
+            remainderInCents--;
+        }
+        
+        newInstallmentDetails.push({
+            id: `inst-${orderId}-${i + 1}`,
+            installmentNumber: i + 1,
+            amount: installmentValue / 100,
+            dueDate: addMonths(new Date(orderDate), i + 1).toISOString(),
+            status: 'Pendente',
+            paidAmount: 0,
+            payments: [],
+        });
+    }
+
+    return newInstallmentDetails;
+}
 
 
 interface AdminContextType {
@@ -524,13 +555,14 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         commissionPaid: false,
     } as Order;
     
-    if (orderToSave.installmentDetails) {
-        orderToSave.installmentDetails = orderToSave.installmentDetails.map(inst => ({
-            ...inst,
-            id: `inst-${orderToSave.id}-${inst.installmentNumber}`,
-            paidAmount: 0,
-            payments: [],
-        }));
+    const subtotal = order.items?.reduce((acc, item) => acc + item.price * item.quantity, 0) || 0;
+    const total = subtotal - (order.discount || 0);
+
+    orderToSave.total = total;
+    
+    if (orderToSave.installments > 0) {
+      orderToSave.installmentDetails = recalculateInstallments(total, orderToSave.installments, orderToSave.id, orderToSave.date);
+      orderToSave.installmentValue = orderToSave.installmentDetails[0]?.amount || 0;
     }
     
     try {
@@ -907,6 +939,27 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     if (!order) return;
 
     let detailsToUpdate: Partial<Order> = { ...details };
+
+    const hasInstallmentsChanged = details.installments && details.installments !== order.installments;
+    const hasDiscountChanged = details.discount !== undefined && details.discount !== order.discount;
+
+    if (hasInstallmentsChanged || hasDiscountChanged) {
+        const subtotal = order.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+        const currentDiscount = hasDiscountChanged ? details.discount! : (order.discount || 0);
+        const currentTotal = subtotal - currentDiscount;
+        const currentInstallments = hasInstallmentsChanged ? details.installments! : order.installments;
+        
+        const newInstallmentDetails = recalculateInstallments(currentTotal, currentInstallments, orderId, order.date);
+
+        detailsToUpdate = {
+            ...detailsToUpdate,
+            total: currentTotal,
+            discount: currentDiscount,
+            installments: currentInstallments,
+            installmentValue: newInstallmentDetails[0]?.amount || 0,
+            installmentDetails: newInstallmentDetails,
+        };
+    }
     
     const orderRef = doc(db, 'orders', orderId);
     updateDoc(orderRef, detailsToUpdate).then(() => {
