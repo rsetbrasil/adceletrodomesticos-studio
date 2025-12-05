@@ -19,6 +19,7 @@ import ChatWidget from '@/components/ChatWidget';
 import { DataProvider } from '@/context/DataContext';
 import { AdminProvider } from '@/context/AdminContext';
 import { ThemeProvider } from "next-themes";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 
 const AppContent = ({ children }: { children: React.ReactNode }) => {
@@ -91,6 +92,7 @@ export default function RootLayout({
             </AuthProvider>
             </AuditProvider>
         </ThemeProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
