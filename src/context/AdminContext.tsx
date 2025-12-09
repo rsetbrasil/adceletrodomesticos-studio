@@ -782,63 +782,26 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const order = orders.find(o => o.id === orderId);
         if (!order || !order.installmentDetails) return;
 
-        const editedInstallment = order.installmentDetails.find(i => i.installmentNumber === installmentNumber);
-        if (!editedInstallment) return;
-
-        const totalValueInCents = Math.round(order.total * 100);
-        const newAmountInCents = Math.round(newAmount * 100);
-
-        if (newAmountInCents > totalValueInCents) {
-            toast({ title: 'Valor Inválido', description: 'O valor da parcela não pode ser maior que o valor total do pedido.', variant: 'destructive' });
-            return;
-        }
-
-        const remainingInstallments = order.installmentDetails.filter(i => i.installmentNumber !== installmentNumber);
-        const remainingTotalInCents = totalValueInCents - newAmountInCents;
-        const numRemainingInstallments = remainingInstallments.length;
-
-        if (numRemainingInstallments === 0 && remainingTotalInCents !== 0) {
-            toast({ title: 'Valor Inválido', description: 'Não é possível alterar a última parcela para um valor diferente do total.', variant: 'destructive' });
-            return;
-        }
+        const updatedInstallments = order.installmentDetails.map(inst => 
+            inst.installmentNumber === installmentNumber ? { ...inst, amount: newAmount } : inst
+        );
         
-        let redistributedInstallments = [];
-        if (numRemainingInstallments > 0) {
-            const baseAmountInCents = Math.floor(remainingTotalInCents / numRemainingInstallments);
-            let remainderInCents = remainingTotalInCents % numRemainingInstallments;
+        const newTotal = updatedInstallments.reduce((sum, inst) => sum + inst.amount, 0);
 
-            redistributedInstallments = remainingInstallments.map((inst) => {
-                let instAmount = baseAmountInCents;
-                if (remainderInCents > 0) {
-                    instAmount++;
-                    remainderInCents--;
-                }
-                return { ...inst, amount: instAmount / 100 };
-            });
-             // Distribute any leftover pennies to the last one
-            const totalCheck = redistributedInstallments.reduce((sum, inst) => sum + Math.round(inst.amount * 100), 0);
-            if(totalCheck !== remainingTotalInCents) {
-                const diff = remainingTotalInCents - totalCheck;
-                const lastInst = redistributedInstallments[redistributedInstallments.length - 1];
-                lastInst.amount = (Math.round(lastInst.amount * 100) + diff) / 100;
-            }
-        }
-
-
-        const finalInstallments = [
-            ...redistributedInstallments,
-            { ...editedInstallment, amount: newAmount }
-        ].sort((a,b) => a.installmentNumber - b.installmentNumber);
+        const dataToUpdate = {
+            installmentDetails: updatedInstallments,
+            total: newTotal
+        };
 
         const orderRef = doc(db, 'orders', orderId);
-        updateDoc(orderRef, { installmentDetails: finalInstallments }).then(() => {
+        updateDoc(orderRef, dataToUpdate).then(() => {
             logAction('Atualização de Valor de Parcela', `Valor da parcela ${installmentNumber} do pedido #${orderId} alterado para ${newAmount.toFixed(2)}.`, user);
             toast({ title: 'Valor da Parcela Atualizado!' });
         }).catch(async (e) => {
             errorEmitter.emit('permission-error', new FirestorePermissionError({
                 path: orderRef.path,
                 operation: 'update',
-                requestResourceData: { installmentDetails: finalInstallments },
+                requestResourceData: dataToUpdate,
             }));
         });
     }, [orders, toast]);
