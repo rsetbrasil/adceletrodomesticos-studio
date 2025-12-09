@@ -786,19 +786,20 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             inst.installmentNumber === installmentNumber ? { ...inst, amount: newAmount } : inst
         );
         
-        const newTotal = updatedInstallments.reduce((sum, inst) => sum + inst.amount, 0) + (order.downPayment || 0);
+        const newTotalFinanced = updatedInstallments.reduce((sum, inst) => sum + inst.amount, 0);
+        
         const subtotal = order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-        const newDiscount = subtotal - newTotal;
+        const newDiscount = subtotal - (newTotalFinanced + (order.downPayment || 0));
 
         const dataToUpdate = {
             installmentDetails: updatedInstallments,
-            total: newTotal,
-            discount: newDiscount < 0 ? order.discount : newDiscount
+            total: newTotalFinanced,
+            discount: newDiscount,
         };
 
         const orderRef = doc(db, 'orders', orderId);
         updateDoc(orderRef, dataToUpdate).then(() => {
-            logAction('Atualização de Valor de Parcela', `Valor da parcela ${installmentNumber} do pedido #${orderId} alterado para ${newAmount.toFixed(2)}. Total do pedido recalculado.`, user);
+            logAction('Atualização de Valor de Parcela', `Valor da parcela ${installmentNumber} do pedido #${orderId} alterado para ${newAmount.toFixed(2)}. Total do pedido e desconto recalculados.`, user);
             toast({ title: 'Valor da Parcela Atualizado!' });
         }).catch(async (e) => {
             errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -1272,3 +1273,4 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
+
