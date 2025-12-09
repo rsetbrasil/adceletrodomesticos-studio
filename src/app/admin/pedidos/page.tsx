@@ -98,7 +98,7 @@ const dueDateRanges = [
 ];
 
 export default function OrdersAdminPage() {
-  const { updateOrderStatus, recordInstallmentPayment, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder, reversePayment, emptyTrash } = useAdmin();
+  const { updateOrderStatus, recordInstallmentPayment, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder, reversePayment, emptyTrash, updateInstallmentAmount } = useAdmin();
   const { products, orders } = useData();
   const { user, users } = useAuth();
   const { settings } = useSettings();
@@ -108,6 +108,7 @@ export default function OrdersAdminPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [installmentsInput, setInstallmentsInput] = useState(1);
+  const [editedInstallmentValues, setEditedInstallmentValues] = useState<{ [key: number]: string }>({});
   const [commissionInput, setCommissionInput] = useState('0');
   const [observationsInput, setObservationsInput] = useState('');
   const [discountInput, setDiscountInput] = useState(0);
@@ -244,6 +245,7 @@ export default function OrdersAdminPage() {
         setSelectedOrder(updatedOrderInList);
       }
       setInstallmentsInput(updatedOrderInList?.installments || 1);
+      setEditedInstallmentValues({});
       setCommissionInput((updatedOrderInList?.commission || 0).toString().replace('.', ','));
       setObservationsInput(updatedOrderInList?.observations || '');
       setDiscountInput(updatedOrderInList?.discount || 0);
@@ -253,6 +255,7 @@ export default function OrdersAdminPage() {
   const handleOpenDetails = (order: Order) => {
     setSelectedOrder(order);
     setInstallmentsInput(order.installments);
+    setEditedInstallmentValues({});
     setCommissionInput((order.commission || 0).toString().replace('.', ','));
     setObservationsInput(order.observations || '');
     setDiscountInput(order.discount || 0);
@@ -435,6 +438,23 @@ Não esqueça de enviar o comprovante!`;
     window.print();
     document.body.classList.remove('print-overdue-report');
   };
+
+  const handleInstallmentValueChange = (instNumber: number, value: string) => {
+    setEditedInstallmentValues(prev => ({ ...prev, [instNumber]: value }));
+  };
+
+  const handleSaveInstallmentValue = (instNumber: number) => {
+    if (!selectedOrder) return;
+    const editedValue = editedInstallmentValues[instNumber];
+    const newAmount = parseFloat(editedValue.replace(/\./g, '').replace(',', '.'));
+
+    if (isNaN(newAmount) || newAmount < 0) {
+      toast({ title: 'Valor Inválido', variant: 'destructive' });
+      return;
+    }
+    
+    updateInstallmentAmount(selectedOrder.id, instNumber, newAmount, logAction, user);
+  }
 
   const overdueOrdersForReport = useMemo(() => {
     return activeOrders.map(order => {
@@ -1063,7 +1083,8 @@ Não esqueça de enviar o comprovante!`;
                                             const isExpanded = expandedHistory === uniqueKey;
                                             const remainingAmount = inst.amount - (inst.paidAmount || 0);
                                             const isOverdue = inst.status === 'Pendente' && new Date(inst.dueDate) < new Date();
-                                            
+                                            const isAmountEdited = editedInstallmentValues[inst.installmentNumber] !== undefined;
+
                                             let statusText: string = inst.status;
                                             if (inst.status === 'Pendente' && (inst.paidAmount || 0) > 0) {
                                                 statusText = `Parcial (${formatCurrency(remainingAmount)} pendente)`;
@@ -1089,7 +1110,26 @@ Não esqueça de enviar o comprovante!`;
                                                                 </PopoverContent>
                                                             </Popover>
                                                         </TableCell>
-                                                        <TableCell>{formatCurrency(inst.amount)}</TableCell>
+                                                        <TableCell>
+                                                            {isAdmin ? (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Input
+                                                                        type="text"
+                                                                        value={isAmountEdited ? editedInstallmentValues[inst.installmentNumber] : formatBRL(inst.amount)}
+                                                                        onChange={(e) => handleInstallmentValueChange(inst.installmentNumber, e.target.value)}
+                                                                        className="w-28 h-9 text-right"
+                                                                        disabled={inst.status === 'Pago'}
+                                                                    />
+                                                                    {isAmountEdited && (
+                                                                        <Button size="icon" variant="outline" className="h-9 w-9" onClick={() => handleSaveInstallmentValue(inst.installmentNumber)}>
+                                                                            <Save className="h-4 w-4" />
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                formatCurrency(inst.amount)
+                                                            )}
+                                                        </TableCell>
                                                         <TableCell><Badge variant={statusVariant}>{statusText}</Badge></TableCell>
                                                         <TableCell className="text-right">
                                                             <div className="flex items-center justify-end gap-1">
@@ -1198,3 +1238,4 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
+

@@ -1,4 +1,5 @@
 
+
 export type StoreSettings = {
     storeName: string;
     storeCity: string;
@@ -226,6 +227,5 @@ export type ChatSession = {
   satisfaction?: 'Ótimo' | 'Bom' | 'Ruim';
 };
 
-export type WhatsAppIconProps = {
-    // No props needed for this component
-};
+// This can be removed if not used elsewhere, but good for type safety
+export type WhatsAppIconProps = {};

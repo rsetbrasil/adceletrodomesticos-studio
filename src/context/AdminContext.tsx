@@ -76,6 +76,7 @@ interface AdminContextType {
   recordInstallmentPayment: (orderId: string, installmentNumber: number, payment: Omit<Payment, 'receivedBy'>, logAction: LogAction, user: User | null) => Promise<void>;
   reversePayment: (orderId: string, installmentNumber: number, paymentId: string, logAction: LogAction, user: User | null) => Promise<void>;
   updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date, logAction: LogAction, user: User | null) => Promise<void>;
+  updateInstallmentAmount: (orderId: string, installmentNumber: number, newAmount: number, logAction: LogAction, user: User | null) => Promise<void>;
   updateCustomer: (updatedCustomer: CustomerInfo, logAction: LogAction, user: User | null) => Promise<void>;
   importCustomers: (csvData: string, logAction: LogAction, user: User | null) => Promise<void>;
   updateOrderDetails: (orderId: string, details: Partial<Order> & { downPayment?: number, resetDownPayment?: boolean }, logAction: LogAction, user: User | null) => Promise<void>;
@@ -547,24 +548,24 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const addOrder = async (order: Partial<Order>, logAction: LogAction, user: User | null): Promise<Order | null> => {
     const { db } = getClientFirebase();
-
-    const lastOrderNumber = orders
-        .map(o => parseInt(o.id.split('-')[1] || '0', 10))
-        .filter(n => !isNaN(n))
-        .reduce((max, current) => Math.max(max, current), 0);
-        
+    
     const prefix = order.items && order.items.length > 0 ? 'PED' : 'REG';
-    const orderId = `${prefix}-${String(lastOrderNumber + 1).padStart(4, '0')}`;
+    const lastOrderWithPrefix = orders
+      .filter(o => o.id.startsWith(`${prefix}-`))
+      .map(o => parseInt(o.id.split('-')[1] || '0', 10))
+      .filter(n => !isNaN(n))
+      .sort((a,b) => b-a)[0] || 0;
+      
+    const orderId = `${prefix}-${String(lastOrderWithPrefix + 1).padStart(4, '0')}`;
 
     const orderToSave = {
         ...order,
-        id: orderId, // Set the new sequential ID here
+        id: orderId,
         sellerId: order.sellerId || user?.id || '',
         sellerName: order.sellerName || user?.name || 'Não atribuído',
         commissionPaid: false,
     } as Order;
 
-    // Calculate commission on creation
     orderToSave.commission = calculateCommission(orderToSave, products);
     
     const subtotal = order.items?.reduce((acc, item) => acc + item.price * item.quantity, 0) || 0;
@@ -775,6 +776,53 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         }));
     });
   }, [orders, toast]);
+
+    const updateInstallmentAmount = useCallback(async (orderId: string, installmentNumber: number, newAmount: number, logAction: LogAction, user: User | null) => {
+        const { db } = getClientFirebase();
+        const order = orders.find(o => o.id === orderId);
+        if (!order || !order.installmentDetails) return;
+
+        const totalValue = order.total;
+        const installments = order.installmentDetails;
+        const editedInstallment = installments.find(i => i.installmentNumber === installmentNumber);
+
+        if (!editedInstallment) return;
+
+        const remainingTotal = totalValue - newAmount;
+        const remainingInstallments = installments.filter(i => i.installmentNumber !== installmentNumber);
+
+        if (remainingTotal < 0) {
+            toast({ title: 'Valor Inválido', description: 'O valor da parcela não pode ser maior que o valor total do pedido.', variant: 'destructive' });
+            return;
+        }
+
+        let distributedAmount = 0;
+        const newInstallments = remainingInstallments.map((inst, index) => {
+            const isLast = index === remainingInstallments.length - 1;
+            let newInstAmount: number;
+            if (isLast) {
+                newInstAmount = remainingTotal - distributedAmount;
+            } else {
+                newInstAmount = parseFloat((remainingTotal / remainingInstallments.length).toFixed(2));
+                distributedAmount += newInstAmount;
+            }
+            return { ...inst, amount: newInstAmount };
+        });
+
+        const finalInstallments = [...newInstallments, { ...editedInstallment, amount: newAmount }].sort((a,b) => a.installmentNumber - b.installmentNumber);
+
+        const orderRef = doc(db, 'orders', orderId);
+        updateDoc(orderRef, { installmentDetails: finalInstallments }).then(() => {
+            logAction('Atualização de Valor de Parcela', `Valor da parcela ${installmentNumber} do pedido #${orderId} alterado para ${newAmount.toFixed(2)}.`, user);
+            toast({ title: 'Valor da Parcela Atualizado!' });
+        }).catch(async (e) => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: orderRef.path,
+                operation: 'update',
+                requestResourceData: { installmentDetails: finalInstallments },
+            }));
+        });
+    }, [orders, toast]);
 
   const updateCustomer = useCallback(async (updatedCustomer: CustomerInfo, logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
@@ -1218,7 +1266,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AdminContext.Provider
       value={{
-        addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateCustomer, importCustomers, updateOrderDetails,
+        addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateInstallmentAmount, updateCustomer, importCustomers, updateOrderDetails,
         addProduct, updateProduct, deleteProduct,
         addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         payCommissions, reverseCommissionPayment,
