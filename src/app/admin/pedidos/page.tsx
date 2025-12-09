@@ -346,22 +346,9 @@ export default function OrdersAdminPage() {
   }
 
   const handleCalculateCommission = () => {
-    if (!selectedOrder || !products) return;
-
-    const commission = selectedOrder.items.reduce((totalCommission, item) => {
-        const product = products.find(p => p.id === item.id);
-        if (!product || typeof product.commissionValue === 'undefined') return totalCommission;
-
-        if (product.commissionType === 'fixed') {
-            return totalCommission + (product.commissionValue * item.quantity);
-        }
-        if (product.commissionType === 'percentage') {
-            return totalCommission + (item.price * item.quantity * product.commissionValue / 100);
-        }
-        return totalCommission;
-    }, 0);
-    
-    setCommissionInput(commission.toFixed(2).replace('.', ','));
+    if (!selectedOrder) return;
+    const commissionValue = selectedOrder.commission || 0;
+    setCommissionInput(commissionValue.toFixed(2).replace('.', ','));
   };
 
   const handleUpdateCommission = () => {
@@ -1238,4 +1225,5 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
+
 
