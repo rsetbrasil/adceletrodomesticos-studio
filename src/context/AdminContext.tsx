@@ -27,10 +27,12 @@ const calculateCommission = (order: Order, allProducts: Product[]) => {
           const product = allProducts.find(p => p.id === item.id);
           if (!product || typeof product.commissionValue === 'undefined') return totalCommission;
           
-          if (product.commissionType === 'fixed') {
+          const commissionType = product.commissionType || 'percentage'; // Default to percentage
+
+          if (commissionType === 'fixed') {
               return totalCommission + (product.commissionValue * item.quantity);
           }
-          if (product.commissionType === 'percentage') {
+          if (commissionType === 'percentage') {
               return totalCommission + (item.price * item.quantity * product.commissionValue / 100);
           }
           return totalCommission;
