@@ -782,34 +782,53 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const order = orders.find(o => o.id === orderId);
         if (!order || !order.installmentDetails) return;
 
-        const totalValue = order.total;
-        const installments = order.installmentDetails;
-        const editedInstallment = installments.find(i => i.installmentNumber === installmentNumber);
-
+        const editedInstallment = order.installmentDetails.find(i => i.installmentNumber === installmentNumber);
         if (!editedInstallment) return;
 
-        const remainingTotal = totalValue - newAmount;
-        const remainingInstallments = installments.filter(i => i.installmentNumber !== installmentNumber);
+        const totalValueInCents = Math.round(order.total * 100);
+        const newAmountInCents = Math.round(newAmount * 100);
 
-        if (remainingTotal < 0) {
+        if (newAmountInCents > totalValueInCents) {
             toast({ title: 'Valor Inválido', description: 'O valor da parcela não pode ser maior que o valor total do pedido.', variant: 'destructive' });
             return;
         }
 
-        let distributedAmount = 0;
-        const newInstallments = remainingInstallments.map((inst, index) => {
-            const isLast = index === remainingInstallments.length - 1;
-            let newInstAmount: number;
-            if (isLast) {
-                newInstAmount = remainingTotal - distributedAmount;
-            } else {
-                newInstAmount = parseFloat((remainingTotal / remainingInstallments.length).toFixed(2));
-                distributedAmount += newInstAmount;
-            }
-            return { ...inst, amount: newInstAmount };
-        });
+        const remainingInstallments = order.installmentDetails.filter(i => i.installmentNumber !== installmentNumber);
+        const remainingTotalInCents = totalValueInCents - newAmountInCents;
+        const numRemainingInstallments = remainingInstallments.length;
 
-        const finalInstallments = [...newInstallments, { ...editedInstallment, amount: newAmount }].sort((a,b) => a.installmentNumber - b.installmentNumber);
+        if (numRemainingInstallments === 0 && remainingTotalInCents !== 0) {
+            toast({ title: 'Valor Inválido', description: 'Não é possível alterar a última parcela para um valor diferente do total.', variant: 'destructive' });
+            return;
+        }
+        
+        let redistributedInstallments = [];
+        if (numRemainingInstallments > 0) {
+            const baseAmountInCents = Math.floor(remainingTotalInCents / numRemainingInstallments);
+            let remainderInCents = remainingTotalInCents % numRemainingInstallments;
+
+            redistributedInstallments = remainingInstallments.map((inst) => {
+                let instAmount = baseAmountInCents;
+                if (remainderInCents > 0) {
+                    instAmount++;
+                    remainderInCents--;
+                }
+                return { ...inst, amount: instAmount / 100 };
+            });
+             // Distribute any leftover pennies to the last one
+            const totalCheck = redistributedInstallments.reduce((sum, inst) => sum + Math.round(inst.amount * 100), 0);
+            if(totalCheck !== remainingTotalInCents) {
+                const diff = remainingTotalInCents - totalCheck;
+                const lastInst = redistributedInstallments[redistributedInstallments.length - 1];
+                lastInst.amount = (Math.round(lastInst.amount * 100) + diff) / 100;
+            }
+        }
+
+
+        const finalInstallments = [
+            ...redistributedInstallments,
+            { ...editedInstallment, amount: newAmount }
+        ].sort((a,b) => a.installmentNumber - b.installmentNumber);
 
         const orderRef = doc(db, 'orders', orderId);
         updateDoc(orderRef, { installmentDetails: finalInstallments }).then(() => {
