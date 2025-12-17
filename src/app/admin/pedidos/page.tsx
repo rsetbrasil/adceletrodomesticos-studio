@@ -451,7 +451,7 @@ Não esqueça de enviar o comprovante!`;
   }, [activeOrders]);
 
   const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'gerente';
-  const isAdmin = user?.role === 'admin';
+  const canEditInstallment = user?.role === 'admin' || user?.role === 'gerente' || user?.role === 'vendedor';
 
 
   if (!isClient) {
@@ -895,7 +895,7 @@ Não esqueça de enviar o comprovante!`;
                                 <Separator className="my-3" />
                                 <div className="flex justify-between font-bold text-base">
                                     <span>TOTAL</span>
-                                    <span>{formatCurrency(selectedOrder.items.reduce((acc, item) => acc + (item.price * item.quantity), 0) - (selectedOrder.discount || 0) - (selectedOrder.downPayment || 0))}</span>
+                                    <span>{formatCurrency(selectedOrder.total)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm mt-2">
                                     <span>Vendedor:</span>
@@ -905,7 +905,7 @@ Não esqueça de enviar o comprovante!`;
 
                                  <div className="flex justify-between text-base items-center">
                                     <span className="font-semibold text-green-600 flex items-center gap-2"><Percent />Comissão:</span>
-                                    {isAdmin ? (
+                                    {isManagerOrAdmin ? (
                                       <div className="flex gap-2 items-center">
                                         <span className="text-sm">R$</span>
                                          <Input
@@ -1098,7 +1098,7 @@ Não esqueça de enviar o comprovante!`;
                                                             </Popover>
                                                         </TableCell>
                                                         <TableCell>
-                                                            {isAdmin ? (
+                                                            {canEditInstallment ? (
                                                                 <div className="flex items-center gap-2">
                                                                     <Input
                                                                         type="text"
@@ -1225,5 +1225,6 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
+
 
 
