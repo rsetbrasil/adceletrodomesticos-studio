@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import FilterSheet from '@/components/FilterSheet';
 import { useData } from '@/context/DataContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCart } from '@/context/CartContext';
 
 
 const formatCurrency = (value: number) => {
@@ -27,6 +28,7 @@ const formatCurrency = (value: number) => {
 
 export default function Home() {
   const { products: allProducts, categories, isLoading } = useData();
+  const { headerSearch, setHeaderSearch } = useCart();
 
   const [filters, setFilters] = useState({
     category: 'all',
@@ -34,6 +36,12 @@ export default function Home() {
     search: '',
     sort: 'newest',
   });
+
+  useEffect(() => {
+    if (headerSearch) {
+      setFilters(prev => ({...prev, search: headerSearch}));
+    }
+  }, [headerSearch]);
 
   const handleFilterChange = (
     newFilters: Partial<typeof filters>
@@ -46,6 +54,10 @@ export default function Home() {
         }
         return updated;
     });
+    // When filters are changed from the filter components, clear the header search
+    if (newFilters.search !== undefined) {
+      setHeaderSearch(newFilters.search);
+    }
   };
 
   const saleProducts = useMemo(() => {

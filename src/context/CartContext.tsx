@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -41,6 +42,8 @@ interface CartContextType {
   setSelectedCategoryForSheet: (category: string | null) => void;
   lastOrder: Order | null;
   setLastOrder: (order: Order) => void;
+  headerSearch: string;
+  setHeaderSearch: (search: string) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -51,6 +54,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [selectedCategoryForSheet, setSelectedCategoryForSheet] = useState<string | null>(null);
   const [lastOrder, setLastOrderState] = useState<Order | null>(null);
+  const [headerSearch, setHeaderSearch] = useState('');
   const { toast } = useToast();
   const { products } = useData();
 
@@ -146,6 +150,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         isFilterSheetOpen, setIsFilterSheetOpen,
         selectedCategoryForSheet, setSelectedCategoryForSheet,
         lastOrder, setLastOrder,
+        headerSearch, setHeaderSearch,
       }}
     >
       {children}
