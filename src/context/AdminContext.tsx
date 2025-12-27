@@ -188,9 +188,16 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => {
       const { db } = getClientFirebase();
-      const now = Date.now();
-      const newProductId = `prod-${now}`;
-      const newProductCode = `ITEM-${now.toString().slice(-6)}`;
+      const newProductId = `prod-${Date.now()}`;
+      
+      const existingCodes = products
+        .map(p => p.code)
+        .filter((code): code is string => !!code && code.startsWith('ITEM-'))
+        .map(code => parseInt(code.replace('ITEM-', ''), 10))
+        .filter(num => !isNaN(num));
+        
+      const lastCodeNumber = existingCodes.length > 0 ? Math.max(...existingCodes) : 99;
+      const newProductCode = `ITEM-${lastCodeNumber + 1}`;
       
       const newProduct: Partial<Product> = {
         ...productData,
@@ -218,7 +225,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: newProduct,
         }));
       });
-  }, [toast]);
+  }, [toast, products]);
 
   const updateProduct = useCallback(async (updatedProduct: Product, logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
@@ -579,7 +586,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     orderToSave.total = total;
     
     if (orderToSave.installments > 0 && orderToSave.installmentDetails) {
-      // Installment details are now passed directly from the form, ensuring correct due date
+      orderToSave.installmentDetails = recalculateInstallments(total, orderToSave.installments, orderId, order.firstDueDate?.toISOString() || new Date().toISOString())
       orderToSave.installmentValue = orderToSave.installmentDetails[0]?.amount || 0;
     }
     
@@ -796,7 +803,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const subtotal = order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
         const newDiscount = subtotal - (newTotalFinanced + (order.downPayment || 0));
 
-        const dataToUpdate = {
+        const dataToUpdate: Partial<Order> = {
             installmentDetails: updatedInstallments,
             total: newTotalFinanced,
             discount: newDiscount,
@@ -943,6 +950,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
                     cpf,
                     name: importedCustomer.name || 'Nome não informado',
                     phone: importedCustomer.phone || '',
+                    phone2: importedCustomer.phone2,
+                    phone3: importedCustomer.phone3,
                     email: importedCustomer.email || '',
                     zip: importedCustomer.zip || '',
                     address: importedCustomer.address || '',
@@ -1278,4 +1287,3 @@ export const useAdmin = (): AdminContextType => {
   }
   return context;
 };
-

@@ -47,9 +47,19 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       const productsToUpdate = fetchedProducts.filter(p => !p.code);
       if (productsToUpdate.length > 0) {
           const batch = writeBatch(db);
-          productsToUpdate.forEach((p, index) => {
+          
+          const existingCodes = fetchedProducts
+            .map(p => p.code)
+            .filter((code): code is string => !!code && code.startsWith('ITEM-'))
+            .map(code => parseInt(code.replace('ITEM-', ''), 10))
+            .filter(num => !isNaN(num));
+            
+          let lastCodeNumber = existingCodes.length > 0 ? Math.max(...existingCodes) : 99;
+
+          productsToUpdate.forEach((p) => {
               const productRef = doc(db, 'products', p.id);
-              const newCode = `ITEM-${Date.now() + index}`; // Add index to avoid timestamp collision in the same batch
+              lastCodeNumber++;
+              const newCode = `ITEM-${lastCodeNumber}`;
               batch.update(productRef, { code: newCode });
           });
           batch.commit().catch(e => console.error("Failed to backfill product codes:", e));
