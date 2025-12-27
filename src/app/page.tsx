@@ -80,23 +80,32 @@ export default function Home() {
         p.name.toLowerCase().includes(filters.search.toLowerCase())
       );
     }
+    
+    // Split into available and unavailable
+    const available = filtered.filter(p => p.stock > 0);
+    const unavailable = filtered.filter(p => p.stock <= 0);
 
-    switch (filters.sort) {
-      case 'price-asc':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case 'newest':
-        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        break;
-      default: // relevance
-        // No specific relevance logic, using default order
-        break;
+    const sortArray = (arr: Product[]) => {
+        switch (filters.sort) {
+        case 'price-asc':
+            arr.sort((a, b) => a.price - b.price);
+            break;
+        case 'price-desc':
+            arr.sort((a, b) => b.price - a.price);
+            break;
+        case 'newest':
+            arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            break;
+        default: // relevance
+            // No specific relevance logic, using default order
+            break;
+        }
+        return arr;
     }
 
-    return filtered;
+    // Sort each array individually and then concatenate
+    return [...sortArray(available), ...sortArray(unavailable)];
+
   }, [filters, allProducts]);
 
   const ProductGridSkeleton = () => (
