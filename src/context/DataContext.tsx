@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, writeBatch, doc } from 'firebase/firestore';
 import { getClientFirebase } from '@/lib/firebase-client';
 import type { Product, Category, Order, CommissionPayment, StockAudit, Avaria, CustomerInfo } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
@@ -42,6 +43,18 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const { db } = getClientFirebase();
     const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'desc')), (snapshot) => {
       const fetchedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product));
+      
+      const productsToUpdate = fetchedProducts.filter(p => !p.code);
+      if (productsToUpdate.length > 0) {
+          const batch = writeBatch(db);
+          productsToUpdate.forEach((p, index) => {
+              const productRef = doc(db, 'products', p.id);
+              const newCode = `ITEM-${Date.now() + index}`; // Add index to avoid timestamp collision in the same batch
+              batch.update(productRef, { code: newCode });
+          });
+          batch.commit().catch(e => console.error("Failed to backfill product codes:", e));
+      }
+
       setProducts(fetchedProducts.length > 0 ? fetchedProducts : initialProducts);
       setIsLoading(false);
     }, (error) => {
