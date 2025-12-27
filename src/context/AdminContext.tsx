@@ -585,8 +585,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const total = subtotal - (order.discount || 0);
     orderToSave.total = total;
     
-    if (orderToSave.installments > 0 && orderToSave.installmentDetails) {
-      orderToSave.installmentDetails = recalculateInstallments(total, orderToSave.installments, orderId, order.firstDueDate?.toISOString() || new Date().toISOString())
+    if (orderToSave.installments > 0 && order.firstDueDate) {
+      orderToSave.installmentDetails = recalculateInstallments(total, orderToSave.installments, orderId, order.firstDueDate.toISOString())
       orderToSave.installmentValue = orderToSave.installmentDetails[0]?.amount || 0;
     }
     
