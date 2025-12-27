@@ -558,7 +558,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [products, toast]);
 
-  const addOrder = async (order: Partial<Order>, logAction: LogAction, user: User | null): Promise<Order | null> => {
+  const addOrder = async (order: Partial<Order> & { firstDueDate?: Date }, logAction: LogAction, user: User | null): Promise<Order | null> => {
     const { db } = getClientFirebase();
     
     const prefix = order.items && order.items.length > 0 ? 'PED' : 'REG';
