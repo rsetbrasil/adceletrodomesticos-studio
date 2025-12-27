@@ -544,8 +544,20 @@ Não esqueça de enviar o comprovante!`;
                         </div>
                         <div className="flex items-center gap-2">
                             <Phone className="h-4 w-4 text-muted-foreground" />
-                            <span>{selectedCustomer.phone}</span>
+                            <span>{selectedCustomer.phone} (WhatsApp)</span>
                         </div>
+                        {selectedCustomer.phone2 && (
+                            <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                <span>{selectedCustomer.phone2}</span>
+                            </div>
+                        )}
+                        {selectedCustomer.phone3 && (
+                            <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                <span>{selectedCustomer.phone3}</span>
+                            </div>
+                        )}
                         <div className="flex items-center gap-2">
                             <strong className="text-muted-foreground font-mono text-xs">CPF</strong>
                             <span>{selectedCustomer.cpf || 'Não informado'}</span>
@@ -904,8 +916,16 @@ Não esqueça de enviar o comprovante!`;
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">
                         <div>
-                            <Label htmlFor="phone">Telefone</Label>
+                            <Label htmlFor="phone">Telefone (WhatsApp)</Label>
                             <Input id="phone" name="phone" value={editedInfo.phone || ''} onChange={handleInputChange} />
+                        </div>
+                        <div>
+                            <Label htmlFor="phone2">Telefone 2</Label>
+                            <Input id="phone2" name="phone2" value={editedInfo.phone2 || ''} onChange={handleInputChange} />
+                        </div>
+                         <div>
+                            <Label htmlFor="phone3">Telefone 3</Label>
+                            <Input id="phone3" name="phone3" value={editedInfo.phone3 || ''} onChange={handleInputChange} />
                         </div>
                         <div>
                             <Label htmlFor="email">Email</Label>

@@ -25,7 +25,9 @@ const customerSchema = z.object({
   cpf: z.string().optional().refine(val => !val || isValidCPF(val), {
     message: 'CPF inválido.',
   }),
-  phone: z.string().min(10, 'Telefone é obrigatório.'),
+  phone: z.string().min(10, 'O telefone principal (WhatsApp) é obrigatório.'),
+  phone2: z.string().optional(),
+  phone3: z.string().optional(),
   email: z.string().email('E-mail inválido.').optional().or(z.literal('')),
   zip: z.string().refine((value) => {
     const justDigits = value.replace(/\D/g, '');
@@ -54,6 +56,8 @@ export default function CustomerForm({ onSave, onCancel, customerToEdit }: Custo
       name: '',
       cpf: '',
       phone: '',
+      phone2: '',
+      phone3: '',
       email: '',
       zip: '',
       address: '',
@@ -102,7 +106,9 @@ export default function CustomerForm({ onSave, onCancel, customerToEdit }: Custo
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF (Opcional)</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone (WhatsApp)</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="phone2" render={({ field }) => ( <FormItem><FormLabel>Telefone 2 (Opcional)</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="phone3" render={({ field }) => ( <FormItem><FormLabel>Telefone 3 (Opcional)</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email (Opcional)</FormLabel><FormControl><Input placeholder="seu@email.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
         </div>
         <h4 className="text-lg font-semibold pt-4 border-t">Endereço</h4>

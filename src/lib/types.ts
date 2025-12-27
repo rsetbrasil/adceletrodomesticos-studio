@@ -56,6 +56,8 @@ export type CustomerInfo = {
   name: string;
   cpf?: string;
   phone: string;
+  phone2?: string;
+  phone3?: string;
   email?: string;
   zip: string;
   address: string;
