@@ -15,6 +15,7 @@ export type StoreSettings = {
 
 export type Product = {
   id: string;
+  code?: string;
   name: string;
   description: string;
   longDescription: string;

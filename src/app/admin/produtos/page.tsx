@@ -75,6 +75,7 @@ export default function ManageProductsPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-[80px]">Imagem</TableHead>
+                                        <TableHead>Cód. Item</TableHead>
                                         <TableHead>Nome</TableHead>
                                         <TableHead>Categoria</TableHead>
                                         <TableHead className="text-right">Preço</TableHead>
@@ -96,6 +97,7 @@ export default function ManageProductsPage() {
                                                     />
                                                 </div>
                                             </TableCell>
+                                            <TableCell className="font-mono text-xs">{product.code || '-'}</TableCell>
                                             <TableCell className="font-medium">{product.name}</TableCell>
                                             <TableCell className="capitalize">{product.category}</TableCell>
                                             <TableCell className="text-right">{formatCurrency(product.price)}</TableCell>

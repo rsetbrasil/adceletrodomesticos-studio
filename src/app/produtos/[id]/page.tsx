@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -121,6 +122,7 @@ export default function ProductDetailPage() {
             {product.subcategory && <Badge variant="outline" className="capitalize w-fit">{product.subcategory}</Badge>}
           </div>
           <h1 className="text-3xl lg:text-4xl font-bold font-headline text-primary">{product.name}</h1>
+          {product.code && <p className="text-sm text-muted-foreground mt-2">Cód. Item: {product.code}</p>}
           <p className="text-muted-foreground mt-4 text-lg">{product.description}</p>
           
           {showCountdown && <CountdownTimer endDate={product.promotionEndDate!} />}
