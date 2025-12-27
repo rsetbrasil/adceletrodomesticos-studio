@@ -33,7 +33,7 @@ const calculateCommission = (order: Order, allProducts: Product[]) => {
               return totalCommission + (product.commissionValue * item.quantity);
           }
           if (commissionType === 'percentage') {
-              return totalCommission + (item.price * item.quantity * product.commissionValue / 100);
+              return totalCommission + (item.price * item.quantity * (product.commissionValue / 100));
           }
           return totalCommission;
       }, 0);

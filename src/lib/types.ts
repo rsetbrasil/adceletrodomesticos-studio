@@ -102,6 +102,7 @@ export type Order = {
   installments: number;
   installmentValue: number;
   date: string;
+  firstDueDate?: Date;
   status: 'Processando' | 'Enviado' | 'Entregue' | 'Cancelado' | 'Excluído';
   paymentMethod: PaymentMethod;
   installmentDetails: Installment[];
