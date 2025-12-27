@@ -264,28 +264,19 @@ export default function CreateOrderPage() {
         return;
     }
     
-    const lastOrderNumber = orders
-        .map(o => parseInt(o.id.split('-')[1] || '0', 10))
-        .filter(n => !isNaN(n))
-        .reduce((max, current) => Math.max(max, current), 0);
-      
-    const orderId = `PED-${String(lastOrderNumber + 1).padStart(4, '0')}`;
-    const firstDueDate = values.firstDueDate;
-    
     const installmentValue = total / values.installments;
 
     const installmentDetails = Array.from({ length: values.installments }, (_, i) => ({
-      id: `inst-${orderId}-${i + 1}`,
+      id: `inst-manual-${Date.now()}-${i}`,
       installmentNumber: i + 1,
       amount: installmentValue,
-      dueDate: addMonths(firstDueDate, i).toISOString(),
+      dueDate: addMonths(values.firstDueDate, i).toISOString(),
       status: 'Pendente' as const,
       paidAmount: 0,
       payments: [],
     }));
     
     const orderData: Partial<Order> = {
-        id: orderId,
         customer: customer,
         items: selectedItems,
         total,
@@ -672,5 +663,3 @@ export default function CreateOrderPage() {
     </Card>
   );
 }
-
-    

@@ -39,7 +39,7 @@ const calculateCommission = (order: Order, allProducts: Product[]) => {
       }, 0);
   };
 
-function recalculateInstallments(total: number, installmentsCount: number, orderId: string, orderDate: string): Installment[] {
+function recalculateInstallments(total: number, installmentsCount: number, orderId: string, firstDueDate: string): Installment[] {
     if (installmentsCount <= 0 || total < 0) return [];
     
     const totalInCents = Math.round(total * 100);
@@ -59,7 +59,7 @@ function recalculateInstallments(total: number, installmentsCount: number, order
             id: `inst-${orderId}-${i + 1}`,
             installmentNumber: i + 1,
             amount: installmentValueCents / 100,
-            dueDate: addMonths(new Date(orderDate), i + 1).toISOString(),
+            dueDate: addMonths(new Date(firstDueDate), i).toISOString(),
             status: 'Pendente',
             paidAmount: 0,
             payments: [],
@@ -570,13 +570,13 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
     orderToSave.commission = calculateCommission(orderToSave, products);
     
+    // Ensure the `total` is correct, based on items and discount
     const subtotal = order.items?.reduce((acc, item) => acc + item.price * item.quantity, 0) || 0;
     const total = subtotal - (order.discount || 0);
-
     orderToSave.total = total;
     
-    if (orderToSave.installments > 0) {
-      orderToSave.installmentDetails = recalculateInstallments(total, orderToSave.installments, orderToSave.id, orderToSave.date);
+    if (orderToSave.installments > 0 && orderToSave.installmentDetails) {
+      // Installment details are now passed directly from the form, ensuring correct due date
       orderToSave.installmentValue = orderToSave.installmentDetails[0]?.amount || 0;
     }
     
