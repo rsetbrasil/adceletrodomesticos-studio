@@ -188,11 +188,14 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => {
       const { db } = getClientFirebase();
-      const newProductId = `prod-${Date.now()}`;
+      const now = Date.now();
+      const newProductId = `prod-${now}`;
+      const newProductCode = `ITEM-${now.toString().slice(-6)}`;
       
       const newProduct: Partial<Product> = {
         ...productData,
         id: newProductId,
+        code: newProductCode,
         createdAt: new Date().toISOString(),
         'data-ai-hint': productData.name.toLowerCase().split(' ').slice(0, 2).join(' '),
       };
