@@ -260,7 +260,7 @@ export default function CheckoutForm() {
         payments: [],
     }));
 
-    const order: Partial<Order> = {
+    const order: Partial<Order> & { firstDueDate: Date } = {
       id: orderId,
       customer: customerData,
       items: cartItems.map(({ ...item }) => item),
@@ -268,6 +268,7 @@ export default function CheckoutForm() {
       installments: finalInstallments,
       installmentValue: finalInstallmentValue,
       date: orderDate.toISOString(),
+      firstDueDate: addMonths(orderDate, 1),
       status: 'Processando',
       paymentMethod: 'Crediário',
       installmentDetails,
