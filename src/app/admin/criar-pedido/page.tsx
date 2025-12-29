@@ -179,7 +179,13 @@ export default function CreateOrderPage() {
   const filteredProducts = useMemo(() => {
     if (!productSearch) return uniqueProducts.filter(p => p.stock > 0);
     const lowercasedQuery = productSearch.toLowerCase();
-    return uniqueProducts.filter(p => p.stock > 0 && p.name.toLowerCase().includes(lowercasedQuery));
+    return uniqueProducts.filter(p => 
+        p.stock > 0 && 
+        (
+            p.name.toLowerCase().includes(lowercasedQuery) ||
+            p.code?.toLowerCase().includes(lowercasedQuery)
+        )
+    );
   }, [productSearch, uniqueProducts]);
 
 
@@ -276,7 +282,7 @@ export default function CreateOrderPage() {
       payments: [],
     }));
     
-    const orderData: Partial<Order> = {
+    const orderData: Partial<Order> & { firstDueDate: Date } = {
         customer: customer,
         items: selectedItems,
         total,
@@ -284,6 +290,7 @@ export default function CreateOrderPage() {
         installments: values.installments,
         installmentValue,
         date: values.date.toISOString(),
+        firstDueDate: values.firstDueDate,
         status: 'Processando' as const,
         paymentMethod: 'Crediário' as const,
         installmentDetails,
@@ -549,7 +556,7 @@ export default function CreateOrderPage() {
                         >
                             <Command shouldFilter={false}>
                                 <CommandInput 
-                                        placeholder="Buscar produto..."
+                                        placeholder="Buscar por nome ou código..."
                                         value={productSearch}
                                         onValueChange={setProductSearch}
                                 />
@@ -560,10 +567,13 @@ export default function CreateOrderPage() {
                                             <CommandItem
                                                 key={p.id} 
                                                 onSelect={() => handleAddItem(p)}
-                                                value={p.name}
+                                                value={`${p.code || ''} ${p.name}`}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
-                                                {p.name}
+                                                <div className="flex flex-col">
+                                                    <span className="font-semibold">{p.name}</span>
+                                                    <span className="text-xs text-muted-foreground">{p.code}</span>
+                                                </div>
                                             </CommandItem>
                                         ))}
                                     </CommandGroup>
