@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { AppSection } from "@/lib/types";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import AdminScrollButtons from "@/components/AdminScrollButtons";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'A senha atual é obrigatória.'),
@@ -42,6 +43,7 @@ const pathToSectionMap: { [key: string]: AppSection } = {
     '/admin/pedidos': 'pedidos',
     '/admin/criar-pedido': 'criar-pedido',
     '/admin/clientes': 'clientes',
+    '/admin/atendimento': 'atendimento',
     '/admin/produtos': 'produtos',
     '/admin/categorias': 'categorias',
     '/admin/avarias': 'avarias',
@@ -233,6 +235,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     <AdminNav />
                 </div>
                 <main>{children}</main>
+                <AdminScrollButtons />
             </div>
 
             <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
@@ -289,5 +292,3 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </>
     );
 }
-
-      
