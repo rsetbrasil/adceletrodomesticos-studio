@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import type { User } from '@/lib/types';
+import type { User, UserRole } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const userEditFormSchema = z.object({
     name: z.string().min(3, 'O nome é obrigatório.'),
     username: z.string().min(3, 'O nome de usuário é obrigatório.'),
+    role: z.enum(['admin', 'gerente', 'vendedor'], { required_error: 'O perfil é obrigatório.' }),
     password: z.string().optional(),
     confirmPassword: z.string().optional(),
   }).refine(data => {
@@ -80,6 +81,7 @@ export default function ManageUsersPage() {
         editForm.reset({ 
             name: user.name, 
             username: user.username,
+            role: user.role,
             password: '', 
             confirmPassword: '' 
         });
@@ -92,6 +94,7 @@ export default function ManageUsersPage() {
         const dataToUpdate: Partial<User> = { 
             name: values.name,
             username: values.username,
+            role: values.role,
          };
         if (values.password) {
             dataToUpdate.password = values.password;
@@ -283,7 +286,7 @@ export default function ManageUsersPage() {
                     <DialogHeader>
                         <DialogTitle>Editar Usuário</DialogTitle>
                         <DialogDescription>
-                            Altere o nome ou defina uma nova senha para <span className="font-bold">{userToEdit?.username}</span>.
+                            Altere o nome, perfil ou defina uma nova senha para <span className="font-bold">{userToEdit?.username}</span>.
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...editForm}>
@@ -308,6 +311,28 @@ export default function ManageUsersPage() {
                                             <FormLabel>Nome de Usuário (Login)</FormLabel>
                                             <FormControl><Input {...field} /></FormControl>
                                             <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                 <FormField
+                                    control={editForm.control}
+                                    name="role"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Perfil de Acesso</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={currentUser?.id === userToEdit?.id}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione um perfil" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="vendedor">Vendedor</SelectItem>
+                                                <SelectItem value="gerente">Gerente</SelectItem>
+                                                <SelectItem value="admin">Admin</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
                                         </FormItem>
                                     )}
                                 />

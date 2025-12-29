@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import type { User } from '@/lib/types';
+import type { User, UserRole } from '@/lib/types';
 import { initialUsers } from '@/lib/users';
 import { getClientFirebase } from '@/lib/firebase-client';
 import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where, getDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
@@ -156,7 +155,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const userRef = doc(db, 'users', userId);
     
-    // Log before updating
     const updatedUser = users.find(u => u.id === userId);
     if (updatedUser) {
         let details = `Dados do usuário "${updatedUser.name}" foram alterados.`;
@@ -165,6 +163,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         if (data.username && data.username !== updatedUser.username) {
             details += ` Username: de "${updatedUser.username}" para "${data.username}".`
+        }
+         if (data.role && data.role !== updatedUser.role) {
+            details += ` Perfil: de "${updatedUser.role}" para "${data.role}".`
         }
         if (data.password) {
             details += ' Senha foi alterada.';
