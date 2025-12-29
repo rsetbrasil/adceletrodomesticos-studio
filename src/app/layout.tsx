@@ -21,6 +21,7 @@ import { AdminProvider } from '@/context/AdminContext';
 import { ThemeProvider } from "next-themes";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter } from 'next/font/google';
+import ScrollToBottomButton from '@/components/ScrollToBottomButton';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -43,6 +44,7 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
           <main className={cn("flex-1", isHomePage ? '' : 'pb-20')}>{children}</main>
           <Footer />
           <ChatWidget />
+          <ScrollToBottomButton />
         </div>
       )}
       <Toaster />
