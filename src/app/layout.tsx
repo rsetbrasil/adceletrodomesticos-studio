@@ -20,6 +20,9 @@ import { DataProvider } from '@/context/DataContext';
 import { AdminProvider } from '@/context/AdminContext';
 import { ThemeProvider } from "next-themes";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 
 const AppContent = ({ children }: { children: React.ReactNode }) => {
@@ -58,16 +61,10 @@ export default function RootLayout({
   const isHomePage = pathname === '/';
 
   return (
-    <html lang="pt-BR" suppressHydrationWarning className={cn(isHomePage && 'light')}>
+    <html lang="pt-BR" suppressHydrationWarning className={cn(inter.variable, isHomePage && 'light')}>
       <head>
         <title>ADC MÓVEIS E ELETROS</title>
         <meta name="description" content="ADC MÓVEIS E ELETROS - Sua loja de móveis e eletrodomésticos." />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
-          rel="stylesheet"
-        />
       </head>
       <body className="font-body antialiased">
         <ThemeProvider
