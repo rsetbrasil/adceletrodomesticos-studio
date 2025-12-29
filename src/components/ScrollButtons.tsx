@@ -6,7 +6,7 @@ import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
-export default function AdminScrollButtons() {
+export default function ScrollButtons() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(true);
 
