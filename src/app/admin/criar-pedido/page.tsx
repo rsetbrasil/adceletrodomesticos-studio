@@ -44,6 +44,7 @@ const createOrderSchema = z.object({
   })).min(1, 'O pedido deve ter pelo menos um item.'),
   installments: z.coerce.number().min(1, 'O número de parcelas deve ser pelo menos 1.'),
   discount: z.coerce.number().min(0, 'O desconto não pode ser negativo.').optional(),
+  downPayment: z.coerce.number().min(0, 'A entrada não pode ser negativa.').optional(),
   observations: z.string().optional(),
 });
 
@@ -199,6 +200,7 @@ export default function CreateOrderPage() {
       items: [],
       installments: 1,
       discount: 0,
+      downPayment: 0,
       observations: '',
     },
   });
@@ -259,16 +261,18 @@ export default function CreateOrderPage() {
   }, [selectedItems]);
   
   const discount = form.watch('discount') || 0;
+  const downPayment = form.watch('downPayment') || 0;
   const total = subtotal - discount;
+  const totalFinanced = total - downPayment;
   const installmentsCount = form.watch('installments');
   const firstDueDate = form.watch('firstDueDate');
   
   const installmentPreview = useMemo(() => {
-    if (!total || total <= 0 || !installmentsCount || installmentsCount <= 0) {
+    if (!totalFinanced || totalFinanced <= 0 || !installmentsCount || installmentsCount <= 0) {
       return [];
     }
     const orderId = 'preview';
-    const totalInCents = Math.round(total * 100);
+    const totalInCents = Math.round(totalFinanced * 100);
     const baseInstallmentValueInCents = Math.floor(totalInCents / installmentsCount);
     let remainderInCents = totalInCents % installmentsCount;
 
@@ -288,7 +292,7 @@ export default function CreateOrderPage() {
         });
     }
     return newInstallmentDetails;
-  }, [total, installmentsCount, firstDueDate]);
+  }, [totalFinanced, installmentsCount, firstDueDate]);
   
   async function onSubmit(values: CreateOrderFormValues) {
     const customer = allCustomers.find(c => (c.cpf || `${c.name}-${c.phone}`) === values.customerId);
@@ -299,7 +303,7 @@ export default function CreateOrderPage() {
         return;
     }
     
-    const installmentValue = total / values.installments;
+    const installmentValue = totalFinanced / values.installments;
 
     const installmentDetails = Array.from({ length: values.installments }, (_, i) => ({
       id: `inst-manual-${Date.now()}-${i}`,
@@ -314,8 +318,9 @@ export default function CreateOrderPage() {
     const orderData: Partial<Order> & { firstDueDate: Date } = {
         customer: customer,
         items: selectedItems,
-        total,
+        total: total,
         discount: values.discount,
+        downPayment: values.downPayment,
         installments: values.installments,
         installmentValue,
         date: values.date.toISOString(),
@@ -593,7 +598,7 @@ export default function CreateOrderPage() {
                                     <CommandGroup>
                                         {filteredProducts.map(p => (
                                             <CommandItem
-                                                key={p.id} 
+                                                key={p.id}
                                                 onSelect={() => handleAddItem(p)}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", selectedItems.some(i => i.id === p.id) ? "opacity-100" : "opacity-0")} />
@@ -637,12 +642,34 @@ export default function CreateOrderPage() {
                             </FormItem>
                         )}
                     />
+                    <FormField
+                        control={form.control}
+                        name="downPayment"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Valor de Entrada (R$)</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        {...field}
+                                        placeholder="0,00"
+                                        inputMode="decimal"
+                                        value={formatBRL(field.value)}
+                                        onChange={(e) => {
+                                            const rawValue = e.target.value.replace(/\D/g, '');
+                                            field.onChange(Number(rawValue) / 100);
+                                        }}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                      <FormField
                         control={form.control}
                         name="installments"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Número de Parcelas</FormLabel>
+                                <FormLabel>Número de Parcelas (Restante)</FormLabel>
                                 <FormControl>
                                     <Input type="number" min={1} {...field} />
                                 </FormControl>
@@ -663,9 +690,18 @@ export default function CreateOrderPage() {
                             <span>- {formatCurrency(discount)}</span>
                         </div>
                         <Separator />
-                        <div className="flex justify-between items-center text-xl font-bold">
+                        <div className="flex justify-between items-center text-lg font-bold">
                             <span>TOTAL DO PEDIDO</span>
                             <span>{formatCurrency(total)}</span>
+                        </div>
+                         <div className="flex justify-between items-center text-md text-green-600">
+                            <span>Entrada</span>
+                            <span>- {formatCurrency(downPayment)}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between items-center text-xl font-bold">
+                            <span>TOTAL A FINANCIAR</span>
+                            <span>{formatCurrency(totalFinanced)}</span>
                         </div>
                     </div>
                 </div>

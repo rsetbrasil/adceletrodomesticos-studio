@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, ReactNode, useCallback } from 'react';
@@ -71,7 +70,7 @@ function recalculateInstallments(total: number, installmentsCount: number, order
 
 
 interface AdminContextType {
-  addOrder: (order: Partial<Order>, logAction: LogAction, user: User | null) => Promise<Order | null>;
+  addOrder: (order: Partial<Order> & { firstDueDate: Date }, logAction: LogAction, user: User | null) => Promise<Order | null>;
   deleteOrder: (orderId: string, logAction: LogAction, user: User | null) => Promise<void>;
   permanentlyDeleteOrder: (orderId: string, logAction: LogAction, user: User | null) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status'], logAction: LogAction, user: User | null) => Promise<void>;
@@ -558,7 +557,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [products, toast]);
 
-  const addOrder = async (order: Partial<Order> & { firstDueDate?: Date }, logAction: LogAction, user: User | null): Promise<Order | null> => {
+  const addOrder = async (order: Partial<Order> & { firstDueDate: Date }, logAction: LogAction, user: User | null): Promise<Order | null> => {
     const { db } = getClientFirebase();
     
     const prefix = order.items && order.items.length > 0 ? 'PED' : 'REG';
@@ -583,10 +582,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     // Ensure the `total` is correct, based on items and discount
     const subtotal = order.items?.reduce((acc, item) => acc + item.price * item.quantity, 0) || 0;
     const total = subtotal - (order.discount || 0);
-    orderToSave.total = total;
+    const totalFinanced = total - (order.downPayment || 0);
+    orderToSave.total = totalFinanced;
     
     if (orderToSave.installments > 0 && order.firstDueDate) {
-      orderToSave.installmentDetails = recalculateInstallments(total, orderToSave.installments, orderId, order.firstDueDate.toISOString())
+      orderToSave.installmentDetails = recalculateInstallments(totalFinanced, orderToSave.installments, orderId, order.firstDueDate.toISOString())
       orderToSave.installmentValue = orderToSave.installmentDetails[0]?.amount || 0;
     }
     
