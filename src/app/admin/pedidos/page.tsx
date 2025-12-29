@@ -781,7 +781,7 @@ Não esqueça de enviar o comprovante!`;
         </Card>
       </div>
 
-      <div className="print-only">
+      <div className="hidden print-only">
          <div className="mb-8">
             <div className="flex justify-between items-start pb-4 border-b">
                 <div style={{ display: 'table' }}>
@@ -1225,6 +1225,7 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
+
 
 
 
