@@ -20,9 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Check, ChevronsUpDown, PlusCircle, ShoppingCart, Trash2, CalendarIcon, MinusCircle } from 'lucide-react';
+import { Check, ChevronsUpDown, PlusCircle, ShoppingCart, Trash2, CalendarIcon, MinusCircle, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { CustomerInfo, User, Product, CartItem, Order } from '@/lib/types';
+import type { CustomerInfo, User, Product, CartItem, Order, Installment } from '@/lib/types';
 import { addMonths, format, parse, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -260,6 +260,35 @@ export default function CreateOrderPage() {
   
   const discount = form.watch('discount') || 0;
   const total = subtotal - discount;
+  const installmentsCount = form.watch('installments');
+  const firstDueDate = form.watch('firstDueDate');
+  
+  const installmentPreview = useMemo(() => {
+    if (!total || total <= 0 || !installmentsCount || installmentsCount <= 0) {
+      return [];
+    }
+    const orderId = 'preview';
+    const totalInCents = Math.round(total * 100);
+    const baseInstallmentValueInCents = Math.floor(totalInCents / installmentsCount);
+    let remainderInCents = totalInCents % installmentsCount;
+
+    const newInstallmentDetails: Partial<Installment>[] = [];
+    
+    for (let i = 0; i < installmentsCount; i++) {
+        let installmentValueCents = baseInstallmentValueInCents;
+        if (remainderInCents > 0) {
+            installmentValueCents++;
+            remainderInCents--;
+        }
+        
+        newInstallmentDetails.push({
+            installmentNumber: i + 1,
+            amount: installmentValueCents / 100,
+            dueDate: addMonths(firstDueDate, i).toISOString(),
+        });
+    }
+    return newInstallmentDetails;
+  }, [total, installmentsCount, firstDueDate]);
   
   async function onSubmit(values: CreateOrderFormValues) {
     const customer = allCustomers.find(c => (c.cpf || `${c.name}-${c.phone}`) === values.customerId);
@@ -364,7 +393,6 @@ export default function CreateOrderPage() {
                                 return (
                                 <CommandItem
                                   key={customerId}
-                                  value={`${c.name} ${c.cpf || ''}`}
                                   onSelect={() => {
                                     form.setValue("customerId", customerId, { shouldValidate: true });
                                     setOpenCustomerPopover(false);
@@ -661,6 +689,35 @@ export default function CreateOrderPage() {
                     </FormItem>
                 )}
             />
+
+            {installmentPreview.length > 0 && (
+              <div>
+                <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Pré-visualização do Carnê
+                </h3>
+                 <div className="rounded-md border max-h-60 overflow-y-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[100px]">Parcela</TableHead>
+                                <TableHead>Vencimento</TableHead>
+                                <TableHead className="text-right">Valor</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {installmentPreview.map(inst => (
+                                <TableRow key={inst.installmentNumber}>
+                                    <TableCell className="font-semibold">{inst.installmentNumber}/{installmentsCount}</TableCell>
+                                    <TableCell>{format(new Date(inst.dueDate!), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                                    <TableCell className="text-right font-mono">{formatCurrency(inst.amount!)}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+              </div>
+            )}
             
             <Button type="submit" size="lg" className="w-full md:w-auto" disabled={form.formState.isSubmitting}>
                 <ShoppingCart className="mr-5 h-5 w-5" />
