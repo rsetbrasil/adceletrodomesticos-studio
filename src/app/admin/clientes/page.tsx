@@ -396,7 +396,7 @@ export default function CustomersAdminPage() {
 
     const orderId = `REG-${String(lastOrderNumber + 1).padStart(4, '0')}`;
 
-    const newCustomerOrder: Partial<Order> = {
+    const newCustomerOrder: Partial<Order> & { firstDueDate: Date } = {
       id: orderId,
       customer: { ...customerData, password: customerData.cpf?.substring(0, 6) },
       items: [],
@@ -404,6 +404,7 @@ export default function CustomersAdminPage() {
       installments: 0,
       installmentValue: 0,
       date: new Date().toISOString(),
+      firstDueDate: new Date(),
       status: 'Excluído', // It's a registration-only "order"
       paymentMethod: 'Dinheiro',
       installmentDetails: [],
