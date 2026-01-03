@@ -12,8 +12,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { AuditProvider } from '@/context/AuditContext';
 import FirebaseErrorListener from '@/components/FirebaseErrorListener';
-import { DataProvider } from '@/context/DataContext';
-import { AdminProvider } from '@/context/AdminContext';
+import { DataProvider, AdminDataProvider } from '@/context/DataContext';
 import { ThemeProvider } from "next-themes";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter } from 'next/font/google';
@@ -43,7 +42,7 @@ export default function RootLayout({
             <AuthProvider>
               <SettingsProvider>
                 <DataProvider>
-                  <AdminProvider>
+                  <AdminDataProvider>
                     <PermissionsProvider>
                       <CustomerAuthProvider>
                           <CartProvider>
@@ -53,7 +52,7 @@ export default function RootLayout({
                           </CartProvider>
                       </CustomerAuthProvider>
                     </PermissionsProvider>
-                  </AdminProvider>
+                  </AdminDataProvider>
                 </DataProvider>
               </SettingsProvider>
             </AuthProvider>

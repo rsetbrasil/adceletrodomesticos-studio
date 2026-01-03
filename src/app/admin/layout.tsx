@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { ReactNode, useEffect, useState } from "react";
@@ -181,7 +180,7 @@ function AdminLayoutContent({ children }: { children: ReactNode }) {
     }
 
     return (
-        <AdminDataProvider>
+        <>
             <div className="container mx-auto px-4 py-8 print:p-0">
                 <header className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b pb-6 print-hidden">
                     <div className="flex items-center gap-4">
@@ -201,8 +200,8 @@ function AdminLayoutContent({ children }: { children: ReactNode }) {
                             <p className="text-muted-foreground text-sm sm:text-base">Gerencie sua loja de forma fácil e rápida.</p>
                         </div>
                     </div>
-                     <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-center">
-                         <ModeToggle />
+                        <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-center">
+                            <ModeToggle />
                         <Button variant="outline" size="sm" asChild>
                             <Link href="/">
                                 <Store className="mr-2 h-4 w-4" />
@@ -291,11 +290,15 @@ function AdminLayoutContent({ children }: { children: ReactNode }) {
                     </Form>
                 </DialogContent>
             </Dialog>
-        </AdminDataProvider>
+        </>
     );
 }
 
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-    return <AdminLayoutContent>{children}</AdminLayoutContent>;
+    return (
+        <AdminDataProvider>
+            <AdminLayoutContent>{children}</AdminLayoutContent>
+        </AdminDataProvider>
+    );
 }
