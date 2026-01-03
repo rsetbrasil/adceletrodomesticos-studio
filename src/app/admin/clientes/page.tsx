@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User as UserIcon, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare, History, Import, UserPlus } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare, History, Import, UserPlus, FileSignature } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -343,7 +343,7 @@ export default function CustomersAdminPage() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setEditedInfo(prev => ({ ...prev, [name]: value }));
   };
@@ -428,12 +428,13 @@ export default function CustomersAdminPage() {
   };
   
   const handleSendWhatsAppReminder = (order: Order, installment: Installment) => {
-    const customerName = order.customer.name.split(' ')[0];
-    const customerPhone = order.customer.phone.replace(/\D/g, '');
-    const dueDate = format(parseISO(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR });
-    const amount = formatCurrency(installment.amount - (installment.paidAmount || 0));
-    
-    const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da sua parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}).
+    if (!settings.wapiInstance || !settings.wapiToken) {
+        const customerName = order.customer.name.split(' ')[0];
+        const customerPhone = order.customer.phone.replace(/\D/g, '');
+        const dueDate = format(parseISO(installment.dueDate), 'dd/MM/yyyy', { locale: ptBR });
+        const amount = formatCurrency(installment.amount - (installment.paidAmount || 0));
+        
+        const message = `Olá, ${customerName}! Passando para lembrar sobre o vencimento da sua parcela nº ${installment.installmentNumber} do seu carnê (pedido ${order.id}).
 
 Vencimento: *${dueDate}*
 Valor: *${amount}*
@@ -443,9 +444,12 @@ Adriano Cavalcante de Oliveira
 Banco: Nubank 
 
 Não esqueça de enviar o comprovante!`;
-    
-    const whatsappUrl = `https://wa.me/55${customerPhone}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+        
+        const whatsappUrl = `https://wa.me/55${customerPhone}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+    } else {
+        // W-API logic would go here
+    }
   };
 
 
@@ -580,6 +584,15 @@ Não esqueça de enviar o comprovante!`;
                                 <p className="text-muted-foreground">{`${selectedCustomer.neighborhood}, ${selectedCustomer.city}/${selectedCustomer.state} - CEP: ${selectedCustomer.zip}`}</p>
                             </div>
                         </div>
+                        {selectedCustomer.observations && (
+                             <div className="flex items-start col-span-full gap-2 mt-2 pt-4 border-t">
+                                <FileSignature className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="font-semibold text-foreground">Observações</p>
+                                    <p className="text-muted-foreground whitespace-pre-line">{selectedCustomer.observations}</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -907,14 +920,14 @@ Não esqueça de enviar o comprovante!`;
         </Dialog>
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="sm:max-w-[625px]">
+            <DialogContent className="sm:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>Editar Informações do Cliente</DialogTitle>
                     <DialogDescription>
                         Faça alterações nos dados cadastrais do cliente aqui. Clique em salvar quando terminar.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-6 py-4">
+                <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto px-1">
                     <div className="grid md:grid-cols-2 gap-4">
                         <div>
                             <Label htmlFor="name">Nome Completo</Label>
@@ -960,17 +973,21 @@ Não esqueça de enviar o comprovante!`;
                             <Label htmlFor="complement">Complemento</Label>
                             <Input id="complement" name="complement" value={editedInfo.complement || ''} onChange={handleInputChange} />
                         </div>
-                        <div className="md:col-span-2">
+                        <div className="md:col-span-3">
                             <Label htmlFor="neighborhood">Bairro</Label>
                             <Input id="neighborhood" name="neighborhood" value={editedInfo.neighborhood || ''} onChange={handleInputChange} />
                         </div>
-                        <div className="md:col-span-2">
+                        <div className="md:col-span-3">
                             <Label htmlFor="city">Cidade</Label>
                             <Input id="city" name="city" value={editedInfo.city || ''} onChange={handleInputChange} />
                         </div>
-                         <div className="md:col-span-2">
+                         <div className="md:col-span-6">
                             <Label htmlFor="state">Estado</Label>                            <Input id="state" name="state" value={editedInfo.state || ''} onChange={handleInputChange} />
                         </div>
+                    </div>
+                    <div>
+                        <Label htmlFor="observations">Observações</Label>
+                        <Textarea id="observations" name="observations" value={editedInfo.observations || ''} onChange={handleInputChange} />
                     </div>
                     <div className="pt-4 border-t">
                         <Label htmlFor="password" className="flex items-center gap-2 mb-2"><KeyRound className="h-4 w-4" /> Senha de Acesso</Label>

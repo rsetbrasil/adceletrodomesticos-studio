@@ -10,6 +10,8 @@ export type StoreSettings = {
     accessControlEnabled?: boolean;
     commercialHourStart?: string;
     commercialHourEnd?: string;
+    wapiInstance?: string;
+    wapiToken?: string;
 };
 
 
@@ -68,6 +70,7 @@ export type CustomerInfo = {
   city: string;
   state: string;
   password?: string;
+  observations?: string;
 };
 
 export type Payment = {

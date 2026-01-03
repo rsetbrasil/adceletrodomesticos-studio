@@ -29,6 +29,7 @@ import { useAdmin } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { useAudit } from '@/context/AuditContext';
 import { useData } from '@/context/DataContext';
+import { Textarea } from './ui/textarea';
 
 function isValidCPF(cpf: string) {
     if (typeof cpf !== 'string') return false;
@@ -58,6 +59,7 @@ const checkoutSchema = z.object({
   neighborhood: z.string().min(2, 'Bairro é obrigatório.'),
   city: z.string().min(2, 'Cidade é obrigatória.'),
   state: z.string().min(2, 'Estado é obrigatório.'),
+  observations: z.string().optional(),
 });
 
 
@@ -92,6 +94,7 @@ export default function CheckoutForm() {
       neighborhood: '',
       city: 'Fortaleza',
       state: 'CE',
+      observations: '',
     },
   });
 
@@ -156,6 +159,7 @@ export default function CheckoutForm() {
           neighborhood: foundCustomer.neighborhood,
           city: foundCustomer.city,
           state: foundCustomer.state,
+          observations: foundCustomer.observations || '',
         });
         toast({
           title: "Cliente Encontrado!",
@@ -233,6 +237,7 @@ export default function CheckoutForm() {
       neighborhood: values.neighborhood,
       city: values.city,
       state: values.state,
+      observations: values.observations,
     };
     
     if (isNewCustomer && customerData.cpf) {
@@ -285,7 +290,9 @@ export default function CheckoutForm() {
               description: `Seu pedido #${orderId} foi confirmado.`,
           });
 
-          if (settings.storePhone) {
+          if (settings.wapiInstance && settings.wapiToken) {
+                // Not implemented, but this is where the W-API call would go
+          } else if (settings.storePhone) {
               const storePhone = settings.storePhone.replace(/\D/g, '');
               const productNames = cartItemsWithDetails.map(item => item.name).join(', ');
               
@@ -390,6 +397,19 @@ export default function CheckoutForm() {
                     <FormField control={form.control} name="city" render={({ field }) => ( <FormItem className="md:col-span-3"><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="state" render={({ field }) => ( <FormItem className="md:col-span-6"><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
+                 <FormField
+                    control={form.control}
+                    name="observations"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Observações (Opcional)</FormLabel>
+                            <FormControl>
+                                <Textarea placeholder="Ex: Deixar na portaria, ponto de referência..." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
             </div>
           </div>
           

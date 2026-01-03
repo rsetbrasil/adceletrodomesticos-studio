@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { CustomerInfo } from '@/lib/types';
 import { Save } from 'lucide-react';
+import { Textarea } from './ui/textarea';
 
 function isValidCPF(cpf: string) {
     if (typeof cpf !== 'string') return false;
@@ -39,6 +40,7 @@ const customerSchema = z.object({
   neighborhood: z.string().min(2, 'Bairro é obrigatório.'),
   city: z.string().min(2, 'Cidade é obrigatória.'),
   state: z.string().min(2, 'Estado é obrigatório.'),
+  observations: z.string().optional(),
 });
 
 interface CustomerFormProps {
@@ -66,6 +68,7 @@ export default function CustomerForm({ onSave, onCancel, customerToEdit }: Custo
       neighborhood: '',
       city: 'Fortaleza',
       state: 'CE',
+      observations: '',
     },
   });
   
@@ -121,6 +124,19 @@ export default function CustomerForm({ onSave, onCancel, customerToEdit }: Custo
             <FormField control={form.control} name="city" render={({ field }) => ( <FormItem className="md:col-span-3"><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="state" render={({ field }) => ( <FormItem className="md:col-span-6"><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
         </div>
+        <FormField
+            control={form.control}
+            name="observations"
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Observações (Opcional)</FormLabel>
+                    <FormControl>
+                        <Textarea placeholder="Informações adicionais sobre o cliente..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+            )}
+        />
         <div className="flex justify-end gap-4 pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
             <Button type="submit" disabled={form.formState.isSubmitting}>
