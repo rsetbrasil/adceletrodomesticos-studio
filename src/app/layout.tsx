@@ -32,24 +32,22 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
   const isAdminRoute = pathname.startsWith('/admin');
   const isHomePage = pathname === '/';
 
+  if (isSpecialRoute) {
+    return <>{children}</>;
+  }
+  
+  if (isAdminRoute) {
+      return <AdminProvider>{children}</AdminProvider>;
+  }
+
   return (
-    <AdminProvider>
-      {isSpecialRoute ? (
-        <>{children}</>
-      ) : isAdminRoute ? (
-         <>{children}</>
-      ) : (
-        <div className="relative flex min-h-screen flex-col bg-background">
-          <Header />
-          <main className={cn("flex-1", isHomePage ? '' : 'pb-20')}>{children}</main>
-          <Footer />
-          <ChatWidget />
-          <ScrollButtons />
-        </div>
-      )}
-      <Toaster />
-      <FirebaseErrorListener />
-    </AdminProvider>
+    <div className="relative flex min-h-screen flex-col bg-background">
+      <Header />
+      <main className={cn("flex-1", isHomePage ? '' : 'pb-20')}>{children}</main>
+      <Footer />
+      <ChatWidget />
+      <ScrollButtons />
+    </div>
   );
 };
 
@@ -75,21 +73,23 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
         >
-            <AuditProvider>
+          <AuditProvider>
             <AuthProvider>
-                <PermissionsProvider>
+              <PermissionsProvider>
                 <SettingsProvider>
-                    <DataProvider>
+                  <DataProvider>
                     <CustomerAuthProvider>
-                        <CartProvider>
+                      <CartProvider>
                         <AppContent>{children}</AppContent>
-                        </CartProvider>
+                        <Toaster />
+                        <FirebaseErrorListener />
+                      </CartProvider>
                     </CustomerAuthProvider>
-                    </DataProvider>
+                  </DataProvider>
                 </SettingsProvider>
-                </PermissionsProvider>
+              </PermissionsProvider>
             </AuthProvider>
-            </AuditProvider>
+          </AuditProvider>
         </ThemeProvider>
         <SpeedInsights />
       </body>

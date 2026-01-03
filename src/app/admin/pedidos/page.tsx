@@ -48,7 +48,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import PaymentDialog from '@/components/PaymentDialog';
-import { useData } from '@/context/DataContext';
+import { useAdminData, useData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
 import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { useSettings } from '@/context/SettingsContext';
@@ -101,7 +101,7 @@ const dueDateRanges = [
 
 export default function OrdersAdminPage() {
   const { updateOrderStatus, recordInstallmentPayment, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder, reversePayment, emptyTrash, updateInstallmentAmount } = useAdmin();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { orders } = useAdminData();
   const { products } = useData();
   const { user, users } = useAuth();
   const { settings } = useSettings();
@@ -136,14 +136,6 @@ export default function OrdersAdminPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const { db } = getClientFirebase();
-    const q = query(collection(db, 'orders'), orderBy('date', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
-    }, (error) => {
-        console.error("Error fetching orders:", error);
-    });
-    return () => unsubscribe();
   }, []);
 
   const sellers = useMemo(() => {
@@ -1236,6 +1228,7 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
+
 
 
 

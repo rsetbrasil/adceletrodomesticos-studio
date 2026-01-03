@@ -26,7 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/AuthContext';
 import PaymentDialog from '@/components/PaymentDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { useData } from '@/context/DataContext';
+import { useAdminData, useData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
 import CustomerForm from '@/components/CustomerForm';
 import { WhatsAppIcon } from '@/components/WhatsAppIcon';
@@ -89,7 +89,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 
 export default function CustomersAdminPage() {
   const { updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers, addOrder } = useAdmin();
-  const { orders, customers, customerOrders, customerFinancials } = useData();
+  const { customers, customerOrders, customerFinancials } = useAdminData();
   const { user } = useAuth();
   const { settings } = useSettings();
   const { logAction } = useAudit();
@@ -399,7 +399,8 @@ export default function CustomersAdminPage() {
         return;
     }
     
-    const lastOrderNumber = orders
+    const allOrders = (await import('@/context/DataContext')).useAdminData().orders;
+    const lastOrderNumber = allOrders
         .map(o => parseInt(o.id.split('-')[1] || '0', 10))
         .filter(n => !isNaN(n))
         .reduce((max, current) => Math.max(max, current), 0);

@@ -11,7 +11,7 @@ import { Printer, ArrowLeft } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useData } from '@/context/DataContext';
+import { useAdminData } from '@/context/DataContext';
 
 
 const formatCurrency = (value: number) => {
@@ -22,8 +22,7 @@ const formatCurrency = (value: number) => {
 export default function CommissionReceiptPage() {
   const params = useParams();
   const router = useRouter();
-  const { commissionPayments } = useData();
-  const { orders } = useData();
+  const { commissionPayments, orders } = useAdminData();
   const { settings } = useSettings();
   const receiptRef = useRef<HTMLDivElement>(null);
 
@@ -147,5 +146,3 @@ export default function CommissionReceiptPage() {
     </div>
   );
 }
-
-      

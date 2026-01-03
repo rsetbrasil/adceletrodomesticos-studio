@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import Logo from '@/components/Logo';
 import { useSettings } from '@/context/SettingsContext';
 import { useAuth } from '@/context/AuthContext';
-import { useData } from '@/context/DataContext';
+import { useAdminData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
 
 
@@ -45,7 +45,7 @@ type SellerPerformanceDetails = {
 
 export default function FinanceiroPage() {
   const { payCommissions } = useAdmin();
-  const { orders, financialSummary, commissionSummary } = useData();
+  const { orders, financialSummary, commissionSummary } = useAdminData();
   const { settings } = useSettings();
   const { user, users } = useAuth();
   const { logAction } = useAudit();
@@ -373,7 +373,7 @@ export default function FinanceiroPage() {
       </div>
 
        {/* Print-only view */}
-      <div className="print-only">
+      <div className="hidden print-only">
         <div className="mb-8">
             <div className="flex justify-between items-start pb-4 border-b">
                 <div>

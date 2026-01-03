@@ -11,10 +11,63 @@ import { ptBR } from 'date-fns/locale';
 import { useAuth } from './AuthContext';
 import { products as initialProducts } from '@/lib/products';
 
-
-interface DataContextType {
+interface PublicDataContextType {
   products: Product[];
   categories: Category[];
+  isLoading: boolean;
+}
+
+const DataContext = createContext<PublicDataContextType | undefined>(undefined);
+
+export const DataProvider = ({ children }: { children: ReactNode }) => {
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const { db } = getClientFirebase();
+    const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'asc')), (snapshot) => {
+      const fetchedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product));
+      setProducts(fetchedProducts.length > 0 ? fetchedProducts : initialProducts);
+      setIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching products:", error);
+        setProducts(initialProducts);
+        setIsLoading(false);
+    });
+
+    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
+      setCategories(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
+    }, (error) => {
+        console.error("Error fetching categories:", error);
+    });
+    
+    return () => {
+      productsUnsubscribe();
+      categoriesUnsubscribe();
+    };
+  }, []);
+
+  const value = useMemo(() => ({
+    products, 
+    categories, 
+    isLoading,
+  }), [
+    products, 
+    categories, 
+    isLoading
+  ]);
+
+
+  return (
+    <DataContext.Provider value={value}>
+      {children}
+    </DataContext.Provider>
+  );
+};
+
+
+interface AdminDataContextType {
   orders: Order[];
   commissionPayments: CommissionPayment[];
   stockAudits: StockAudit[];
@@ -25,61 +78,25 @@ interface DataContextType {
   customerFinancials: { [key: string]: { totalComprado: number, totalPago: number, saldoDevedor: number } };
   financialSummary: { totalVendido: number, totalRecebido: number, totalPendente: number, lucroBruto: number, monthlyData: { name: string, total: number }[] };
   commissionSummary: { totalPendingCommission: number, commissionsBySeller: { id: string; name: string; total: number; count: number; orderIds: string[] }[] };
-  isLoading: boolean;
 }
 
-const DataContext = createContext<DataContextType | undefined>(undefined);
 
-export const DataProvider = ({ children }: { children: ReactNode }) => {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [categories, setCategories] = useState<Category[]>([]);
+const AdminDataContext = createContext<AdminDataContextType | undefined>(undefined);
+
+export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
   const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
   const [avarias, setAvarias] = useState<Avaria[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const { users } = useAuth();
-  
-  // Ref to prevent re-running the code reset logic
-  const codeResetDone = React.useRef(false);
+  const { products } = useData();
 
   useEffect(() => {
     const { db } = getClientFirebase();
-    const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'asc')), (snapshot) => {
-      const fetchedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product));
-
-      if (!codeResetDone.current && fetchedProducts.length > 0) {
-        const batch = writeBatch(db);
-        let currentCode = 100;
-        fetchedProducts.forEach(p => {
-          const productRef = doc(db, 'products', p.id);
-          batch.update(productRef, { code: `ITEM-${currentCode}` });
-          currentCode++;
-        });
-        batch.commit().catch(e => console.error("Failed to reset product codes:", e));
-        codeResetDone.current = true; // Mark as done
-      }
-
-      setProducts(fetchedProducts.length > 0 ? fetchedProducts : initialProducts);
-      setIsLoading(false);
-    }, (error) => {
-        console.error("Error fetching products:", error);
-        setProducts(initialProducts); // Fallback to initial data on error
-        setIsLoading(false);
-    });
-
-    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
-      setCategories(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
-    }, (error) => {
-        console.error("Error fetching categories:", error);
-    });
-
     const ordersUnsubscribe = onSnapshot(query(collection(db, 'orders'), orderBy('date', 'desc')), (snapshot) => {
       setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
-    }, (error) => {
-        console.error("Error fetching orders:", error);
-    });
+    }, (error) => console.error("Error fetching orders:", error));
 
     const commissionPaymentsUnsubscribe = onSnapshot(query(collection(db, 'commissionPayments'), orderBy('paymentDate', 'desc')), (snapshot) => {
       setCommissionPayments(snapshot.docs.map(d => d.data() as CommissionPayment));
@@ -98,8 +115,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }, (error) => console.error("Error fetching chat sessions:", error));
 
     return () => {
-      productsUnsubscribe();
-      categoriesUnsubscribe();
       ordersUnsubscribe();
       commissionPaymentsUnsubscribe();
       stockAuditsUnsubscribe();
@@ -225,8 +240,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [orders, users]);
 
   const value = useMemo(() => ({
-    products, 
-    categories, 
     orders, 
     commissionPayments, 
     stockAudits, 
@@ -237,10 +250,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     customerFinancials,
     financialSummary,
     commissionSummary,
-    isLoading,
   }), [
-    products, 
-    categories, 
     orders, 
     commissionPayments, 
     stockAudits, 
@@ -251,21 +261,23 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     customerFinancials,
     financialSummary,
     commissionSummary,
-    isLoading
   ]);
 
-
-  return (
-    <DataContext.Provider value={value}>
-      {children}
-    </DataContext.Provider>
-  );
-};
+  return <AdminDataContext.Provider value={value}>{children}</AdminDataContext.Provider>;
+}
 
 export const useData = () => {
   const context = useContext(DataContext);
   if (context === undefined) {
     throw new Error('useData must be used within a DataProvider');
+  }
+  return context;
+};
+
+export const useAdminData = () => {
+  const context = useContext(AdminDataContext);
+  if (context === undefined) {
+    throw new Error('useAdminData must be used within an AdminDataProvider');
   }
   return context;
 };
