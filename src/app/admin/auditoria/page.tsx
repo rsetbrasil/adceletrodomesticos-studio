@@ -16,7 +16,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Logo from '@/components/Logo';
 import { useSettings } from '@/context/SettingsContext';
-import { useData } from '@/context/DataContext';
+import { useAdminData, useData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
 
 
@@ -41,7 +41,8 @@ const getAnos = () => {
 
 function StockAuditTab() {
     const { saveStockAudit } = useAdmin();
-    const { products, stockAudits } = useData();
+    const { products } = useData();
+    const { stockAudits } = useAdminData();
     const { settings } = useSettings();
     const { user } = useAuth();
     const { logAction } = useAudit();
@@ -296,5 +297,6 @@ export default function AuditoriaPage() {
         <StockAuditTab />
     );
 }
-
       
+
+    

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -14,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { useData } from '@/context/DataContext';
+import { useAdminData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
 
 
@@ -24,7 +23,7 @@ const formatCurrency = (value: number) => {
 
 export default function MyCommissionsPage() {
   const { reverseCommissionPayment } = useAdmin();
-  const { orders, commissionPayments } = useData();
+  const { orders, commissionPayments } = useAdminData();
   const { user } = useAuth();
   const { logAction } = useAudit();
 
@@ -291,3 +290,5 @@ export default function MyCommissionsPage() {
     </div>
   );
 }
+
+    

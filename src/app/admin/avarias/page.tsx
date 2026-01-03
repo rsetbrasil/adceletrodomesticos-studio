@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAdmin } from '@/context/AdminContext';
-import { useData } from '@/context/DataContext';
+import { useAdminData, useData } from '@/context/DataContext';
 import { useAuth } from '@/context/AuthContext';
 import { useAudit } from '@/context/AuditContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +34,8 @@ type AvariaFormValues = z.infer<typeof avariaSchema>;
 
 export default function AvariasPage() {
     const { addAvaria, updateAvaria, deleteAvaria } = useAdmin();
-    const { orders, products, avarias } = useData();
+    const { products } = useData();
+    const { orders, avarias } = useAdminData();
     const { user } = useAuth();
     const { logAction } = useAudit();
     const { toast } = useToast();
@@ -376,3 +377,5 @@ export default function AvariasPage() {
         </div>
     );
 }
+
+    
