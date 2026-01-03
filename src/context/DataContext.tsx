@@ -9,7 +9,6 @@ import type { Product, Category, Order, CommissionPayment, StockAudit, Avaria, C
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from './AuthContext';
-import { products as initialProducts } from '@/lib/products';
 
 interface PublicDataContextType {
   products: Product[];
@@ -20,7 +19,7 @@ interface PublicDataContextType {
 const DataContext = createContext<PublicDataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -28,11 +27,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const { db } = getClientFirebase();
     const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'asc')), (snapshot) => {
       const fetchedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product));
-      setProducts(fetchedProducts.length > 0 ? fetchedProducts : initialProducts);
+      setProducts(fetchedProducts);
       setIsLoading(false);
     }, (error) => {
         console.error("Error fetching products:", error);
-        setProducts(initialProducts);
         setIsLoading(false);
     });
 

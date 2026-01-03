@@ -7,13 +7,13 @@ import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/context/PermissionsContext';
 import { hasAccess, ALL_SECTIONS } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
-import { useData } from '@/context/DataContext';
+import { useAdminData } from '@/context/DataContext';
 
 export default function AdminNav() {
   const pathname = usePathname();
   const { user } = useAuth();
   const { permissions } = usePermissions();
-  const { chatSessions } = useData();
+  const { chatSessions } = useAdminData();
 
   if (!user || !permissions) {
     return null;
