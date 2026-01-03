@@ -271,11 +271,11 @@ export default function CarnetPage() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => handlePrint('default')}>
                 <Printer className="mr-2 h-4 w-4" />
-                Imprimir Carnê
+                Carnê Duas Vias
             </Button>
             <Button onClick={() => handlePrint('a4')}>
                 <Printer className="mr-2 h-4 w-4" />
-                Imprimir A4
+                Carnê Completo
             </Button>
           </div>
         </header>
