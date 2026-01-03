@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { collection, onSnapshot, query, orderBy, writeBatch, doc } from 'firebase/firestore';
 import { getClientFirebase } from '@/lib/firebase-client';
-import type { Product, Category, Order, CommissionPayment, StockAudit, Avaria, CustomerInfo } from '@/lib/types';
+import type { Product, Category, Order, CommissionPayment, StockAudit, Avaria, CustomerInfo, ChatSession } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from './AuthContext';
@@ -19,6 +19,7 @@ interface DataContextType {
   commissionPayments: CommissionPayment[];
   stockAudits: StockAudit[];
   avarias: Avaria[];
+  chatSessions: ChatSession[];
   customers: CustomerInfo[];
   customerOrders: { [key: string]: Order[] };
   customerFinancials: { [key: string]: { totalComprado: number, totalPago: number, saldoDevedor: number } };
@@ -36,6 +37,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
   const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
   const [avarias, setAvarias] = useState<Avaria[]>([]);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { users } = useAuth();
   
@@ -90,6 +92,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const avariasUnsubscribe = onSnapshot(query(collection(db, 'avarias'), orderBy('createdAt', 'desc')), (snapshot) => {
       setAvarias(snapshot.docs.map(d => d.data() as Avaria));
     }, (error) => console.error("Error fetching avarias:", error));
+    
+    const chatSessionsUnsubscribe = onSnapshot(query(collection(db, 'chatSessions'), orderBy('lastMessageAt', 'desc')), (snapshot) => {
+        setChatSessions(snapshot.docs.map(d => ({...d.data(), id: d.id} as ChatSession)))
+    }, (error) => console.error("Error fetching chat sessions:", error));
 
     return () => {
       productsUnsubscribe();
@@ -98,6 +104,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       commissionPaymentsUnsubscribe();
       stockAuditsUnsubscribe();
       avariasUnsubscribe();
+      chatSessionsUnsubscribe();
     };
   }, []);
 
@@ -224,6 +231,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     commissionPayments, 
     stockAudits, 
     avarias, 
+    chatSessions,
     customers,
     customerOrders,
     customerFinancials,
@@ -237,6 +245,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     commissionPayments, 
     stockAudits, 
     avarias, 
+    chatSessions,
     customers,
     customerOrders,
     customerFinancials,

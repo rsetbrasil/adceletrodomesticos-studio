@@ -22,6 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAdmin } from '@/context/AdminContext';
 import { useAudit } from '@/context/AuditContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useData } from '@/context/DataContext';
 
 const notificationSound = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 
@@ -29,7 +30,7 @@ export default function AtendimentoPage() {
     const { user } = useAuth();
     const { deleteChatSession, updateChatSession } = useAdmin();
     const { logAction } = useAudit();
-    const [sessions, setSessions] = useState<ChatSession[]>([]);
+    const { chatSessions: sessions } = useData();
     const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
@@ -104,21 +105,6 @@ export default function AtendimentoPage() {
         };
     }, []);
 
-
-    useEffect(() => {
-        const sessionsRef = collection(db, 'chatSessions');
-        const q = query(sessionsRef, orderBy('lastMessageAt', 'desc'));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const fetchedSessions: ChatSession[] = [];
-            snapshot.forEach(doc => {
-                fetchedSessions.push({ id: doc.id, ...doc.data() } as ChatSession);
-            });
-            setSessions(fetchedSessions);
-        });
-
-        return () => unsubscribe();
-    }, [db]);
 
     useEffect(() => {
         if (!selectedSession) {
@@ -512,7 +498,3 @@ export default function AtendimentoPage() {
         </div>
     );
 }
-
-      
-
-    
