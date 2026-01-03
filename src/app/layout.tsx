@@ -11,10 +11,12 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { AuditProvider } from '@/context/AuditContext';
 import FirebaseErrorListener from '@/components/FirebaseErrorListener';
-import { DataProvider } from '@/context/DataContext';
+import { DataProvider, AdminDataProvider } from '@/context/DataContext';
+import { AdminProvider } from '@/context/AdminContext';
 import { ThemeProvider } from "next-themes";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter } from 'next/font/google';
+import { usePathname } from 'next/navigation';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -23,6 +25,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
   
   return (
     <html lang="pt-BR" suppressHydrationWarning className={cn(inter.variable)}>
@@ -39,19 +42,23 @@ export default function RootLayout({
         >
           <AuditProvider>
             <AuthProvider>
-              <SettingsProvider>
-                <DataProvider>
-                    <PermissionsProvider>
-                      <CustomerAuthProvider>
-                          <CartProvider>
-                              {children}
-                              <Toaster />
-                              <FirebaseErrorListener />
-                          </CartProvider>
-                      </CustomerAuthProvider>
-                    </PermissionsProvider>
-                </DataProvider>
-              </SettingsProvider>
+                <SettingsProvider>
+                    <DataProvider>
+                        <AdminProvider>
+                            <AdminDataProvider>
+                                <PermissionsProvider>
+                                    <CustomerAuthProvider>
+                                        <CartProvider>
+                                            {children}
+                                            <Toaster />
+                                            <FirebaseErrorListener />
+                                        </CartProvider>
+                                    </CustomerAuthProvider>
+                                </PermissionsProvider>
+                            </AdminDataProvider>
+                        </AdminProvider>
+                    </DataProvider>
+                </SettingsProvider>
             </AuthProvider>
           </AuditProvider>
         </ThemeProvider>
