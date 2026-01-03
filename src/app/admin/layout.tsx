@@ -6,7 +6,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SettingsProvider, useSettings } from "@/context/SettingsContext";
 import { useRouter, usePathname } from "next/navigation";
 import { LogOut, Shield, Store, KeyRound, ChevronDown, Clock, Moon, Sun, Menu } from 'lucide-react';
-import AdminNav from "@/components/AdminNav";
+import { default as AdminNav } from "@/components/AdminNav";
 import { Button } from "@/components/ui/button";
 import { hasAccess } from "@/lib/permissions";
 import { useToast } from "@/hooks/use-toast";
@@ -300,3 +300,5 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     // while this top-level layout can remain a server component.
     return <AdminLayoutContent>{children}</AdminLayoutContent>;
 }
+
+    
