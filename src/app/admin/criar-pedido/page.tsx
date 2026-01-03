@@ -671,7 +671,16 @@ export default function CreateOrderPage() {
                             <FormItem>
                                 <FormLabel>Número de Parcelas (Restante)</FormLabel>
                                 <FormControl>
-                                    <Input type="number" min={1} {...field} />
+                                    <Input 
+                                        type="number" 
+                                        min={1} 
+                                        {...field} 
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                    />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
