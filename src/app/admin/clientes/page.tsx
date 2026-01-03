@@ -496,7 +496,7 @@ Não esqueça de enviar o comprovante!`;
                 {filteredCustomers.map((customer) => (
                     <Button
                     key={getCustomerKey(customer)}
-                    variant={getCustomerKey(selectedCustomer!) === getCustomerKey(customer) ? 'secondary' : 'ghost'}
+                    variant={selectedCustomer && getCustomerKey(selectedCustomer) === getCustomerKey(customer) ? 'secondary' : 'ghost'}
                     className="justify-start w-full text-left h-auto py-2"
                     onClick={() => setSelectedCustomer(customer)}
                     >
