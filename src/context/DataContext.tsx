@@ -9,15 +9,13 @@ import type { Product, Category, Order, CommissionPayment, StockAudit, Avaria, C
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from './AuthContext';
+import { usePathname } from 'next/navigation';
 
-// Combined Interface
+// Combined Interface for a single context
 interface DataContextType {
   products: Product[];
   categories: Category[];
   isLoading: boolean;
-}
-
-interface AdminDataContextType {
   orders: Order[];
   commissionPayments: CommissionPayment[];
   stockAudits: StockAudit[];
@@ -32,8 +30,6 @@ interface AdminDataContextType {
 
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
-const AdminDataContext = createContext<AdminDataContextType | undefined>(undefined);
-
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
   // Public data
@@ -41,15 +37,27 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Admin data
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
+  const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
+  const [avarias, setAvarias] = useState<Avaria[]>([]);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  
+  const { user, users } = useAuth();
+  const pathname = usePathname();
+  const isAdminArea = pathname.startsWith('/admin');
+
+  // Effect for public data
   useEffect(() => {
     const { db } = getClientFirebase();
     const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'asc')), (snapshot) => {
       const fetchedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product));
       setProducts(fetchedProducts);
-      setIsLoading(false);
+      if (!isAdminArea) setIsLoading(false);
     }, (error) => {
         console.error("Error fetching products:", error);
-        setIsLoading(false);
+        if (!isAdminArea) setIsLoading(false);
     });
 
     const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
@@ -62,41 +70,24 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       productsUnsubscribe();
       categoriesUnsubscribe();
     };
-  }, []);
+  }, [isAdminArea]);
 
-  const value = useMemo(() => ({
-    products, 
-    categories, 
-    isLoading,
-  }), [
-    products, 
-    categories, 
-    isLoading,
-  ]);
-
-  return (
-    <DataContext.Provider value={value}>
-      {children}
-    </DataContext.Provider>
-  );
-};
-
-
-export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
-  const { products } = useData(); // dependency on public data
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
-  const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
-  const [avarias, setAvarias] = useState<Avaria[]>([]);
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
-  const { users } = useAuth();
-  
+  // Effect for admin data (only runs if in admin area)
   useEffect(() => {
+    if (!isAdminArea) {
+      setIsLoading(false); // Ensure loading is false if not in admin area
+      return;
+    }
+
     const { db } = getClientFirebase();
 
     const ordersUnsubscribe = onSnapshot(query(collection(db, 'orders'), orderBy('date', 'desc')), (snapshot) => {
       setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
-    }, (error) => console.error("Error fetching orders:", error));
+      setIsLoading(false); // Admin data is the last to load
+    }, (error) => {
+      console.error("Error fetching orders:", error);
+      setIsLoading(false);
+    });
 
     const commissionPaymentsUnsubscribe = onSnapshot(query(collection(db, 'commissionPayments'), orderBy('paymentDate', 'desc')), (snapshot) => {
       setCommissionPayments(snapshot.docs.map(d => d.data() as CommissionPayment));
@@ -121,7 +112,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       avariasUnsubscribe();
       chatSessionsUnsubscribe();
     };
-  }, []);
+  }, [isAdminArea]);
+
 
   const customers = useMemo(() => {
     const customerMap = new Map<string, CustomerInfo>();
@@ -240,6 +232,9 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
 
 
   const value = useMemo(() => ({
+    products, 
+    categories, 
+    isLoading,
     orders, 
     commissionPayments, 
     stockAudits, 
@@ -251,6 +246,9 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     financialSummary,
     commissionSummary,
   }), [
+    products, 
+    categories, 
+    isLoading,
     orders, 
     commissionPayments, 
     stockAudits, 
@@ -264,9 +262,9 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   ]);
 
   return (
-    <AdminDataContext.Provider value={value}>
+    <DataContext.Provider value={value}>
       {children}
-    </AdminDataContext.Provider>
+    </DataContext.Provider>
   );
 }
 
@@ -279,10 +277,12 @@ export const useData = (): DataContextType => {
   return context;
 };
 
-export const useAdminData = (): AdminDataContextType => {
-  const context = useContext(AdminDataContext);
+// This hook can now be used to access both public and admin data.
+// For components that only need admin data, this is still fine.
+export const useAdminData = (): DataContextType => {
+  const context = useContext(DataContext);
   if (context === undefined) {
-    throw new Error('useAdminData must be used within an AdminDataProvider');
+    throw new Error('useAdminData must be used within a DataProvider');
   }
   return context;
 };

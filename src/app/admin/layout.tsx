@@ -29,7 +29,6 @@ import {
 import type { AppSection } from "@/lib/types";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ScrollButtons from "@/components/ScrollButtons";
-import { AdminDataProvider } from "@/context/DataContext";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'A senha atual é obrigatória.'),
@@ -297,8 +296,6 @@ function AdminLayoutContent({ children }: { children: ReactNode }) {
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
     return (
-        <AdminDataProvider>
-            <AdminLayoutContent>{children}</AdminLayoutContent>
-        </AdminDataProvider>
+        <AdminLayoutContent>{children}</AdminLayoutContent>
     );
 }
