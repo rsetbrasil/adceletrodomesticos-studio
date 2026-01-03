@@ -38,6 +38,9 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
+const getCustomerKey = (customer: CustomerInfo) => customer.cpf?.replace(/\D/g, '') || `${customer.name}-${customer.phone}`;
+
+
 const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -153,11 +156,15 @@ export default function CustomersAdminPage() {
   }, [customers, searchQuery]);
   
   const ordersForSelectedCustomer = useMemo(() => {
-      return customerOrders[selectedCustomer?.cpf || ''] || [];
+      if (!selectedCustomer) return [];
+      const customerKey = getCustomerKey(selectedCustomer);
+      return customerOrders[customerKey] || [];
   }, [selectedCustomer, customerOrders]);
 
   const financialsForSelectedCustomer = useMemo(() => {
-      return customerFinancials[selectedCustomer?.cpf || ''] || { totalComprado: 0, totalPago: 0, saldoDevedor: 0 };
+      if (!selectedCustomer) return { totalComprado: 0, totalPago: 0, saldoDevedor: 0 };
+      const customerKey = getCustomerKey(selectedCustomer);
+      return customerFinancials[customerKey] || { totalComprado: 0, totalPago: 0, saldoDevedor: 0 };
   }, [selectedCustomer, customerFinancials]);
 
   
@@ -346,7 +353,7 @@ export default function CustomersAdminPage() {
           delete updatedCustomerData.password;
       }
 
-      updateCustomer(updatedCustomerData as CustomerInfo, logAction, user);
+      updateCustomer(selectedCustomer, updatedCustomerData, logAction, user);
       setSelectedCustomer(updatedCustomerData as CustomerInfo);
       setIsEditDialogOpen(false);
     }
@@ -488,8 +495,8 @@ Não esqueça de enviar o comprovante!`;
                 <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-2">
                 {filteredCustomers.map((customer) => (
                     <Button
-                    key={customer.cpf || `${customer.name}-${customer.phone}`}
-                    variant={(selectedCustomer?.cpf || `${selectedCustomer?.name}-${selectedCustomer?.phone}`) === (customer.cpf || `${customer.name}-${customer.phone}`) ? 'secondary' : 'ghost'}
+                    key={getCustomerKey(customer)}
+                    variant={getCustomerKey(selectedCustomer!) === getCustomerKey(customer) ? 'secondary' : 'ghost'}
                     className="justify-start w-full text-left h-auto py-2"
                     onClick={() => setSelectedCustomer(customer)}
                     >
@@ -912,7 +919,7 @@ Não esqueça de enviar o comprovante!`;
                         </div>
                         <div>
                             <Label htmlFor="cpf">CPF</Label>
-                            <Input id="cpf" name="cpf" value={editedInfo.cpf || ''} disabled />
+                            <Input id="cpf" name="cpf" value={editedInfo.cpf || ''} onChange={handleInputChange} />
                         </div>
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">

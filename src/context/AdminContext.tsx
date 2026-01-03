@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, ReactNode, useCallback } from 'react';
@@ -78,7 +79,7 @@ interface AdminContextType {
   reversePayment: (orderId: string, installmentNumber: number, paymentId: string, logAction: LogAction, user: User | null) => Promise<void>;
   updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date, logAction: LogAction, user: User | null) => Promise<void>;
   updateInstallmentAmount: (orderId: string, installmentNumber: number, newAmount: number, logAction: LogAction, user: User | null) => Promise<void>;
-  updateCustomer: (updatedCustomer: CustomerInfo, logAction: LogAction, user: User | null) => Promise<void>;
+  updateCustomer: (oldCustomer: CustomerInfo, updatedCustomerData: CustomerInfo, logAction: LogAction, user: User | null) => Promise<void>;
   importCustomers: (csvData: string, logAction: LogAction, user: User | null) => Promise<void>;
   updateOrderDetails: (orderId: string, details: Partial<Order> & { downPayment?: number, resetDownPayment?: boolean }, logAction: LogAction, user: User | null) => Promise<void>;
   addProduct: (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => Promise<void>;
@@ -822,21 +823,25 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         });
     }, [orders, toast]);
 
-  const updateCustomer = useCallback(async (updatedCustomer: CustomerInfo, logAction: LogAction, user: User | null) => {
+  const updateCustomer = useCallback(async (oldCustomer: CustomerInfo, updatedCustomerData: CustomerInfo, logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
     const batch = writeBatch(db);
+    const oldCustomerKey = oldCustomer.cpf?.replace(/\D/g, '') || `${oldCustomer.name}-${oldCustomer.phone}`;
+
     orders.forEach(order => {
-        if (order.customer.cpf === updatedCustomer.cpf) {
-            const customerData = { ...order.customer, ...updatedCustomer };
-            if (updatedCustomer.password === undefined || updatedCustomer.password === '') {
+        const orderCustomerKey = order.customer.cpf?.replace(/\D/g, '') || `${order.customer.name}-${order.customer.phone}`;
+        if (orderCustomerKey === oldCustomerKey) {
+            const customerData = { ...order.customer, ...updatedCustomerData };
+            if (updatedCustomerData.password === undefined || updatedCustomerData.password === '') {
                 delete customerData.password;
             }
             batch.update(doc(db, 'orders', order.id), { customer: customerData });
         }
     });
+
     batch.commit().then(() => {
-        logAction('Atualização de Cliente', `Dados do cliente ${updatedCustomer.name} (CPF: ${updatedCustomer.cpf}) foram atualizados.`, user);
-        toast({ title: "Cliente Atualizado!", description: `Os dados de ${updatedCustomer.name} foram salvos.` });
+        logAction('Atualização de Cliente', `Dados do cliente ${updatedCustomerData.name} (CPF: ${updatedCustomerData.cpf}) foram atualizados.`, user);
+        toast({ title: "Cliente Atualizado!", description: `Os dados de ${updatedCustomerData.name} foram salvos.` });
     }).catch(async(e) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: `orders`,
