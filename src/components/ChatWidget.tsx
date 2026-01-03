@@ -181,12 +181,13 @@ export default function ChatWidget() {
             };
             await setDoc(sessionRef, newSession);
         } else {
+            const isReopening = session.status === 'closed' || session.status === 'awaiting-feedback';
             await updateDoc(sessionRef, {
                 lastMessageAt: timestamp,
                 lastMessageText: messageText,
-                status: session.status === 'closed' ? 'open' : session.status,
+                status: isReopening ? 'open' : session.status,
                 unreadBySeller: true,
-                satisfaction: session.status === 'closed' ? null : session.satisfaction, // Reset satisfaction if starting a new chat
+                satisfaction: isReopening ? null : session.satisfaction,
             });
         }
     
