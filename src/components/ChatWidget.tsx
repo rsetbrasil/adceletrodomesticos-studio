@@ -393,10 +393,6 @@ export default function ChatWidget() {
                                             Iniciar Novo Atendimento
                                         </Button>
                                     </CardFooter>
-                                ) : session?.status === 'awaiting-feedback' && !session.satisfaction ? (
-                                     <CardFooter className="p-4 border-t flex flex-col items-center justify-center gap-4">
-                                        <p className="text-sm text-muted-foreground text-center">Aguardando sua avaliação...</p>
-                                    </CardFooter>
                                 ) : (
                                     <CardFooter className="p-4 border-t">
                                         <form onSubmit={handleFormSubmit} className="w-full flex items-center gap-2">
