@@ -187,7 +187,7 @@ export default function ChatWidget() {
                 lastMessageText: messageText,
                 status: isReopening ? 'open' : session.status,
                 unreadBySeller: true,
-                satisfaction: isReopening ? null : session.satisfaction,
+                satisfaction: isReopening ? null : (session.satisfaction ?? null),
             });
         }
     
