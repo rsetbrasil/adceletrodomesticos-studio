@@ -38,7 +38,10 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-const getCustomerKey = (customer: CustomerInfo) => customer.cpf?.replace(/\D/g, '') || `${customer.name}-${customer.phone}`;
+const getCustomerKey = (customer: CustomerInfo | null) => {
+  if (!customer) return '';
+  return customer.cpf?.replace(/\D/g, '') || `${customer.name}-${customer.phone}`;
+}
 
 
 const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<string> => {
@@ -496,7 +499,7 @@ Não esqueça de enviar o comprovante!`;
                 {filteredCustomers.map((customer) => (
                     <Button
                     key={getCustomerKey(customer)}
-                    variant={selectedCustomer && getCustomerKey(selectedCustomer) === getCustomerKey(customer) ? 'secondary' : 'ghost'}
+                    variant={getCustomerKey(selectedCustomer) === getCustomerKey(customer) ? 'secondary' : 'ghost'}
                     className="justify-start w-full text-left h-auto py-2"
                     onClick={() => setSelectedCustomer(customer)}
                     >

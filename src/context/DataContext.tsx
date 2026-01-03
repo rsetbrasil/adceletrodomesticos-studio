@@ -119,7 +119,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const ordersByCustomer: { [key: string]: Order[] } = {};
     orders.forEach(order => {
       if (order.status !== 'Cancelado' && order.status !== 'Excluído') {
-        const customerKey = order.customer.cpf || `${order.customer.name}-${order.customer.phone}`;
+        const customerKey = order.customer.cpf?.replace(/\D/g, '') || `${order.customer.name}-${order.customer.phone}`;
         if (!ordersByCustomer[customerKey]) {
           ordersByCustomer[customerKey] = [];
         }
@@ -135,7 +135,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const customerFinancials = useMemo(() => {
       const financialsByCustomer: { [key: string]: { totalComprado: number, totalPago: number, saldoDevedor: number } } = {};
       customers.forEach(customer => {
-        const customerKey = customer.cpf || `${customer.name}-${customer.phone}`;
+        const customerKey = customer.cpf?.replace(/\D/g, '') || `${customer.name}-${customer.phone}`;
         const orders = customerOrders[customerKey] || [];
         const allInstallments = orders.flatMap(order => order.installmentDetails || []);
         const totalComprado = orders.reduce((acc, order) => acc + order.total, 0);
