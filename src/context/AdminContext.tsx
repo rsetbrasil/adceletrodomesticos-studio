@@ -6,10 +6,10 @@ import React, { createContext, useContext, ReactNode, useCallback } from 'react'
 import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment, StockAudit, Avaria, ChatSession } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getClientFirebase } from '@/lib/firebase-client';
-import { collection, doc, writeBatch, setDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, doc, writeBatch, setDoc, updateDoc, deleteDoc, getDocs, query } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { useData } from './DataContext';
+import { useData, useAdminData } from './DataContext';
 import { addMonths } from 'date-fns';
 
 // Helper function to log actions, passed as an argument now
@@ -113,7 +113,8 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
-  const { products, categories, orders, commissionPayments } = useData();
+  const { products } = useData();
+  const { orders, categories, commissionPayments } = useAdminData();
   const { toast } = useToast();
   
   const restoreAdminData = useCallback(async (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => {
@@ -560,9 +561,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const addOrder = async (order: Partial<Order> & { firstDueDate: Date }, logAction: LogAction, user: User | null): Promise<Order | null> => {
     const { db } = getClientFirebase();
-    
+    const ordersCollection = collection(db, 'orders');
+    const ordersSnapshot = await getDocs(query(ordersCollection));
+    const allOrders = ordersSnapshot.docs.map(d => d.data() as Order);
+
     const prefix = order.items && order.items.length > 0 ? 'PED' : 'REG';
-    const lastOrderWithPrefix = orders
+    const lastOrderWithPrefix = allOrders
       .filter(o => o.id.startsWith(`${prefix}-`))
       .map(o => parseInt(o.id.split('-')[1] || '0', 10))
       .filter(n => !isNaN(n))
@@ -580,7 +584,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
     orderToSave.commission = calculateCommission(orderToSave, products);
     
-    // Ensure the `total` is correct, based on items and discount
     const subtotal = order.items?.reduce((acc, item) => acc + item.price * item.quantity, 0) || 0;
     const total = subtotal - (order.discount || 0);
     const totalFinanced = total - (order.downPayment || 0);
@@ -604,12 +607,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     } catch(e) {
         console.error("Failed to add order", e);
         if (e instanceof Error && e.message.startsWith('Estoque insuficiente')) {
-            // Do not rethrow, let the caller handle it via returned null
         } else {
-             // For other errors, re-throw to be caught by a higher-level handler if needed
             throw e;
         }
-        // Revert stock if there was an error
         await manageStockForOrder(order as Order, 'add');
         throw e;
     }
@@ -656,7 +656,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
           toast({ title: "Pedido movido para a Lixeira", description: `O pedido #${orderId} foi movido para a lixeira.` });
         }
     }).catch(async (e) => {
-        // Revert optimistic stock update on failure
         if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
             await manageStockForOrder(orderToUpdate, 'add');
         }
