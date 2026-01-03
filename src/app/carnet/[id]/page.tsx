@@ -2,10 +2,9 @@
 
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { useSettings } from '@/context/SettingsContext';
+import { useParams } from 'next/navigation';
 import { useMemo, useState, useEffect } from 'react';
-import type { Order } from '@/lib/types';
+import type { Order, StoreSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Printer, ShoppingCart, Phone } from 'lucide-react';
 import Logo from '@/components/Logo';
@@ -23,7 +22,11 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings: any, pixPayload: string | null }) => {
+const initialSettings: StoreSettings = {
+    storeName: 'ADC Móveis', storeCity: '', storeAddress: '', pixKey: '', storePhone: ''
+};
+
+const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings: StoreSettings, pixPayload: string | null }) => {
     
     const subtotal = useMemo(() => order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0), [order.items]);
     const valorFinanciado = order.total;
@@ -168,8 +171,8 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
 export default function CarnetPage() {
   const params = useParams();
   const [order, setOrder] = useState<Order | null>(null);
+  const [settings, setSettings] = useState<StoreSettings>(initialSettings);
   const [isLoading, setIsLoading] = useState(true);
-  const { settings } = useSettings();
 
   useEffect(() => {
     const orderId = params.id as string;
@@ -177,21 +180,29 @@ export default function CarnetPage() {
       setIsLoading(false);
       return;
     }
-
+    
     const { db } = getClientFirebase();
     const orderRef = doc(db, 'orders', orderId);
+    const settingsRef = doc(db, 'config', 'storeSettings');
+    
+    Promise.all([getDoc(orderRef), getDoc(settingsRef)])
+      .then(([orderDoc, settingsDoc]) => {
+        if (orderDoc.exists()) {
+          setOrder({ id: orderDoc.id, ...orderDoc.data() } as Order);
+        } else {
+          console.error("No such order!");
+        }
 
-    getDoc(orderRef).then(docSnap => {
-      if (docSnap.exists()) {
-        setOrder({ id: docSnap.id, ...docSnap.data() } as Order);
-      } else {
-        console.error("No such order!");
-      }
-    }).catch(error => {
-      console.error("Error fetching order:", error);
-    }).finally(() => {
-      setIsLoading(false);
-    });
+        if (settingsDoc.exists()) {
+            setSettings(settingsDoc.data() as StoreSettings);
+        }
+      })
+      .catch(error => {
+        console.error("Error fetching document:", error);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
 
   }, [params.id]);
 

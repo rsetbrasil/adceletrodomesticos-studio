@@ -3,7 +3,6 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useSettings } from '@/context/SettingsContext';
 import { useMemo, useRef, useState, useEffect }from 'react';
 import type { Order, Installment, StoreSettings, Payment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -20,6 +19,10 @@ import { doc, getDoc } from 'firebase/firestore';
 const formatCurrency = (value: number) => {
   if (typeof value !== 'number' || isNaN(value)) return 'R$ 0,00';
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+};
+
+const initialSettings: StoreSettings = {
+    storeName: 'ADC Móveis', storeCity: '', storeAddress: '', pixKey: '', storePhone: ''
 };
 
 const ReceiptContent = ({ order, installment, settings, via }: { order: Order; installment: Installment; settings: StoreSettings; via: 'Empresa' | 'Cliente' }) => {
@@ -144,7 +147,7 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
 export default function SingleInstallmentPage() {
   const params = useParams();
   const router = useRouter();
-  const { settings } = useSettings();
+  const [settings, setSettings] = useState<StoreSettings>(initialSettings);
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -156,21 +159,29 @@ export default function SingleInstallmentPage() {
       setIsLoading(false);
       return;
     }
-
+    
     const { db } = getClientFirebase();
     const orderRef = doc(db, 'orders', orderId);
+    const settingsRef = doc(db, 'config', 'storeSettings');
+    
+    Promise.all([getDoc(orderRef), getDoc(settingsRef)])
+      .then(([orderDoc, settingsDoc]) => {
+        if (orderDoc.exists()) {
+          setOrder({ id: orderDoc.id, ...orderDoc.data() } as Order);
+        } else {
+          console.error("No such order!");
+        }
 
-    getDoc(orderRef).then(docSnap => {
-      if (docSnap.exists()) {
-        setOrder({ id: docSnap.id, ...docSnap.data() } as Order);
-      } else {
-        console.error("No such order!");
-      }
-    }).catch(error => {
-      console.error("Error fetching order:", error);
-    }).finally(() => {
-      setIsLoading(false);
-    });
+        if (settingsDoc.exists()) {
+            setSettings(settingsDoc.data() as StoreSettings);
+        }
+      })
+      .catch(error => {
+        console.error("Error fetching document:", error);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
 
   }, [params.id]);
 
