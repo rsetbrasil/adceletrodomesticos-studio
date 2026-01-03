@@ -14,43 +14,41 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
-import { useData } from '@/context/DataContext';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
 export default function MyAccountPage() {
-  const { customer, logout, isAuthenticated, isLoading: authLoading } = useCustomerAuth();
-  const { orders: allOrders, isLoading: ordersLoading } = useData();
+  const { customer, customerOrders, logout, isAuthenticated, isLoading } = useCustomerAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    if (!isLoading && !isAuthenticated) {
       router.replace('/area-cliente/login');
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, router]);
   
-  const customerOrders = useMemo(() => {
-    if (!customer || !allOrders) return [];
-    return allOrders
-      .filter(o => o.customer.cpf === customer.cpf && o.status !== 'Cancelado' && o.status !== 'Excluído')
+  const sortedCustomerOrders = useMemo(() => {
+    if (!customerOrders) return [];
+    return [...customerOrders]
+      .filter(o => o.status !== 'Cancelado' && o.status !== 'Excluído')
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [customer, allOrders]);
+  }, [customerOrders]);
 
   const customerFinancials = useMemo(() => {
     if (!customer) {
       return { totalComprado: 0, totalPago: 0, saldoDevedor: 0 };
     }
     
-    const allInstallments = customerOrders.flatMap(order => (order.installmentDetails || []));
+    const allInstallments = sortedCustomerOrders.flatMap(order => (order.installmentDetails || []));
     
-    const totalComprado = customerOrders.reduce((acc, order) => acc + order.total, 0);
+    const totalComprado = sortedCustomerOrders.reduce((acc, order) => acc + order.total, 0);
     const totalPago = allInstallments.reduce((sum, inst) => sum + (inst.paidAmount || 0), 0);
     const saldoDevedor = totalComprado - totalPago;
 
     return { totalComprado, totalPago, saldoDevedor };
-  }, [customer, customerOrders]);
+  }, [customer, sortedCustomerOrders]);
 
   const getStatusVariant = (status: Order['status']): 'secondary' | 'default' | 'outline' | 'destructive' => {
     switch (status) {
@@ -62,7 +60,7 @@ export default function MyAccountPage() {
     }
   };
 
-  if (authLoading || ordersLoading || !customer) {
+  if (isLoading || !customer) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <p>Carregando sua conta...</p>
@@ -143,9 +141,9 @@ export default function MyAccountPage() {
                             <CardDescription>Acompanhe o status e os detalhes de suas compras.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {customerOrders.length > 0 ? (
+                            {sortedCustomerOrders.length > 0 ? (
                                 <Accordion type="single" collapsible className="w-full space-y-2">
-                                    {customerOrders.map(order => {
+                                    {sortedCustomerOrders.map(order => {
                                         const isPaidOff = (order.installmentDetails || []).every(inst => inst.status === 'Pago') || (order.paymentMethod && ['Pix', 'Dinheiro'].includes(order.paymentMethod));
                                         return (
                                             <AccordionItem value={order.id} key={order.id} className="border-b-0 rounded-lg border bg-background">

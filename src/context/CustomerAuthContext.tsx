@@ -1,13 +1,16 @@
+
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { CustomerInfo, Order } from '@/lib/types';
-import { useData } from './DataContext';
+import { getClientFirebase } from '@/lib/firebase-client';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 interface CustomerAuthContextType {
   customer: CustomerInfo | null;
+  customerOrders: Order[];
   login: (cpf: string, pass: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
@@ -18,10 +21,10 @@ const CustomerAuthContext = createContext<CustomerAuthContextType | undefined>(u
 
 export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
   const [customer, setCustomer] = useState<CustomerInfo | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
-  const { orders } = useData();
   
   useEffect(() => {
     setIsLoading(true);
@@ -38,47 +41,79 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = async (cpf: string, pass: string): Promise<boolean> => {
-    if (!orders) {
-        toast({ title: 'Erro', description: 'Os dados dos pedidos ainda não foram carregados. Tente novamente em alguns segundos.', variant: 'destructive' });
-        return false;
+  useEffect(() => {
+    if (!customer?.cpf) {
+        setCustomerOrders([]);
+        return;
     }
+
+    const { db } = getClientFirebase();
+    const ordersRef = collection(db, 'orders');
+    const q = query(ordersRef, where('customer.cpf', '==', customer.cpf));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const ordersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+        setCustomerOrders(ordersData);
+    }, (error) => {
+        console.error("Error fetching customer orders: ", error);
+    });
+
+    return () => unsubscribe();
+  }, [customer]);
+
+  const login = async (cpf: string, pass: string): Promise<boolean> => {
+    const { db } = getClientFirebase();
     const normalizedCpf = cpf.replace(/\D/g, '');
     
-    const customerOrders = orders
-        .filter(o => o.customer.cpf && o.customer.cpf.replace(/\D/g, '') === normalizedCpf)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const ordersRef = collection(db, 'orders');
+    const q = query(ordersRef, where('customer.cpf', '==', normalizedCpf));
 
-    if (customerOrders.length === 0) {
-         toast({ title: 'Falha no Login', description: 'CPF não encontrado.', variant: 'destructive' });
-         return false;
-    }
-    
-    const latestCustomerData = customerOrders.find(o => o.customer.password)?.customer;
-
-    if (!latestCustomerData || !latestCustomerData.password) {
-        toast({ title: 'Falha no Login', description: 'Esta conta ainda não possui uma senha cadastrada. Por favor, complete uma nova compra para criar uma.', variant: 'destructive' });
-        return false;
-    }
-
-    if (latestCustomerData.password === pass) {
-        const customerToStore = { ...latestCustomerData };
-        delete customerToStore.password;
+    try {
+        const querySnapshot = await new Promise<import('firebase/firestore').QuerySnapshot>((resolve, reject) => {
+            const unsubscribe = onSnapshot(q, resolve, reject);
+            // Optional: You might want to unsubscribe after the first snapshot if you don't need real-time updates for login
+        });
         
-        setCustomer(customerToStore); 
-        localStorage.setItem('customer', JSON.stringify(customerToStore));
-        router.push('/area-cliente/minha-conta');
-        toast({
-            title: 'Login bem-sucedido!',
-            description: `Bem-vindo(a) de volta, ${customerToStore.name.split(' ')[0]}.`,
-        });
-        return true;
-    } else {
-        toast({
-            title: 'Falha no Login',
-            description: 'Senha inválida.',
-            variant: 'destructive',
-        });
+        const customerOrders = querySnapshot.docs.map(doc => doc.data() as Order);
+
+        if (customerOrders.length === 0) {
+             toast({ title: 'Falha no Login', description: 'CPF não encontrado.', variant: 'destructive' });
+             return false;
+        }
+        
+        const latestCustomerData = customerOrders
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .find(o => o.customer.password)?.customer;
+
+        if (!latestCustomerData || !latestCustomerData.password) {
+            toast({ title: 'Falha no Login', description: 'Esta conta ainda não possui uma senha cadastrada. Por favor, complete uma nova compra para criar uma.', variant: 'destructive' });
+            return false;
+        }
+
+        if (latestCustomerData.password === pass) {
+            const customerToStore = { ...latestCustomerData };
+            delete customerToStore.password;
+            
+            setCustomer(customerToStore); 
+            localStorage.setItem('customer', JSON.stringify(customerToStore));
+            router.push('/area-cliente/minha-conta');
+            toast({
+                title: 'Login bem-sucedido!',
+                description: `Bem-vindo(a) de volta, ${customerToStore.name.split(' ')[0]}.`,
+            });
+            return true;
+        } else {
+            toast({
+                title: 'Falha no Login',
+                description: 'Senha inválida.',
+                variant: 'destructive',
+            });
+            return false;
+        }
+
+    } catch (error) {
+        console.error("Error during login:", error);
+        toast({ title: 'Erro de Autenticação', description: 'Não foi possível verificar suas credenciais. Tente novamente.', variant: 'destructive' });
         return false;
     }
   };
@@ -89,8 +124,18 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/area-cliente/login');
   };
 
+  const value = useMemo(() => ({
+    customer,
+    customerOrders,
+    login,
+    logout,
+    isLoading,
+    isAuthenticated: !!customer,
+  }), [customer, customerOrders, isLoading]);
+
+
   return (
-    <CustomerAuthContext.Provider value={{ customer, login, logout, isLoading, isAuthenticated: !!customer }}>
+    <CustomerAuthContext.Provider value={value}>
       {children}
     </CustomerAuthContext.Provider>
   );
