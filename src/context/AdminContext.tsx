@@ -113,8 +113,8 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
-  const { products } = useData();
-  const { orders, categories, commissionPayments } = useAdminData();
+  const { products, categories } = useData();
+  const { orders, commissionPayments } = useAdminData();
   const { toast } = useToast();
   
   const restoreAdminData = useCallback(async (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => {
