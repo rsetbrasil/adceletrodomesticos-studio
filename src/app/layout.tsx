@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import './globals.css';
@@ -40,21 +41,21 @@ export default function RootLayout({
         >
           <AuditProvider>
             <AuthProvider>
-                <CustomerAuthProvider>
-                    <SettingsProvider>
-                      <DataProvider>
-                        <AdminProvider>
-                            <PermissionsProvider>
-                                <CartProvider>
-                                    {children}
-                                    <Toaster />
-                                    <FirebaseErrorListener />
-                                </CartProvider>
-                            </PermissionsProvider>
-                        </AdminProvider>
-                      </DataProvider>
-                    </SettingsProvider>
-                </CustomerAuthProvider>
+              <SettingsProvider>
+                <DataProvider>
+                  <AdminProvider>
+                    <PermissionsProvider>
+                      <CustomerAuthProvider>
+                          <CartProvider>
+                              {children}
+                              <Toaster />
+                              <FirebaseErrorListener />
+                          </CartProvider>
+                      </CustomerAuthProvider>
+                    </PermissionsProvider>
+                  </AdminProvider>
+                </DataProvider>
+              </SettingsProvider>
             </AuthProvider>
           </AuditProvider>
         </ThemeProvider>

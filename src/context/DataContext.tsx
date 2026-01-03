@@ -3,69 +3,18 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import { collection, onSnapshot, query, orderBy, writeBatch, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { getClientFirebase } from '@/lib/firebase-client';
 import type { Product, Category, Order, CommissionPayment, StockAudit, Avaria, CustomerInfo, ChatSession } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from './AuthContext';
 
-interface PublicDataContextType {
+interface DataContextType {
   products: Product[];
   categories: Category[];
   isLoading: boolean;
-}
-
-const DataContext = createContext<PublicDataContextType | undefined>(undefined);
-
-export const DataProvider = ({ children }: { children: ReactNode }) => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const { db } = getClientFirebase();
-    const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'asc')), (snapshot) => {
-      const fetchedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product));
-      setProducts(fetchedProducts);
-      setIsLoading(false);
-    }, (error) => {
-        console.error("Error fetching products:", error);
-        setIsLoading(false);
-    });
-
-    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
-      setCategories(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
-    }, (error) => {
-        console.error("Error fetching categories:", error);
-    });
-    
-    return () => {
-      productsUnsubscribe();
-      categoriesUnsubscribe();
-    };
-  }, []);
-
-  const value = useMemo(() => ({
-    products, 
-    categories, 
-    isLoading,
-  }), [
-    products, 
-    categories, 
-    isLoading
-  ]);
-
-
-  return (
-    <DataContext.Provider value={value}>
-      {children}
-    </DataContext.Provider>
-  );
-};
-
-
-interface AdminDataContextType {
+  // Admin data is now part of the main context
   orders: Order[];
   commissionPayments: CommissionPayment[];
   stockAudits: StockAudit[];
@@ -78,20 +27,39 @@ interface AdminDataContextType {
   commissionSummary: { totalPendingCommission: number, commissionsBySeller: { id: string; name: string; total: number; count: number; orderIds: string[] }[] };
 }
 
+const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const AdminDataContext = createContext<AdminDataContextType | undefined>(undefined);
+export const DataProvider = ({ children }: { children: ReactNode }) => {
+  // Public data
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isPublicLoading, setPublicIsLoading] = useState(true);
 
-export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
+  // Admin data
   const [orders, setOrders] = useState<Order[]>([]);
   const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
   const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
   const [avarias, setAvarias] = useState<Avaria[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const { users } = useAuth();
-  const { products } = useData();
-
+  
   useEffect(() => {
     const { db } = getClientFirebase();
+    const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'asc')), (snapshot) => {
+      const fetchedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product));
+      setProducts(fetchedProducts);
+      setPublicIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching products:", error);
+        setPublicIsLoading(false);
+    });
+
+    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
+      setCategories(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
+    }, (error) => {
+        console.error("Error fetching categories:", error);
+    });
+
     const ordersUnsubscribe = onSnapshot(query(collection(db, 'orders'), orderBy('date', 'desc')), (snapshot) => {
       setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
     }, (error) => console.error("Error fetching orders:", error));
@@ -111,8 +79,10 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     const chatSessionsUnsubscribe = onSnapshot(query(collection(db, 'chatSessions'), orderBy('lastMessageAt', 'desc')), (snapshot) => {
         setChatSessions(snapshot.docs.map(d => ({...d.data(), id: d.id} as ChatSession)))
     }, (error) => console.error("Error fetching chat sessions:", error));
-
+    
     return () => {
+      productsUnsubscribe();
+      categoriesUnsubscribe();
       ordersUnsubscribe();
       commissionPaymentsUnsubscribe();
       stockAuditsUnsubscribe();
@@ -156,16 +126,15 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       const financialsByCustomer: { [key: string]: { totalComprado: number, totalPago: number, saldoDevedor: number } } = {};
       customers.forEach(customer => {
         const customerKey = customer.cpf?.replace(/\D/g, '') || `${customer.name}-${customer.phone}`;
-        const orders = customerOrders[customerKey] || [];
-        const allInstallments = orders.flatMap(order => order.installmentDetails || []);
-        const totalComprado = orders.reduce((acc, order) => acc + order.total, 0);
+        const ordersForCustomer = customerOrders[customerKey] || [];
+        const allInstallments = ordersForCustomer.flatMap(order => order.installmentDetails || []);
+        const totalComprado = ordersForCustomer.reduce((acc, order) => acc + order.total, 0);
         const totalPago = allInstallments.reduce((sum, inst) => sum + (inst.paidAmount || 0), 0);
         const saldoDevedor = totalComprado - totalPago;
         financialsByCustomer[customerKey] = { totalComprado, totalPago, saldoDevedor };
       });
       return financialsByCustomer;
   }, [customers, customerOrders]);
-
 
   const financialSummary = useMemo(() => {
     let totalVendido = 0;
@@ -237,7 +206,11 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     return { totalPendingCommission, commissionsBySeller };
   }, [orders, users]);
 
+
   const value = useMemo(() => ({
+    products, 
+    categories, 
+    isLoading: isPublicLoading,
     orders, 
     commissionPayments, 
     stockAudits, 
@@ -249,6 +222,9 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     financialSummary,
     commissionSummary,
   }), [
+    products, 
+    categories, 
+    isPublicLoading,
     orders, 
     commissionPayments, 
     stockAudits, 
@@ -261,10 +237,14 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     commissionSummary,
   ]);
 
-  return <AdminDataContext.Provider value={value}>{children}</AdminDataContext.Provider>;
-}
+  return (
+    <DataContext.Provider value={value}>
+      {children}
+    </DataContext.Provider>
+  );
+};
 
-export const useData = () => {
+export const useData = (): DataContextType => {
   const context = useContext(DataContext);
   if (context === undefined) {
     throw new Error('useData must be used within a DataProvider');
@@ -272,10 +252,11 @@ export const useData = () => {
   return context;
 };
 
-export const useAdminData = () => {
-  const context = useContext(AdminDataContext);
+// This hook is now an alias for useData, for backward compatibility.
+export const useAdminData = (): DataContextType => {
+  const context = useContext(DataContext);
   if (context === undefined) {
-    throw new Error('useAdminData must be used within an AdminDataProvider');
+    throw new Error('useAdminData must be used within a DataProvider');
   }
   return context;
 };
