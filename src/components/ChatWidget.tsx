@@ -414,8 +414,9 @@ export default function ChatWidget() {
                                                 onChange={(e) => setNewMessage(e.target.value)}
                                                 placeholder="Digite sua mensagem..."
                                                 autoComplete="off"
+                                                disabled={session?.status === 'awaiting-feedback'}
                                             />
-                                            <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+                                            <Button type="submit" size="icon" disabled={!newMessage.trim() || session?.status === 'awaiting-feedback'}>
                                                 <Send className="h-4 w-4" />
                                             </Button>
                                         </form>
