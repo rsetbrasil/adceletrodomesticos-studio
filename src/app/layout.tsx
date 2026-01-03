@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import './globals.css';
@@ -8,37 +7,26 @@ import { CustomerAuthProvider } from '@/context/CustomerAuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { SettingsProvider } from '@/context/SettingsContext';
 import { PermissionsProvider } from '@/context/PermissionsContext';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
-import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { AuditProvider } from '@/context/AuditContext';
 import FirebaseErrorListener from '@/components/FirebaseErrorListener';
-import ChatWidget from '@/components/ChatWidget';
 import { DataProvider } from '@/context/DataContext';
 import { AdminProvider } from '@/context/AdminContext';
 import { ThemeProvider } from "next-themes";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter } from 'next/font/google';
+import { usePathname } from 'next/navigation';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import ChatWidget from '@/components/ChatWidget';
 import ScrollButtons from '@/components/ScrollButtons';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
-
-const AppContent = ({ children }: { children: React.ReactNode }) => {
+const PublicPageLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
-  const isSpecialRoute = pathname.startsWith('/carnet') || pathname.startsWith('/login') || pathname.startsWith('/area-cliente');
-  const isAdminRoute = pathname.startsWith('/admin');
   const isHomePage = pathname === '/';
-
-  if (isSpecialRoute) {
-    return <>{children}</>;
-  }
-  
-  if (isAdminRoute) {
-      return <AdminProvider>{children}</AdminProvider>;
-  }
 
   return (
     <div className="relative flex min-h-screen flex-col bg-background">
@@ -59,6 +47,8 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   const isHomePage = pathname === '/';
+  
+  const isPublicRoute = !pathname.startsWith('/admin') && !pathname.startsWith('/login') && !pathname.startsWith('/area-cliente') && !pathname.startsWith('/carnet');
 
   return (
     <html lang="pt-BR" suppressHydrationWarning className={cn(inter.variable, isHomePage && 'light')}>
@@ -75,19 +65,25 @@ export default function RootLayout({
         >
           <AuditProvider>
             <AuthProvider>
-              <PermissionsProvider>
-                <SettingsProvider>
-                  <DataProvider>
-                    <CustomerAuthProvider>
-                      <CartProvider>
-                        <AppContent>{children}</AppContent>
-                        <Toaster />
-                        <FirebaseErrorListener />
-                      </CartProvider>
-                    </CustomerAuthProvider>
-                  </DataProvider>
-                </SettingsProvider>
-              </PermissionsProvider>
+                <CustomerAuthProvider>
+                    <SettingsProvider>
+                        <DataProvider>
+                            <AdminProvider>
+                                <PermissionsProvider>
+                                    <CartProvider>
+                                        {isPublicRoute ? (
+                                          <PublicPageLayout>{children}</PublicPageLayout>
+                                        ) : (
+                                          <main>{children}</main>
+                                        )}
+                                        <Toaster />
+                                        <FirebaseErrorListener />
+                                    </CartProvider>
+                                </PermissionsProvider>
+                            </AdminProvider>
+                        </DataProvider>
+                    </SettingsProvider>
+                </CustomerAuthProvider>
             </AuthProvider>
           </AuditProvider>
         </ThemeProvider>
