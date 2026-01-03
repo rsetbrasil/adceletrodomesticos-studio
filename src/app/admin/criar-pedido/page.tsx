@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAdmin } from '@/context/AdminContext';
-import { useData } from '@/context/DataContext';
+import { useAdminData, useData } from '@/context/DataContext';
 import { useAuth } from '@/context/AuthContext';
 import { useAudit } from '@/context/AuditContext';
 import { useRouter } from 'next/navigation';
@@ -150,7 +150,8 @@ const CustomProductForm = ({ onAdd }: { onAdd: (item: CartItem) => void }) => {
 
 export default function CreateOrderPage() {
   const { addOrder } = useAdmin();
-  const { products: allProducts, customers: allCustomers, orders } = useData();
+  const { products: allProducts } = useData();
+  const { customers: allCustomers, orders } = useAdminData();
   const { user, users } = useAuth();
   const { logAction } = useAudit();
   const router = useRouter();
@@ -393,7 +394,7 @@ export default function CreateOrderPage() {
                            <CommandList>
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandGroup>
-                              {allCustomers.map(c => {
+                              {allCustomers && allCustomers.map(c => {
                                 const customerId = c.cpf || `${c.name}-${c.phone}`;
                                 return (
                                 <CommandItem
