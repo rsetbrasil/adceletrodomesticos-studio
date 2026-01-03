@@ -22,7 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAdmin } from '@/context/AdminContext';
 import { useAudit } from '@/context/AuditContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useData } from '@/context/DataContext';
+import { useAdminData } from '@/context/DataContext';
 
 const notificationSound = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 
@@ -30,7 +30,7 @@ export default function AtendimentoPage() {
     const { user } = useAuth();
     const { deleteChatSession, updateChatSession } = useAdmin();
     const { logAction } = useAudit();
-    const { chatSessions: sessions } = useData();
+    const { chatSessions: sessions } = useAdminData();
     const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
@@ -498,3 +498,5 @@ export default function AtendimentoPage() {
         </div>
     );
 }
+
+    
