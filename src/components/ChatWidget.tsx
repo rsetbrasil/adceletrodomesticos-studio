@@ -145,7 +145,7 @@ export default function ChatWidget() {
     const handleStartNewChat = async () => {
         if (!session) return;
         const sessionRef = doc(db, 'chatSessions', session.id);
-        await updateDoc(sessionRef, { status: 'open', satisfaction: null }); // Reset satisfaction
+        await updateDoc(sessionRef, { status: 'open', satisfaction: null });
     };
     
     const handleSendMessage = async (text: string, attachment: ChatAttachment | null) => {
