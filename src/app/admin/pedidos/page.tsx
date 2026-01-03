@@ -55,6 +55,8 @@ import { useSettings } from '@/context/SettingsContext';
 import Logo from '@/components/Logo';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { getClientFirebase } from '@/lib/firebase-client';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 
 const formatCurrency = (value: number) => {
@@ -99,7 +101,8 @@ const dueDateRanges = [
 
 export default function OrdersAdminPage() {
   const { updateOrderStatus, recordInstallmentPayment, updateOrderDetails, updateInstallmentDueDate, deleteOrder, permanentlyDeleteOrder, reversePayment, emptyTrash, updateInstallmentAmount } = useAdmin();
-  const { products, orders } = useData();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const { products } = useData();
   const { user, users } = useAuth();
   const { settings } = useSettings();
   const { logAction } = useAudit();
@@ -133,6 +136,14 @@ export default function OrdersAdminPage() {
 
   useEffect(() => {
     setIsClient(true);
+    const { db } = getClientFirebase();
+    const q = query(collection(db, 'orders'), orderBy('date', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+    }, (error) => {
+        console.error("Error fetching orders:", error);
+    });
+    return () => unsubscribe();
   }, []);
 
   const sellers = useMemo(() => {
@@ -1225,6 +1236,7 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
+
 
 
 
