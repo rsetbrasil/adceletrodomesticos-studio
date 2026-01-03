@@ -1,16 +1,17 @@
 
+
 'use client';
 
 import { ReactNode, useEffect, useState } from "react";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { SettingsProvider, useSettings } from "@/context/SettingsContext";
+import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { useRouter, usePathname } from "next/navigation";
 import { LogOut, Shield, Store, KeyRound, ChevronDown, Clock, Moon, Sun, Menu } from 'lucide-react';
-import { default as AdminNav } from "@/components/AdminNav";
+import AdminNav from "@/components/AdminNav";
 import { Button } from "@/components/ui/button";
 import { hasAccess } from "@/lib/permissions";
 import { useToast } from "@/hooks/use-toast";
-import { PermissionsProvider, usePermissions } from "@/context/PermissionsContext";
+import { usePermissions } from "@/context/PermissionsContext";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -29,7 +30,7 @@ import {
 import type { AppSection } from "@/lib/types";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import ScrollButtons from "@/components/ScrollButtons";
-import { DataProvider, AdminDataProvider } from "@/context/DataContext";
+import { AdminDataProvider } from "@/context/DataContext";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'A senha atual é obrigatória.'),
@@ -296,9 +297,5 @@ function AdminLayoutContent({ children }: { children: ReactNode }) {
 
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-    // We wrap the content in its own component to allow it to be a client component
-    // while this top-level layout can remain a server component.
     return <AdminLayoutContent>{children}</AdminLayoutContent>;
 }
-
-    

@@ -10,11 +10,14 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from './AuthContext';
 
+// Combined Interface
 interface DataContextType {
   products: Product[];
   categories: Category[];
   isLoading: boolean;
-  // Admin data is now part of the main context
+}
+
+interface AdminDataContextType {
   orders: Order[];
   commissionPayments: CommissionPayment[];
   stockAudits: StockAudit[];
@@ -27,15 +30,60 @@ interface DataContextType {
   commissionSummary: { totalPendingCommission: number, commissionsBySeller: { id: string; name: string; total: number; count: number; orderIds: string[] }[] };
 }
 
+
 const DataContext = createContext<DataContextType | undefined>(undefined);
+const AdminDataContext = createContext<AdminDataContextType | undefined>(undefined);
+
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
   // Public data
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isPublicLoading, setPublicIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Admin data
+  useEffect(() => {
+    const { db } = getClientFirebase();
+    const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'asc')), (snapshot) => {
+      const fetchedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product));
+      setProducts(fetchedProducts);
+      setIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching products:", error);
+        setIsLoading(false);
+    });
+
+    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
+      setCategories(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
+    }, (error) => {
+        console.error("Error fetching categories:", error);
+    });
+    
+    return () => {
+      productsUnsubscribe();
+      categoriesUnsubscribe();
+    };
+  }, []);
+
+  const value = useMemo(() => ({
+    products, 
+    categories, 
+    isLoading,
+  }), [
+    products, 
+    categories, 
+    isLoading,
+  ]);
+
+  return (
+    <DataContext.Provider value={value}>
+      {children}
+    </DataContext.Provider>
+  );
+};
+
+
+export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
+  const { products } = useData(); // dependency on public data
   const [orders, setOrders] = useState<Order[]>([]);
   const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
   const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
@@ -45,20 +93,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   
   useEffect(() => {
     const { db } = getClientFirebase();
-    const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'asc')), (snapshot) => {
-      const fetchedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product));
-      setProducts(fetchedProducts);
-      setPublicIsLoading(false);
-    }, (error) => {
-        console.error("Error fetching products:", error);
-        setPublicIsLoading(false);
-    });
-
-    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
-      setCategories(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
-    }, (error) => {
-        console.error("Error fetching categories:", error);
-    });
 
     const ordersUnsubscribe = onSnapshot(query(collection(db, 'orders'), orderBy('date', 'desc')), (snapshot) => {
       setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
@@ -81,8 +115,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }, (error) => console.error("Error fetching chat sessions:", error));
     
     return () => {
-      productsUnsubscribe();
-      categoriesUnsubscribe();
       ordersUnsubscribe();
       commissionPaymentsUnsubscribe();
       stockAuditsUnsubscribe();
@@ -208,9 +240,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
 
   const value = useMemo(() => ({
-    products, 
-    categories, 
-    isLoading: isPublicLoading,
     orders, 
     commissionPayments, 
     stockAudits, 
@@ -222,9 +251,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     financialSummary,
     commissionSummary,
   }), [
-    products, 
-    categories, 
-    isPublicLoading,
     orders, 
     commissionPayments, 
     stockAudits, 
@@ -238,11 +264,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   ]);
 
   return (
-    <DataContext.Provider value={value}>
+    <AdminDataContext.Provider value={value}>
       {children}
-    </DataContext.Provider>
+    </AdminDataContext.Provider>
   );
-};
+}
+
 
 export const useData = (): DataContextType => {
   const context = useContext(DataContext);
@@ -252,11 +279,10 @@ export const useData = (): DataContextType => {
   return context;
 };
 
-// This hook is now an alias for useData, for backward compatibility.
-export const useAdminData = (): DataContextType => {
-  const context = useContext(DataContext);
+export const useAdminData = (): AdminDataContextType => {
+  const context = useContext(AdminDataContext);
   if (context === undefined) {
-    throw new Error('useAdminData must be used within a DataProvider');
+    throw new Error('useAdminData must be used within an AdminDataProvider');
   }
   return context;
 };
