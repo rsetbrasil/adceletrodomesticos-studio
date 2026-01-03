@@ -14,7 +14,8 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/Logo';
-import { useData } from '@/context/DataContext';
+import { getClientFirebase } from '@/lib/firebase-client';
+import { doc, getDoc } from 'firebase/firestore';
 
 const formatCurrency = (value: number) => {
   if (typeof value !== 'number' || isNaN(value)) return 'R$ 0,00';
@@ -144,15 +145,34 @@ export default function SingleInstallmentPage() {
   const params = useParams();
   const router = useRouter();
   const { settings } = useSettings();
-  const { orders, isLoading } = useData();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const order = useMemo(() => {
-      const orderId = params.id as string;
-      if (!orderId || !orders) return null;
-      return orders.find(o => o.id === orderId) || null;
-  }, [params.id, orders]);
+   useEffect(() => {
+    const orderId = params.id as string;
+    if (!orderId) {
+      setIsLoading(false);
+      return;
+    }
+
+    const { db } = getClientFirebase();
+    const orderRef = doc(db, 'orders', orderId);
+
+    getDoc(orderRef).then(docSnap => {
+      if (docSnap.exists()) {
+        setOrder({ id: docSnap.id, ...docSnap.data() } as Order);
+      } else {
+        console.error("No such order!");
+      }
+    }).catch(error => {
+      console.error("Error fetching order:", error);
+    }).finally(() => {
+      setIsLoading(false);
+    });
+
+  }, [params.id]);
 
 
   const installment = useMemo(() => {

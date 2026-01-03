@@ -17,7 +17,8 @@ import Image from 'next/image';
 import { generatePixPayload } from '@/lib/pix';
 import PixQRCode from '@/components/PixQRCode';
 import { format } from 'date-fns';
-import { useData } from '@/context/DataContext';
+import { getClientFirebase } from '@/lib/firebase-client';
+import { doc, getDoc } from 'firebase/firestore';
 
 
 const formatCurrency = (value: number) => {
@@ -27,32 +28,46 @@ const formatCurrency = (value: number) => {
 export default function OrderConfirmationPage() {
   const { lastOrder } = useCart();
   const { settings } = useSettings();
-  const { orders, isLoading: isOrdersLoading } = useData();
   const router = useRouter();
   const params = useParams();
   const [order, setOrder] = useState<Order | null>(null);
+  const [isOrdersLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const orderId = params.id as string;
-    if (!orderId) {
-      if(lastOrder) {
-        setOrder(lastOrder);
-      } else {
-        router.push('/');
-      }
+
+    if (!orderId && lastOrder) {
+      setOrder(lastOrder);
+      setIsLoading(false);
       return;
     }
     
-    if (orders) {
-      const foundOrder = orders.find(o => o.id === orderId);
-      if (foundOrder) {
-        setOrder(foundOrder);
-      } else if (!isOrdersLoading) {
-        // Only redirect if we're done loading and still haven't found it.
+    if (!orderId) {
         router.push('/');
-      }
+        return;
     }
-  }, [params.id, lastOrder, orders, isOrdersLoading, router]);
+
+    const { db } = getClientFirebase();
+    const orderRef = doc(db, 'orders', orderId);
+
+    getDoc(orderRef).then(docSnap => {
+        if (docSnap.exists()) {
+            setOrder({ id: docSnap.id, ...docSnap.data() } as Order);
+        } else {
+            console.error("No such order, redirecting.");
+            if (lastOrder) {
+                setOrder(lastOrder);
+            } else {
+                router.push('/');
+            }
+        }
+    }).catch(error => {
+        console.error("Error fetching order:", error);
+        router.push('/');
+    }).finally(() => {
+        setIsLoading(false);
+    });
+  }, [params.id, lastOrder, router]);
 
   const pixPayload = useMemo(() => {
     if (!order || !settings.pixKey) return null;

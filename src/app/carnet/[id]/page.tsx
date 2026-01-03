@@ -14,7 +14,8 @@ import { ptBR } from 'date-fns/locale';
 import { generatePixPayload } from '@/lib/pix';
 import PixQRCode from '@/components/PixQRCode';
 import { cn } from '@/lib/utils';
-import { useData } from '@/context/DataContext';
+import { getClientFirebase } from '@/lib/firebase-client';
+import { doc, getDoc } from 'firebase/firestore';
 
 
 const formatCurrency = (value: number) => {
@@ -166,13 +167,33 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
 
 export default function CarnetPage() {
   const params = useParams();
-  const { orders, isLoading } = useData();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { settings } = useSettings();
 
-  const order = useMemo(() => {
-    if (!params.id || !orders) return null;
-    return orders.find(o => o.id === (params.id as string));
-  }, [params.id, orders]);
+  useEffect(() => {
+    const orderId = params.id as string;
+    if (!orderId) {
+      setIsLoading(false);
+      return;
+    }
+
+    const { db } = getClientFirebase();
+    const orderRef = doc(db, 'orders', orderId);
+
+    getDoc(orderRef).then(docSnap => {
+      if (docSnap.exists()) {
+        setOrder({ id: docSnap.id, ...docSnap.data() } as Order);
+      } else {
+        console.error("No such order!");
+      }
+    }).catch(error => {
+      console.error("Error fetching order:", error);
+    }).finally(() => {
+      setIsLoading(false);
+    });
+
+  }, [params.id]);
 
 
   const nextPendingInstallment = useMemo(() => {
