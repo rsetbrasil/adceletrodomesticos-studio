@@ -43,6 +43,18 @@ const getCustomerKey = (customer: CustomerInfo | null) => {
   return customer.cpf?.replace(/\D/g, '') || `${customer.name}-${customer.phone}`;
 }
 
+const formatPhone = (value: string) => {
+    if (!value) return '';
+    const digitsOnly = value.replace(/\D/g, '');
+    if (digitsOnly.length <= 2) {
+      return `(${digitsOnly}`;
+    }
+    if (digitsOnly.length <= 7) {
+      return `(${digitsOnly.slice(0, 2)}) ${digitsOnly.slice(2)}`;
+    }
+    return `(${digitsOnly.slice(0, 2)}) ${digitsOnly.slice(2, 7)}-${digitsOnly.slice(7, 11)}`;
+};
+
 
 const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -345,7 +357,11 @@ export default function CustomersAdminPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setEditedInfo(prev => ({ ...prev, [name]: value }));
+    if (name.startsWith('phone')) {
+        setEditedInfo(prev => ({ ...prev, [name]: formatPhone(value) }));
+    } else {
+        setEditedInfo(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSaveChanges = () => {
@@ -942,15 +958,15 @@ Não esqueça de enviar o comprovante!`;
                     <div className="grid md:grid-cols-2 gap-4">
                         <div>
                             <Label htmlFor="phone">Telefone (WhatsApp)</Label>
-                            <Input id="phone" name="phone" value={editedInfo.phone || ''} onChange={handleInputChange} />
+                            <Input id="phone" name="phone" value={editedInfo.phone || ''} onChange={handleInputChange} maxLength={15} />
                         </div>
                         <div>
                             <Label htmlFor="phone2">Telefone 2</Label>
-                            <Input id="phone2" name="phone2" value={editedInfo.phone2 || ''} onChange={handleInputChange} />
+                            <Input id="phone2" name="phone2" value={editedInfo.phone2 || ''} onChange={handleInputChange} maxLength={15} />
                         </div>
                          <div>
                             <Label htmlFor="phone3">Telefone 3</Label>
-                            <Input id="phone3" name="phone3" value={editedInfo.phone3 || ''} onChange={handleInputChange} />
+                            <Input id="phone3" name="phone3" value={editedInfo.phone3 || ''} onChange={handleInputChange} maxLength={15} />
                         </div>
                         <div>
                             <Label htmlFor="email">Email</Label>
