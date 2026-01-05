@@ -60,17 +60,19 @@ export default function Header() {
                 <User className="sm:mr-2" />
                 <span className="hidden sm:inline">Área do Cliente</span>
             </Link>
-            <CartSheet>
-                <Button variant="ghost" className="relative sm:w-auto sm:px-4">
-                    <ShoppingBag className="sm:mr-2" />
-                     <span className="hidden sm:inline">Carrinho</span>
-                    {cartCount > 0 && (
-                        <span className="absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold leading-none text-primary-foreground transform translate-x-1/2 -translate-y-1/2 bg-accent rounded-full">
-                        {cartCount}
-                        </span>
-                    )}
-                </Button>
-            </CartSheet>
+            {isClient && (
+              <CartSheet>
+                  <Button variant="ghost" className="relative sm:w-auto sm:px-4">
+                      <ShoppingBag className="sm:mr-2" />
+                      <span className="hidden sm:inline">Carrinho</span>
+                      {cartCount > 0 && (
+                          <span className="absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold leading-none text-primary-foreground transform translate-x-1/2 -translate-y-1/2 bg-accent rounded-full">
+                          {cartCount}
+                          </span>
+                      )}
+                  </Button>
+              </CartSheet>
+            )}
         </div>
       </div>
     </div>
