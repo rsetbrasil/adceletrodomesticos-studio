@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useAdmin } from '@/context/AdminContext';
+import { useAdmin, useAdminData } from '@/context/AdminContext';
 import type { Order, Installment, PaymentMethod, User, Payment, Product } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -48,7 +48,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import PaymentDialog from '@/components/PaymentDialog';
-import { useAdminData } from '@/context/AdminContext';
 import { useData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
 import { WhatsAppIcon } from '@/components/WhatsAppIcon';
@@ -1097,7 +1096,7 @@ Não esqueça de enviar o comprovante!`;
                                                                     </Button>
                                                                 </PopoverTrigger>
                                                                 <PopoverContent className="w-auto p-0">
-                                                                    <Calendar locale={ptBR} mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)} initialFocus/>
+                                                                    <Calendar locale={ptBR} mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(selectedOrder.id, inst.installmentNumber, date)} />
                                                                 </PopoverContent>
                                                             </Popover>
                                                         </TableCell>
@@ -1229,10 +1228,3 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
-
-
-
-
-
-
-

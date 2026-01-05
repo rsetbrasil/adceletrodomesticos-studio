@@ -728,7 +728,7 @@ Não esqueça de enviar o comprovante!`;
                                                                                     </Button>
                                                                                 </PopoverTrigger>
                                                                                 <PopoverContent className="w-auto p-0">
-                                                                                    <Calendar locale={ptBR} mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(order.id, inst.installmentNumber, date)} initialFocus/>
+                                                                                    <Calendar locale={ptBR} mode="single" selected={new Date(inst.dueDate)} onSelect={(date) => handleDueDateChange(order.id, inst.installmentNumber, date)} />
                                                                                 </PopoverContent>
                                                                             </Popover>
                                                                             <div className="whitespace-nowrap"><span className="font-medium">Valor:</span> {formatCurrency(inst.amount)}</div>

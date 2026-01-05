@@ -479,7 +479,7 @@ export default function CreateOrderPage() {
                               disabled={(date) =>
                                 date > new Date() || date < new Date("1900-01-01")
                               }
-                              initialFocus
+                              
                               locale={ptBR}
                             />
                           </PopoverContent>
@@ -518,7 +518,7 @@ export default function CreateOrderPage() {
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
-                              initialFocus
+                              
                               locale={ptBR}
                             />
                           </PopoverContent>

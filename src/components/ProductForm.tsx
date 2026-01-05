@@ -505,7 +505,6 @@ export default function ProductForm({ productToEdit, onFinished }: ProductFormPr
                                 mode="single"
                                 selected={field.value}
                                 onSelect={field.onChange}
-                                initialFocus
                                 locale={ptBR}
                                 />
                                 <div className="p-3 border-t border-border">
