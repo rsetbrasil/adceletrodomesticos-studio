@@ -13,8 +13,8 @@ import { useSettings } from '@/context/SettingsContext';
 import { useAdmin, useAdminData } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
-import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock, History, User, Calendar, Shield, Image as ImageIcon, Clock, Package, DollarSign } from 'lucide-react';
-import type { RolePermissions, UserRole, AppSection, StoreSettings } from '@/lib/types';
+import { Settings, Save, FileDown, Upload, AlertTriangle, RotateCcw, Trash2, Lock, History, User, Calendar, Shield, Image as ImageIcon, Clock, Package, DollarSign, Users, ShoppingCart } from 'lucide-react';
+import type { RolePermissions, UserRole, AppSection, StoreSettings, CustomerInfo } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAudit } from '@/context/AuditContext';
@@ -134,7 +134,7 @@ export default function ConfiguracaoPage() {
   const { settings, updateSettings, isLoading: settingsLoading, restoreSettings, resetSettings } = useSettings();
   const { restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData } = useAdmin();
   const { products, categories } = useData();
-  const { orders } = useAdminData();
+  const { orders, customers } = useAdminData();
   const { user, users, restoreUsers, initialUsers } = useAuth();
   const { permissions, updatePermissions, isLoading: permissionsLoading, resetPermissions } = usePermissions();
   const { toast } = useToast();
@@ -186,29 +186,20 @@ export default function ConfiguracaoPage() {
     }
   };
 
-
-  const handleBackup = () => {
-    const backupData = {
-      settings,
-      products,
-      orders,
-      categories,
-      users,
-      permissions
-    };
-
-    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+  const handleExport = (data: any, filename: string) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     const date = new Date().toISOString().slice(0, 10);
-    link.download = `backup-adc-loja-${date}.json`;
+    link.download = `export-${filename}-${date}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast({ title: 'Backup Gerado!', description: 'O arquivo de backup foi baixado.' });
+    toast({ title: 'Exportação Concluída!', description: `O arquivo ${filename} foi baixado.` });
   };
+
 
   const handleRestore = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -597,18 +588,35 @@ export default function ConfiguracaoPage() {
       <Card>
           <CardHeader>
               <CardTitle>Backup e Restauração</CardTitle>
-              <CardDescription>Salve ou recupere todos os dados da sua loja (produtos, pedidos, configurações, etc).</CardDescription>
+              <CardDescription>Salve ou recupere os dados da sua loja.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row gap-4">
-              <Button onClick={handleBackup}>
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Fazer Backup
-              </Button>
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+          <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-semibold mb-2">Exportar Dados</h3>
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <Button variant="outline" onClick={() => handleExport(orders, 'pedidos')}>
+                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        Exportar Pedidos
+                    </Button>
+                    <Button variant="outline" onClick={() => handleExport(customers, 'clientes')}>
+                        <Users className="mr-2 h-4 w-4" />
+                        Exportar Clientes
+                    </Button>
+                    <Button variant="outline" onClick={() => handleExport(products, 'produtos')}>
+                        <Package className="mr-2 h-4 w-4" />
+                        Exportar Produtos
+                    </Button>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2 mt-6">Restaurar Backup Completo</h3>
+                 <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
                    <Upload className="mr-2 h-4 w-4" />
                   Restaurar Backup
-              </Button>
-              <Input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleRestore} />
+                </Button>
+                <Input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleRestore} />
+                 <p className="text-xs text-muted-foreground mt-2">A restauração substitui todos os dados (pedidos, produtos, categorias, usuários, etc.).</p>
+              </div>
           </CardContent>
       </Card>
 
