@@ -80,6 +80,7 @@ interface AdminContextType {
   updateInstallmentDueDate: (orderId: string, installmentNumber: number, newDueDate: Date, logAction: LogAction, user: User | null) => Promise<void>;
   updateInstallmentAmount: (orderId: string, installmentNumber: number, newAmount: number, logAction: LogAction, user: User | null) => Promise<void>;
   updateCustomer: (oldCustomer: CustomerInfo, updatedCustomerData: CustomerInfo, logAction: LogAction, user: User | null) => Promise<void>;
+  deleteCustomer: (customer: CustomerInfo, logAction: LogAction, user: User | null) => Promise<void>;
   importCustomers: (csvData: string, logAction: LogAction, user: User | null) => Promise<void>;
   updateOrderDetails: (orderId: string, details: Partial<Order> & { downPayment?: number, resetDownPayment?: boolean }, logAction: LogAction, user: User | null) => Promise<void>;
   addProduct: (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => Promise<void>;
@@ -849,6 +850,36 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [orders, toast]);
   
+  const deleteCustomer = useCallback(async (customer: CustomerInfo, logAction: LogAction, user: User | null) => {
+    const { db } = getClientFirebase();
+    const customerKey = customer.cpf?.replace(/\D/g, '') || `${customer.name}-${customer.phone}`;
+
+    const ordersToDelete = orders.filter(order => {
+        const orderCustomerKey = order.customer.cpf?.replace(/\D/g, '') || `${order.customer.name}-${order.customer.phone}`;
+        return orderCustomerKey === customerKey;
+    });
+
+    if (ordersToDelete.length === 0) {
+        toast({ title: "Nenhum pedido encontrado", description: "Não há registros para este cliente.", variant: "destructive" });
+        return;
+    }
+    
+    const batch = writeBatch(db);
+    ordersToDelete.forEach(order => {
+        batch.delete(doc(db, 'orders', order.id));
+    });
+
+    batch.commit().then(() => {
+        logAction('Exclusão de Cliente', `Cliente ${customer.name} (CPF: ${customer.cpf}) e todos os seus ${ordersToDelete.length} pedidos foram excluídos.`, user);
+        toast({ title: "Cliente Excluído!", description: `O cliente ${customer.name} e todos os seus pedidos foram removidos permanentemente.`, variant: "destructive" });
+    }).catch(async(e) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'orders',
+            operation: 'delete',
+        }));
+    });
+}, [orders, toast]);
+
   const importCustomers = useCallback(async (csvData: string, logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
     const sanitizedCsv = csvData.trim().replace(/^\uFEFF/, ''); 
@@ -1270,7 +1301,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AdminContext.Provider
       value={{
-        addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateInstallmentAmount, updateCustomer, importCustomers, updateOrderDetails,
+        addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateInstallmentAmount, updateCustomer, deleteCustomer, importCustomers, updateOrderDetails,
         addProduct, updateProduct, deleteProduct,
         addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
         payCommissions, reverseCommissionPayment,

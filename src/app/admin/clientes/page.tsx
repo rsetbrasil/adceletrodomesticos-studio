@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User as UserIcon, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, Clock, UserSquare, History, Import, UserPlus, FileSignature } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, Clock, UserSquare, History, Import, UserPlus, FileSignature, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -100,7 +100,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 };
 
 export default function CustomersAdminPage() {
-  const { updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers, addOrder } = useAdmin();
+  const { updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers, addOrder, deleteCustomer } = useAdmin();
   const { customers, customerOrders, customerFinancials } = useAdminData();
   const { user } = useAuth();
   const { settings } = useSettings();
@@ -460,6 +460,12 @@ Não esqueça de enviar o comprovante!`;
     }
   };
 
+  const handleDeleteCustomer = () => {
+    if (!selectedCustomer || !user) return;
+    
+    deleteCustomer(selectedCustomer, logAction, user);
+    setSelectedCustomer(null);
+  };
 
   return (
     <>
@@ -546,15 +552,39 @@ Não esqueça de enviar o comprovante!`;
             {selectedCustomer ? (
                 <div className="space-y-8">
                 <div>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                         <h3 className="text-lg font-semibold flex items-center gap-2">
                             <UserIcon className="h-5 w-5 text-primary" />
                             Informações Pessoais
                         </h3>
-                        <Button variant="outline" size="sm" onClick={handleOpenEditDialog}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={handleOpenEditDialog}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                            </Button>
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" outline size="sm">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Excluir Cliente
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Tem certeza que deseja excluir este cliente?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta ação é irreversível e excluirá permanentemente o cliente <span className="font-bold">{selectedCustomer.name}</span> e todos os seus pedidos e histórico financeiro.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteCustomer}>
+                                            Sim, Excluir Tudo
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                         <div className="flex items-center gap-2">
@@ -853,7 +883,7 @@ Não esqueça de enviar o comprovante!`;
                                                                                     {file.comment && <p className="text-xs text-muted-foreground mt-1 italic">"{file.comment}"</p>}
                                                                                      {file.addedAt && (
                                                                                         <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                                                            <span className="flex items-center gap-1"><ClockIcon className="h-3 w-3" />{format(parseISO(file.addedAt), 'dd/MM/yy HH:mm')}</span>
+                                                                                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(parseISO(file.addedAt), 'dd/MM/yy HH:mm')}</span>
                                                                                             <span className="flex items-center gap-1"><UserSquare className="h-3 w-3" />{file.addedBy}</span>
                                                                                         </div>
                                                                                      )}
@@ -869,7 +899,7 @@ Não esqueça de enviar o comprovante!`;
                                                                                     {file.comment && <p className="text-xs text-muted-foreground mt-1 italic">"{file.comment}"</p>}
                                                                                     {file.addedAt && (
                                                                                         <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                                                            <span className="flex items-center gap-1"><ClockIcon className="h-3 w-3" />{format(parseISO(file.addedAt), 'dd/MM/yy HH:mm')}</span>
+                                                                                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(parseISO(file.addedAt), 'dd/MM/yy HH:mm')}</span>
                                                                                             <span className="flex items-center gap-1"><UserSquare className="h-3 w-3" />{file.addedBy}</span>
                                                                                         </div>
                                                                                      )}
@@ -1058,3 +1088,4 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
+
