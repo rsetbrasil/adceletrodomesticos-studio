@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -16,7 +17,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Logo from '@/components/Logo';
 import { useSettings } from '@/context/SettingsContext';
-import { useAdminData, useData } from '@/context/DataContext';
+import { useData } from '@/context/DataContext';
+import { useAdminData } from '@/context/AdminContext';
 import { useAudit } from '@/context/AuditContext';
 
 
@@ -237,7 +239,7 @@ function StockAuditTab() {
             </div>
 
             {/* Print-only view */}
-            <div className="print-only">
+            <div className="hidden print-only">
                 <div className="mb-8">
                     <div className="flex justify-between items-start pb-4 border-b">
                         <div style={{ display: 'table' }}>

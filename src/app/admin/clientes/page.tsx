@@ -5,7 +5,7 @@
 import React, { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAdmin } from '@/context/AdminContext';
+import { useAdmin, useAdminData } from '@/context/AdminContext';
 import type { Order, CustomerInfo, Installment, Attachment, Payment, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -26,7 +26,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/AuthContext';
 import PaymentDialog from '@/components/PaymentDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { useAdminData, useData } from '@/context/DataContext';
 import { useAudit } from '@/context/AuditContext';
 import CustomerForm from '@/components/CustomerForm';
 import { WhatsAppIcon } from '@/components/WhatsAppIcon';
@@ -1088,4 +1087,3 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
-

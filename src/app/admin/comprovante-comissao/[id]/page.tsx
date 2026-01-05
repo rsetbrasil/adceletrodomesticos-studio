@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useAdmin } from '@/context/AdminContext';
+import { useAdmin, useAdminData } from '@/context/AdminContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useMemo, useRef } from 'react';
 import type { Order, CommissionPayment } from '@/lib/types';
@@ -11,7 +12,6 @@ import { Printer, ArrowLeft } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useAdminData } from '@/context/DataContext';
 
 
 const formatCurrency = (value: number) => {

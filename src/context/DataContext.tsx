@@ -69,10 +69,3 @@ export const useData = (): DataContextType => {
   }
   return context;
 };
-
-// Admin data is now handled by AdminContext.
-// This hook is deprecated and will be removed in a future refactor.
-// For now, it points to useData to avoid breaking changes in components that haven't been updated.
-export const useAdminData = (): any => {
-    return useData();
-}

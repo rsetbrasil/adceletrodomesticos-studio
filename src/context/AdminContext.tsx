@@ -1501,7 +1501,6 @@ export const useAdmin = (): AdminContextType => {
   return context;
 };
 
-// This hook can now be used to access admin data and functions.
 export const useAdminData = (): AdminContextType => {
     const context = useContext(AdminContext);
     if (context === undefined) {
