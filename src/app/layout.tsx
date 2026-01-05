@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import './globals.css';
@@ -42,8 +43,8 @@ export default function RootLayout({
             <AuthProvider>
                 <SettingsProvider>
                     <DataProvider>
-                      <AdminProvider>
-                        <PermissionsProvider>
+                      <PermissionsProvider>
+                        <AdminProvider>
                             <CustomerAuthProvider>
                                 <CartProvider>
                                     {children}
@@ -51,8 +52,8 @@ export default function RootLayout({
                                     <FirebaseErrorListener />
                                 </CartProvider>
                             </CustomerAuthProvider>
-                        </PermissionsProvider>
-                      </AdminProvider>
+                        </AdminProvider>
+                      </PermissionsProvider>
                     </DataProvider>
                 </SettingsProvider>
             </AuthProvider>

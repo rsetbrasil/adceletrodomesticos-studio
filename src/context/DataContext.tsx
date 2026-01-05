@@ -6,58 +6,31 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { getClientFirebase } from '@/lib/firebase-client';
 import type { Product, Category, Order, CommissionPayment, StockAudit, Avaria, CustomerInfo, ChatSession } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { useAuth } from './AuthContext';
-import { usePathname } from 'next/navigation';
 
-// Combined Interface for a single context
+// This context now only handles PUBLIC data.
+// Admin-related data has been moved to AdminContext for performance optimization.
 interface DataContextType {
   products: Product[];
   categories: Category[];
   isLoading: boolean;
-  orders: Order[];
-  commissionPayments: CommissionPayment[];
-  stockAudits: StockAudit[];
-  avarias: Avaria[];
-  chatSessions: ChatSession[];
-  customers: CustomerInfo[];
-  customerOrders: { [key: string]: Order[] };
-  customerFinancials: { [key: string]: { totalComprado: number, totalPago: number, saldoDevedor: number } };
-  financialSummary: { totalVendido: number, totalRecebido: number, totalPendente: number, lucroBruto: number, monthlyData: { name: string, total: number }[] };
-  commissionSummary: { totalPendingCommission: number, commissionsBySeller: { id: string; name: string; total: number; count: number; orderIds: string[] }[] };
 }
-
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
-  // Public data
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Admin data
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
-  const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
-  const [avarias, setAvarias] = useState<Avaria[]>([]);
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
-  
-  const { user, users } = useAuth();
-  const pathname = usePathname();
-  const isAdminArea = pathname.startsWith('/admin');
-
-  // Effect for public data
   useEffect(() => {
     const { db } = getClientFirebase();
     const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'asc')), (snapshot) => {
       const fetchedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product));
       setProducts(fetchedProducts);
-      if (!isAdminArea) setIsLoading(false);
+      setIsLoading(false);
     }, (error) => {
         console.error("Error fetching products:", error);
-        if (!isAdminArea) setIsLoading(false);
+        setIsLoading(false);
     });
 
     const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
@@ -70,195 +43,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       productsUnsubscribe();
       categoriesUnsubscribe();
     };
-  }, [isAdminArea]);
-
-  // Effect for admin data (only runs if in admin area)
-  useEffect(() => {
-    if (!isAdminArea) {
-      setIsLoading(false); // Ensure loading is false if not in admin area
-      return;
-    }
-
-    const { db } = getClientFirebase();
-
-    const ordersUnsubscribe = onSnapshot(query(collection(db, 'orders'), orderBy('date', 'desc')), (snapshot) => {
-      setOrders(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
-      setIsLoading(false); // Admin data is the last to load
-    }, (error) => {
-      console.error("Error fetching orders:", error);
-      setIsLoading(false);
-    });
-
-    const commissionPaymentsUnsubscribe = onSnapshot(query(collection(db, 'commissionPayments'), orderBy('paymentDate', 'desc')), (snapshot) => {
-      setCommissionPayments(snapshot.docs.map(d => d.data() as CommissionPayment));
-    }, (error) => console.error("Error fetching commission payments:", error));
-
-    const stockAuditsUnsubscribe = onSnapshot(query(collection(db, 'stockAudits'), orderBy('createdAt', 'desc')), (snapshot) => {
-      setStockAudits(snapshot.docs.map(d => d.data() as StockAudit));
-    }, (error) => console.error("Error fetching stock audits:", error));
-
-    const avariasUnsubscribe = onSnapshot(query(collection(db, 'avarias'), orderBy('createdAt', 'desc')), (snapshot) => {
-      setAvarias(snapshot.docs.map(d => d.data() as Avaria));
-    }, (error) => console.error("Error fetching avarias:", error));
-    
-    const chatSessionsUnsubscribe = onSnapshot(query(collection(db, 'chatSessions'), orderBy('lastMessageAt', 'desc')), (snapshot) => {
-        setChatSessions(snapshot.docs.map(d => ({...d.data(), id: d.id} as ChatSession)))
-    }, (error) => console.error("Error fetching chat sessions:", error));
-    
-    return () => {
-      ordersUnsubscribe();
-      commissionPaymentsUnsubscribe();
-      stockAuditsUnsubscribe();
-      avariasUnsubscribe();
-      chatSessionsUnsubscribe();
-    };
-  }, [isAdminArea]);
-
-
-  const customers = useMemo(() => {
-    const customerMap = new Map<string, CustomerInfo>();
-    const sortedOrders = [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    sortedOrders.forEach(order => {
-        const customerKey = order.customer.cpf ? order.customer.cpf.replace(/\D/g, '') : `${order.customer.name}-${order.customer.phone}`;
-        if (customerKey && !customerMap.has(customerKey)) {
-            customerMap.set(customerKey, order.customer);
-        }
-    });
-
-    return Array.from(customerMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [orders]);
-  
-  const customerOrders = useMemo(() => {
-    const ordersByCustomer: { [key: string]: Order[] } = {};
-    orders.forEach(order => {
-      if (order.status !== 'Cancelado' && order.status !== 'Excluído') {
-        const customerKey = order.customer.cpf?.replace(/\D/g, '') || `${order.customer.name}-${order.customer.phone}`;
-        if (!ordersByCustomer[customerKey]) {
-          ordersByCustomer[customerKey] = [];
-        }
-        ordersByCustomer[customerKey].push(order);
-      }
-    });
-    for(const key in ordersByCustomer) {
-        ordersByCustomer[key].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }
-    return ordersByCustomer;
-  }, [orders]);
-
-  const customerFinancials = useMemo(() => {
-      const financialsByCustomer: { [key: string]: { totalComprado: number, totalPago: number, saldoDevedor: number } } = {};
-      customers.forEach(customer => {
-        const customerKey = customer.cpf?.replace(/\D/g, '') || `${customer.name}-${customer.phone}`;
-        const ordersForCustomer = customerOrders[customerKey] || [];
-        const allInstallments = ordersForCustomer.flatMap(order => order.installmentDetails || []);
-        const totalComprado = ordersForCustomer.reduce((acc, order) => acc + order.total, 0);
-        const totalPago = allInstallments.reduce((sum, inst) => sum + (inst.paidAmount || 0), 0);
-        const saldoDevedor = totalComprado - totalPago;
-        financialsByCustomer[customerKey] = { totalComprado, totalPago, saldoDevedor };
-      });
-      return financialsByCustomer;
-  }, [customers, customerOrders]);
-
-  const financialSummary = useMemo(() => {
-    let totalVendido = 0;
-    let totalRecebido = 0;
-    let totalPendente = 0;
-    let lucroBruto = 0;
-    const monthlySales: { [key: string]: number } = {};
-
-    orders.forEach(order => {
-      if (order.status !== 'Cancelado' && order.status !== 'Excluído') {
-        totalVendido += order.total;
-
-        order.items.forEach(item => {
-            const product = products.find(p => p.id === item.id);
-            const cost = product?.cost || 0;
-            const itemRevenue = item.price * item.quantity;
-            const itemCost = cost * item.quantity;
-            lucroBruto += (itemRevenue - itemCost);
-        });
-
-        const monthKey = format(parseISO(order.date), 'MMM/yy', { locale: ptBR });
-        if (!monthlySales[monthKey]) {
-          monthlySales[monthKey] = 0;
-        }
-        monthlySales[monthKey] += order.total;
-
-        if (order.paymentMethod === 'Crediário') {
-            (order.installmentDetails || []).forEach(inst => {
-            if (inst.status === 'Pago') {
-                totalRecebido += inst.paidAmount || inst.amount;
-            } else {
-                totalRecebido += inst.paidAmount || 0;
-                totalPendente += inst.amount - (inst.paidAmount || 0);
-            }
-            });
-        } else {
-            totalRecebido += order.total;
-        }
-      }
-    });
-    
-    const monthlyData = Object.entries(monthlySales).map(([name, total]) => ({ name, total })).reverse();
-
-    return { totalVendido, totalRecebido, totalPendente, lucroBruto, monthlyData };
-  }, [orders, products]);
-  
-  const commissionSummary = useMemo(() => {
-    const sellerCommissions = new Map<string, { name: string; total: number; count: number; orderIds: string[] }>();
-
-    orders.forEach(order => {
-        if (order.status === 'Entregue' && order.sellerId && typeof order.commission === 'number' && order.commission > 0 && !order.commissionPaid) {
-            const sellerId = order.sellerId;
-            const sellerName = order.sellerName || users.find(u => u.id === sellerId)?.name || 'Vendedor Desconhecido';
-            
-            const current = sellerCommissions.get(sellerId) || { name: sellerName, total: 0, count: 0, orderIds: [] };
-            current.total += order.commission;
-            current.count += 1;
-            current.orderIds.push(order.id);
-            sellerCommissions.set(sellerId, current);
-        }
-    });
-
-    const commissionsBySeller = Array.from(sellerCommissions.entries())
-      .map(([id, data]) => ({ id, ...data }))
-      .sort((a,b) => b.total - a.total);
-
-    const totalPendingCommission = commissionsBySeller.reduce((acc, seller) => acc + seller.total, 0);
-
-    return { totalPendingCommission, commissionsBySeller };
-  }, [orders, users]);
-
+  }, []);
 
   const value = useMemo(() => ({
     products, 
     categories, 
     isLoading,
-    orders, 
-    commissionPayments, 
-    stockAudits, 
-    avarias, 
-    chatSessions,
-    customers,
-    customerOrders,
-    customerFinancials,
-    financialSummary,
-    commissionSummary,
   }), [
     products, 
     categories, 
     isLoading,
-    orders, 
-    commissionPayments, 
-    stockAudits, 
-    avarias, 
-    chatSessions,
-    customers,
-    customerOrders,
-    customerFinancials,
-    financialSummary,
-    commissionSummary,
   ]);
 
   return (
@@ -268,7 +62,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   );
 }
 
-
 export const useData = (): DataContextType => {
   const context = useContext(DataContext);
   if (context === undefined) {
@@ -277,12 +70,9 @@ export const useData = (): DataContextType => {
   return context;
 };
 
-// This hook can now be used to access both public and admin data.
-// For components that only need admin data, this is still fine.
-export const useAdminData = (): DataContextType => {
-  const context = useContext(DataContext);
-  if (context === undefined) {
-    throw new Error('useAdminData must be used within a DataProvider');
-  }
-  return context;
-};
+// Admin data is now handled by AdminContext.
+// This hook is deprecated and will be removed in a future refactor.
+// For now, it points to useData to avoid breaking changes in components that haven't been updated.
+export const useAdminData = (): any => {
+    return useData();
+}

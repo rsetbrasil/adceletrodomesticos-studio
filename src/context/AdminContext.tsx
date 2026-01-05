@@ -2,15 +2,17 @@
 
 'use client';
 
-import React, { createContext, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode, useCallback, useState, useEffect, useMemo } from 'react';
 import type { Order, Product, Installment, CustomerInfo, Category, User, CommissionPayment, Payment, StockAudit, Avaria, ChatSession } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getClientFirebase } from '@/lib/firebase-client';
-import { collection, doc, writeBatch, setDoc, updateDoc, deleteDoc, getDocs, query } from 'firebase/firestore';
+import { collection, doc, writeBatch, setDoc, updateDoc, deleteDoc, getDocs, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { useData, useAdminData } from './DataContext';
-import { addMonths } from 'date-fns';
+import { useData } from './DataContext';
+import { addMonths, format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { useAuth } from './AuthContext';
 
 // Helper function to log actions, passed as an argument now
 type LogAction = (action: string, details: string, user: User | null) => void;
@@ -109,14 +111,170 @@ interface AdminContextType {
   emptyTrash: (logAction: LogAction, user: User | null) => Promise<void>;
   deleteChatSession: (sessionId: string, logAction: LogAction, user: User | null) => Promise<void>;
   updateChatSession: (sessionId: string, data: Partial<ChatSession>, logAction: LogAction, user: User | null) => Promise<void>;
+  // Admin Data states
+  orders: Order[];
+  commissionPayments: CommissionPayment[];
+  stockAudits: StockAudit[];
+  avarias: Avaria[];
+  chatSessions: ChatSession[];
+  customers: CustomerInfo[];
+  customerOrders: { [key: string]: Order[] };
+  customerFinancials: { [key: string]: { totalComprado: number, totalPago: number, saldoDevedor: number } };
+  financialSummary: { totalVendido: number, totalRecebido: number, totalPendente: number, lucroBruto: number, monthlyData: { name: string, total: number }[] };
+  commissionSummary: { totalPendingCommission: number, commissionsBySeller: { id: string; name: string; total: number; count: number; orderIds: string[] }[] };
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const { products, categories } = useData();
-  const { orders, commissionPayments } = useAdminData();
   const { toast } = useToast();
+  const { user, users } = useAuth();
+
+  // Admin data states, now managed here
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [commissionPayments, setCommissionPayments] = useState<CommissionPayment[]>([]);
+  const [stockAudits, setStockAudits] = useState<StockAudit[]>([]);
+  const [avarias, setAvarias] = useState<Avaria[]>([]);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+
+  // Effect for fetching admin-specific data
+  useEffect(() => {
+    const { db } = getClientFirebase();
+    const unsubscribes: (() => void)[] = [];
+
+    const setupListener = (collectionName: string, setter: React.Dispatch<React.SetStateAction<any[]>>, orderField = 'createdAt') => {
+        const q = query(collection(db, collectionName), orderBy(orderField, 'desc'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setter(snapshot.docs.map(d => ({ ...d.data(), id: d.id })));
+        }, (error) => console.error(`Error fetching ${collectionName}:`, error));
+        unsubscribes.push(unsubscribe);
+    };
+
+    setupListener('orders', setOrders, 'date');
+    setupListener('commissionPayments', setCommissionPayments, 'paymentDate');
+    setupListener('stockAudits', setStockAudits);
+    setupListener('avarias', setAvarias);
+    setupListener('chatSessions', setChatSessions, 'lastMessageAt');
+    
+    return () => unsubscribes.forEach(unsub => unsub());
+  }, []);
+
+  // Memos for derived data, now living in AdminContext
+  const customers = useMemo(() => {
+    const customerMap = new Map<string, CustomerInfo>();
+    const sortedOrders = [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    sortedOrders.forEach(order => {
+        const customerKey = order.customer.cpf ? order.customer.cpf.replace(/\D/g, '') : `${order.customer.name}-${order.customer.phone}`;
+        if (customerKey && !customerMap.has(customerKey)) {
+            customerMap.set(customerKey, order.customer);
+        }
+    });
+
+    return Array.from(customerMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [orders]);
+  
+  const customerOrders = useMemo(() => {
+    const ordersByCustomer: { [key: string]: Order[] } = {};
+    orders.forEach(order => {
+      if (order.status !== 'Cancelado' && order.status !== 'Excluído') {
+        const customerKey = order.customer.cpf?.replace(/\D/g, '') || `${order.customer.name}-${order.customer.phone}`;
+        if (!ordersByCustomer[customerKey]) {
+          ordersByCustomer[customerKey] = [];
+        }
+        ordersByCustomer[customerKey].push(order);
+      }
+    });
+    for(const key in ordersByCustomer) {
+        ordersByCustomer[key].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }
+    return ordersByCustomer;
+  }, [orders]);
+
+  const customerFinancials = useMemo(() => {
+      const financialsByCustomer: { [key: string]: { totalComprado: number, totalPago: number, saldoDevedor: number } } = {};
+      customers.forEach(customer => {
+        const customerKey = customer.cpf?.replace(/\D/g, '') || `${customer.name}-${customer.phone}`;
+        const ordersForCustomer = customerOrders[customerKey] || [];
+        const allInstallments = ordersForCustomer.flatMap(order => order.installmentDetails || []);
+        const totalComprado = ordersForCustomer.reduce((acc, order) => acc + order.total, 0);
+        const totalPago = allInstallments.reduce((sum, inst) => sum + (inst.paidAmount || 0), 0);
+        const saldoDevedor = totalComprado - totalPago;
+        financialsByCustomer[customerKey] = { totalComprado, totalPago, saldoDevedor };
+      });
+      return financialsByCustomer;
+  }, [customers, customerOrders]);
+
+  const financialSummary = useMemo(() => {
+    let totalVendido = 0;
+    let totalRecebido = 0;
+    let totalPendente = 0;
+    let lucroBruto = 0;
+    const monthlySales: { [key: string]: number } = {};
+
+    orders.forEach(order => {
+      if (order.status !== 'Cancelado' && order.status !== 'Excluído') {
+        totalVendido += order.total;
+
+        order.items.forEach(item => {
+            const product = products.find(p => p.id === item.id);
+            const cost = product?.cost || 0;
+            const itemRevenue = item.price * item.quantity;
+            const itemCost = cost * item.quantity;
+            lucroBruto += (itemRevenue - itemCost);
+        });
+
+        const monthKey = format(parseISO(order.date), 'MMM/yy', { locale: ptBR });
+        if (!monthlySales[monthKey]) {
+          monthlySales[monthKey] = 0;
+        }
+        monthlySales[monthKey] += order.total;
+
+        if (order.paymentMethod === 'Crediário') {
+            (order.installmentDetails || []).forEach(inst => {
+            if (inst.status === 'Pago') {
+                totalRecebido += inst.paidAmount || inst.amount;
+            } else {
+                totalRecebido += inst.paidAmount || 0;
+                totalPendente += inst.amount - (inst.paidAmount || 0);
+            }
+            });
+        } else {
+            totalRecebido += order.total;
+        }
+      }
+    });
+    
+    const monthlyData = Object.entries(monthlySales).map(([name, total]) => ({ name, total })).reverse();
+
+    return { totalVendido, totalRecebido, totalPendente, lucroBruto, monthlyData };
+  }, [orders, products]);
+  
+  const commissionSummary = useMemo(() => {
+    const sellerCommissions = new Map<string, { name: string; total: number; count: number; orderIds: string[] }>();
+
+    orders.forEach(order => {
+        if (order.status === 'Entregue' && order.sellerId && typeof order.commission === 'number' && order.commission > 0 && !order.commissionPaid) {
+            const sellerId = order.sellerId;
+            const sellerName = order.sellerName || users.find(u => u.id === sellerId)?.name || 'Vendedor Desconhecido';
+            
+            const current = sellerCommissions.get(sellerId) || { name: sellerName, total: 0, count: 0, orderIds: [] };
+            current.total += order.commission;
+            current.count += 1;
+            current.orderIds.push(order.id);
+            sellerCommissions.set(sellerId, current);
+        }
+    });
+
+    const commissionsBySeller = Array.from(sellerCommissions.entries())
+      .map(([id, data]) => ({ id, ...data }))
+      .sort((a,b) => b.total - a.total);
+
+    const totalPendingCommission = commissionsBySeller.reduce((acc, seller) => acc + seller.total, 0);
+
+    return { totalPendingCommission, commissionsBySeller };
+  }, [orders, users]);
   
   const restoreAdminData = useCallback(async (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
@@ -1297,19 +1455,39 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         }));
     });
   }, [toast]);
+  
+  const value = useMemo(() => ({
+    addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateInstallmentAmount, updateCustomer, deleteCustomer, importCustomers, updateOrderDetails,
+    addProduct, updateProduct, deleteProduct,
+    addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
+    payCommissions, reverseCommissionPayment,
+    restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData,
+    saveStockAudit, addAvaria, updateAvaria, deleteAvaria,
+    emptyTrash, deleteChatSession, updateChatSession,
+    // Admin Data states
+    orders,
+    commissionPayments,
+    stockAudits,
+    avarias,
+    chatSessions,
+    customers,
+    customerOrders,
+    customerFinancials,
+    financialSummary,
+    commissionSummary,
+  }), [
+    addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateInstallmentAmount, updateCustomer, deleteCustomer, importCustomers, updateOrderDetails,
+    addProduct, updateProduct, deleteProduct,
+    addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
+    payCommissions, reverseCommissionPayment,
+    restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData,
+    saveStockAudit, addAvaria, updateAvaria, deleteAvaria,
+    emptyTrash, deleteChatSession, updateChatSession,
+    orders, commissionPayments, stockAudits, avarias, chatSessions, customers, customerOrders, customerFinancials, financialSummary, commissionSummary
+  ]);
 
   return (
-    <AdminContext.Provider
-      value={{
-        addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateInstallmentAmount, updateCustomer, deleteCustomer, importCustomers, updateOrderDetails,
-        addProduct, updateProduct, deleteProduct,
-        addCategory, deleteCategory, updateCategoryName, addSubcategory, updateSubcategory, deleteSubcategory, moveCategory, reorderSubcategories, moveSubcategory,
-        payCommissions, reverseCommissionPayment,
-        restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData,
-        saveStockAudit, addAvaria, updateAvaria, deleteAvaria,
-        emptyTrash, deleteChatSession, updateChatSession
-      }}
-    >
+    <AdminContext.Provider value={value}>
       {children}
     </AdminContext.Provider>
   );
@@ -1321,4 +1499,13 @@ export const useAdmin = (): AdminContextType => {
     throw new Error('useAdmin must be used within an AdminProvider');
   }
   return context;
+};
+
+// This hook can now be used to access admin data and functions.
+export const useAdminData = (): AdminContextType => {
+    const context = useContext(AdminContext);
+    if (context === undefined) {
+        throw new Error('useAdminData must be used within an AdminProvider');
+    }
+    return context;
 };
