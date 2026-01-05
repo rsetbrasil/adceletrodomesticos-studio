@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User as UserIcon, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, ClockIcon, UserSquare, History, Import, UserPlus, FileSignature } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, Clock, UserSquare, History, Import, UserPlus, FileSignature } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -415,16 +415,7 @@ export default function CustomersAdminPage() {
         return;
     }
     
-    const allOrders = (await import('@/context/DataContext')).useAdminData().orders;
-    const lastOrderNumber = allOrders
-        .map(o => parseInt(o.id.split('-')[1] || '0', 10))
-        .filter(n => !isNaN(n))
-        .reduce((max, current) => Math.max(max, current), 0);
-
-    const orderId = `REG-${String(lastOrderNumber + 1).padStart(4, '0')}`;
-
     const newCustomerOrder: Partial<Order> & { firstDueDate: Date } = {
-      id: orderId,
       customer: { ...customerData, password: customerData.cpf?.substring(0, 6) },
       items: [],
       total: 0,
