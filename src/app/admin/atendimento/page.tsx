@@ -19,10 +19,9 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { useAdmin } from '@/context/AdminContext';
+import { useAdmin, useAdminData } from '@/context/AdminContext';
 import { useAudit } from '@/context/AuditContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useAdminData } from '@/context/DataContext';
 
 const notificationSound = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 
@@ -499,4 +498,5 @@ export default function AtendimentoPage() {
     );
 }
 
+    
     
