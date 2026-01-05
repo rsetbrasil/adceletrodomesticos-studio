@@ -66,12 +66,21 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         return () => unsubscribe();
     }, [toast]);
 
-    const updateSettings = async (newSettings: StoreSettings) => {
+    const updateSettings = async (newSettings: Partial<StoreSettings>) => {
         try {
             const { db } = getClientFirebase();
             const settingsRef = doc(db, 'config', 'storeSettings');
-            await setDoc(settingsRef, newSettings, { merge: true });
-            // Real-time listener will update state
+            
+            // Fetch the current settings from the database first
+            const currentDoc = await getDoc(settingsRef);
+            const currentSettings = currentDoc.exists() ? currentDoc.data() as StoreSettings : initialSettings;
+            
+            // Merge the existing settings with the new ones
+            const mergedSettings = { ...currentSettings, ...newSettings };
+            
+            // Save the complete, merged object without the merge option
+            await setDoc(settingsRef, mergedSettings);
+
             logAction('Atualização de Configurações', `Configurações da loja foram alteradas.`, user);
             toast({
                 title: "Configurações Salvas!",
