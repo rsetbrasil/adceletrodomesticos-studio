@@ -6,8 +6,9 @@ import Link from 'next/link';
 import Logo from './Logo';
 import { useCart } from '@/context/CartContext';
 import { useCustomerAuth } from '@/context/CustomerAuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { Button, buttonVariants } from './ui/button';
-import { ShoppingBag, User, Search } from 'lucide-react';
+import { ShoppingBag, User, Search, Settings } from 'lucide-react';
 import { CartSheet } from './CartSheet';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -17,6 +18,7 @@ import { usePathname, useRouter } from 'next/navigation';
 export default function Header() {
   const { cartCount, headerSearch, setHeaderSearch } = useCart();
   const { customer } = useCustomerAuth();
+  const { user: adminUser } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -56,6 +58,12 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
+            {isClient && adminUser && (
+                <Link href="/admin/pedidos" className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}>
+                    <Settings />
+                    <span className="sr-only">Painel Administrativo</span>
+                </Link>
+            )}
             <Link href={customerLink} className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "sm:w-auto sm:px-4")}>
                 <User className="sm:mr-2" />
                 <span className="hidden sm:inline">Área do Cliente</span>
@@ -78,3 +86,4 @@ export default function Header() {
     </div>
   );
 }
+
