@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Product } from '@/lib/types';
 import { useData } from '@/context/DataContext';
 import CountdownTimer from '@/components/CountdownTimer';
+import PublicPageLayout from '@/app/(public)/layout';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -67,7 +68,7 @@ export default function ProductDetailPage() {
 
 
   return (
-    <>
+    <PublicPageLayout>
     <div className="container mx-auto max-w-6xl py-12 px-4">
       <Button variant="ghost" onClick={() => router.back()} className="mb-8">
         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -175,6 +176,6 @@ export default function ProductDetailPage() {
         </CardContent>
       </Card>
     </div>
-    </>
+    </PublicPageLayout>
   );
 }
