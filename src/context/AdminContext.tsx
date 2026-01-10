@@ -832,7 +832,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         detailsToUpdate.commission = calculateCommission(orderWithNewStatus, products);
         detailsToUpdate.isCommissionManual = false; // Flag that it was auto-calculated
     } else if (newStatus !== 'Entregue') {
-        if (!orderToUpdate.isCommissionManual) {
+        // Reset commission if status changes from Entregue unless it was manually set
+        if (orderToUpdate.isCommissionManual !== true) {
             detailsToUpdate.commission = 0;
         }
         detailsToUpdate.commissionPaid = false;
