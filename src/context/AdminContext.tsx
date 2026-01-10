@@ -19,27 +19,37 @@ type LogAction = (action: string, details: string, user: User | null) => void;
 
 // Moved from utils to avoid server-side execution
 const calculateCommission = (order: Order, allProducts: Product[]) => {
-      if (!order.sellerId) return 0;
-
-      if (order.isCommissionManual && typeof order.commission === 'number') {
+    if (!order.sellerId) return 0;
+    
+    // If a commission was set manually on the order, it takes precedence.
+    if (order.isCommissionManual && typeof order.commission === 'number') {
         return order.commission;
-      }
+    }
 
-      return order.items.reduce((totalCommission, item) => {
-          const product = allProducts.find(p => p.id === item.id);
-          if (!product || typeof product.commissionValue === 'undefined') return totalCommission;
-          
-          const commissionType = product.commissionType || 'percentage'; // Default to percentage
+    // Otherwise, calculate based on product rules.
+    return order.items.reduce((totalCommission, item) => {
+        const product = allProducts.find(p => p.id === item.id);
+        
+        // If product doesn't exist in catalog or has no commission value, skip it.
+        if (!product || typeof product.commissionValue === 'undefined' || product.commissionValue === null) {
+            return totalCommission;
+        }
+        
+        const commissionType = product.commissionType || 'percentage'; // Default to percentage
+        const commissionValue = product.commissionValue;
 
-          if (commissionType === 'fixed') {
-              return totalCommission + (product.commissionValue * item.quantity);
-          }
-          if (commissionType === 'percentage') {
-              return totalCommission + (item.price * item.quantity * (product.commissionValue / 100));
-          }
-          return totalCommission;
-      }, 0);
-  };
+        if (commissionType === 'fixed') {
+            return totalCommission + (commissionValue * item.quantity);
+        }
+        
+        if (commissionType === 'percentage') {
+            const itemTotal = item.price * item.quantity;
+            return totalCommission + (itemTotal * (commissionValue / 100));
+        }
+        
+        return totalCommission;
+    }, 0);
+};
 
 function recalculateInstallments(total: number, installmentsCount: number, orderId: string, firstDueDate: string): Installment[] {
     if (installmentsCount <= 0 || total < 0) return [];
@@ -817,13 +827,13 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const wasCanceledOrDeleted = oldStatus === 'Cancelado' || oldStatus === 'Excluído';
     const isNowCanceledOrDeleted = newStatus === 'Cancelado' || newStatus === 'Excluído';
     
+    const orderWithNewStatus: Order = { ...orderToUpdate, status: newStatus };
     const detailsToUpdate: Partial<Order> = { status: newStatus };
 
-    if (newStatus === 'Entregue' && orderToUpdate.sellerId) {
-        const orderWithNewStatus = { ...orderToUpdate, status: newStatus };
+    if (newStatus === 'Entregue' && orderWithNewStatus.sellerId) {
         detailsToUpdate.commission = calculateCommission(orderWithNewStatus, products);
-        detailsToUpdate.isCommissionManual = false;
         detailsToUpdate.commissionPaid = false;
+        detailsToUpdate.isCommissionManual = false;
     }
     
     const orderRef = doc(db, 'orders', orderId);
