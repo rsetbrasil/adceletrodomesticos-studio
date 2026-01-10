@@ -58,12 +58,10 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-            {adminUser && (
-                <Link href="/admin/pedidos" className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}>
-                    <Settings />
-                    <span className="sr-only">Painel Administrativo</span>
-                </Link>
-            )}
+            <Link href="/admin/pedidos" className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}>
+                <Settings />
+                <span className="sr-only">Painel Administrativo</span>
+            </Link>
             <Link href={customerLink} className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "sm:w-auto sm:px-4")}>
                 <User className="sm:mr-2" />
                 <span className="hidden sm:inline">Área do Cliente</span>
@@ -86,5 +84,6 @@ export default function Header() {
     </div>
   );
 }
+
 
 
