@@ -4,6 +4,7 @@
 import { ReactNode } from "react";
 import Header from "@/components/Header";
 import ScrollButtons from "@/components/ScrollButtons";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 export default function PublicPageLayout({ children }: { children: ReactNode }) {
     return (
@@ -13,6 +14,7 @@ export default function PublicPageLayout({ children }: { children: ReactNode }) 
                 {children}
             </main>
             <ScrollButtons />
+            <WhatsAppButton />
         </div>
     );
 }
