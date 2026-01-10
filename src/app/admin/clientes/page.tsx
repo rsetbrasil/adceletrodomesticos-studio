@@ -223,6 +223,8 @@ export default function CustomersAdminPage() {
     const filesToProcess = Array.from(files);
     if (filesToProcess.length === 0) return;
 
+    toast({ title: 'Processando anexos...', description: 'Aguarde enquanto os arquivos são otimizados e enviados.' });
+
     const attachmentsToAdd: Omit<Attachment, 'addedAt' | 'addedBy'>[] = [];
 
     for (const file of filesToProcess) {
@@ -249,10 +251,8 @@ export default function CustomersAdminPage() {
     if (attachmentsToAdd.length === 0) return;
     
     if (attachmentsToAdd.length > 1) {
-        // For multiple files, add them without individual comments for now
         await addAttachments(order, attachmentsToAdd);
     } else {
-        // For a single file, open comment dialog
         setCommentDialog({
             open: true,
             onSave: async (comment) => {
@@ -267,7 +267,7 @@ export default function CustomersAdminPage() {
   const handleFileChange = async (order: Order, event: ChangeEvent<HTMLInputElement>) => {
       if (!event.target.files) return;
       await handleFileProcessing(order, Array.from(event.target.files));
-      event.target.value = ''; // Clear the input
+      event.target.value = '';
   };
 
     const handleDrag = (e: DragEvent<HTMLElement>) => {
