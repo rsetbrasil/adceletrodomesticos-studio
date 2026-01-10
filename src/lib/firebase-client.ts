@@ -5,12 +5,12 @@ import { getFirestore, Firestore } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+  apiKey: "AIzaSyAb8vn7iQ43VwqIHBOHDVA0jnZE-LpFbXU",
+  authDomain: "adc-eletro.firebaseapp.com",
+  projectId: "adc-eletro",
+  storageBucket: "adc-eletro.firebasestorage.app",
+  messagingSenderId: "387148226922",
+  appId: "1:387148226922:web:6426088ebda884f8820513"
 };
 
 // Singleton pattern to ensure Firebase is initialized only once
@@ -19,18 +19,23 @@ let auth: Auth;
 let db: Firestore;
 
 function initializeClientFirebase() {
-  if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
+  if (typeof window !== "undefined") {
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApp();
+    }
+    auth = getAuth(app);
+    db = getFirestore(app);
   }
-  auth = getAuth(app);
-  db = getFirestore(app);
 }
 
+// Call initialization
+initializeClientFirebase();
+
 export function getClientFirebase() {
-    // Initialize on first call if not already initialized
-    if (!app) {
+    // Re-initialize if db is not available (e.g., in some server-side rendering contexts)
+    if (!db) {
         initializeClientFirebase();
     }
     return { app, auth, db };
