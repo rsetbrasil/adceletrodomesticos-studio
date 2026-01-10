@@ -278,66 +278,58 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   
     const restoreAdminData = useCallback(async (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => {
         const { db } = getClientFirebase();
-        const BATCH_LIMIT = 499; // Firestore batch limit is 500 operations
+        const BATCH_LIMIT = 499;
 
-        const collectionsToProcess = [
-            { name: 'products', data: data.products },
-            { name: 'orders', data: data.orders },
-            { name: 'categories', data: data.categories }
-        ];
+        const processCollection = async (collectionName: string, dataArray: any[]) => {
+            // Delete existing data
+            const snapshot = await getDocs(collection(db, collectionName));
+            if (!snapshot.empty) {
+                let deleteBatch = writeBatch(db);
+                let deleteCount = 0;
+                for (const doc of snapshot.docs) {
+                    deleteBatch.delete(doc.ref);
+                    deleteCount++;
+                    if (deleteCount === BATCH_LIMIT) {
+                        await deleteBatch.commit();
+                        deleteBatch = writeBatch(db);
+                        deleteCount = 0;
+                    }
+                }
+                if (deleteCount > 0) {
+                    await deleteBatch.commit();
+                }
+            }
+            
+            // Write new data
+            if (dataArray && dataArray.length > 0) {
+                let writeBatchOp = writeBatch(db);
+                let writeCount = 0;
+                for (const item of dataArray) {
+                    writeBatchOp.set(doc(db, collectionName, item.id), item);
+                    writeCount++;
+                    if (writeCount === BATCH_LIMIT) {
+                        await writeBatchOp.commit();
+                        writeBatchOp = writeBatch(db);
+                        writeCount = 0;
+                    }
+                }
+                if (writeCount > 0) {
+                    await writeBatchOp.commit();
+                }
+            }
+        };
 
         try {
-            // Step 1: Delete existing data in batches
-            for (const { name } of collectionsToProcess) {
-                const snapshot = await getDocs(collection(db, name));
-                if (snapshot.empty) continue;
-
-                let batch = writeBatch(db);
-                let count = 0;
-                for (const doc of snapshot.docs) {
-                    batch.delete(doc.ref);
-                    count++;
-                    if (count === BATCH_LIMIT) {
-                        await batch.commit();
-                        batch = writeBatch(db);
-                        count = 0;
-                    }
-                }
-                if (count > 0) {
-                    await batch.commit();
-                }
-            }
-
-            // Step 2: Write new data in batches
-            for (const { name, data: dataArray } of collectionsToProcess) {
-                if (!dataArray || dataArray.length === 0) continue;
-                
-                let batch = writeBatch(db);
-                let count = 0;
-                for (const item of dataArray) {
-                    batch.set(doc(db, name, item.id), item);
-                    count++;
-                    if (count === BATCH_LIMIT) {
-                        await batch.commit();
-                        batch = writeBatch(db);
-                        count = 0;
-                    }
-                }
-                if (count > 0) {
-                    await batch.commit();
-                }
-            }
-
+            await processCollection('products', data.products);
+            await processCollection('orders', data.orders);
+            await processCollection('categories', data.categories);
+            
             logAction('Restauração de Backup', 'Todos os dados de produtos, pedidos e categorias foram restaurados.', user);
             toast({ title: 'Dados restaurados com sucesso!' });
         } catch (error) {
             console.error("Error restoring data:", error);
-            if (error instanceof Error && error.message.includes("payload")) {
-                toast({ title: 'Erro ao Restaurar', description: 'O arquivo de backup é muito grande. A operação foi dividida, mas ainda falhou. Tente um arquivo menor.', variant: 'destructive'});
-            } else {
-                toast({ title: 'Erro ao Restaurar', description: 'Falha na operação de escrita no banco de dados.', variant: 'destructive'});
-            }
-            throw error; // Re-throw to be caught by the calling function
+            toast({ title: 'Erro ao Restaurar', description: 'Falha na operação de escrita no banco de dados. Verifique o console para mais detalhes.', variant: 'destructive'});
+            throw error;
         }
     }, [toast]);
 
@@ -392,15 +384,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => {
       const { db } = getClientFirebase();
       const newProductId = `prod-${Date.now()}`;
-      
-      const existingCodes = products
-        .map(p => p.code)
-        .filter((code): code is string => !!code && code.startsWith('ITEM-'))
-        .map(code => parseInt(code.replace('ITEM-', ''), 10))
-        .filter(num => !isNaN(num));
-        
-      const lastCodeNumber = existingCodes.length > 0 ? Math.max(...existingCodes) : 99;
-      const newProductCode = `ITEM-${lastCodeNumber + 1}`;
+      const newProductCode = `ITEM-${Date.now().toString().slice(-6)}`;
       
       const newProduct: Partial<Product> = {
         ...productData,
@@ -428,7 +412,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
             requestResourceData: newProduct,
         }));
       });
-  }, [toast, products]);
+  }, [toast]);
 
   const updateProduct = useCallback(async (updatedProduct: Product, logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
