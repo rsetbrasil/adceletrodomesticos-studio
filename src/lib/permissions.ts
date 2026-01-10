@@ -7,7 +7,6 @@ export const ALL_SECTIONS: { id: AppSection, label: string }[] = [
     { id: 'pedidos', label: 'Pedidos' },
     { id: 'criar-pedido', label: 'Criar Pedido' },
     { id: 'clientes', label: 'Clientes' },
-    { id: 'atendimento', label: 'Atendimento' },
     { id: 'produtos', label: 'Produtos' },
     { id: 'categorias', label: 'Categorias' },
     { id: 'avarias', label: 'Avarias' },
@@ -26,7 +25,6 @@ export const initialPermissions: RolePermissions = {
         'produtos',
         'minhas-comissoes',
         'avarias',
-        'atendimento',
     ],
     gerente: [
         'pedidos',
@@ -39,7 +37,6 @@ export const initialPermissions: RolePermissions = {
         'minhas-comissoes',
         'auditoria',
         'configuracao',
-        'atendimento',
     ],
     admin: [
         'pedidos',
@@ -53,7 +50,6 @@ export const initialPermissions: RolePermissions = {
         'auditoria',
         'configuracao',
         'usuarios',
-        'atendimento',
     ],
 };
 

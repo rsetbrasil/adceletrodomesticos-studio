@@ -166,8 +166,7 @@ export type AppSection =
     | 'auditoria'
     | 'configuracao'
     | 'usuarios'
-    | 'avarias'
-    | 'atendimento';
+    | 'avarias';
 
 export type RolePermissions = Record<UserRole, AppSection[]>;
 

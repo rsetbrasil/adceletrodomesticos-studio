@@ -109,8 +109,6 @@ interface AdminContextType {
   updateAvaria: (avariaId: string, avariaData: Partial<Omit<Avaria, 'id'>>, logAction: LogAction, user: User | null) => Promise<void>;
   deleteAvaria: (avariaId: string, logAction: LogAction, user: User | null) => Promise<void>;
   emptyTrash: (logAction: LogAction, user: User | null) => Promise<void>;
-  deleteChatSession: (sessionId: string, logAction: LogAction, user: User | null) => Promise<void>;
-  updateChatSession: (sessionId: string, data: Partial<ChatSession>, logAction: LogAction, user: User | null) => Promise<void>;
   // Admin Data states
   orders: Order[];
   commissionPayments: CommissionPayment[];
@@ -1450,49 +1448,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [orders, toast]);
   
-  const deleteChatSession = useCallback(async (sessionId: string, logAction: LogAction, user: User | null) => {
-    const { db } = getClientFirebase();
-    const sessionRef = doc(db, 'chatSessions', sessionId);
-    const messagesRef = collection(db, 'chatSessions', sessionId, 'messages');
-
-    try {
-      // Delete all messages in the subcollection first
-      const messagesSnapshot = await getDocs(messagesRef);
-      const batch = writeBatch(db);
-      messagesSnapshot.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      await batch.commit();
-
-      // Now delete the session document
-      await deleteDoc(sessionRef);
-
-      logAction('Exclusão de Chat', `Conversa de chat ID ${sessionId} foi excluída permanentemente.`, user);
-      toast({ title: "Conversa Excluída!", description: "A conversa e todas as suas mensagens foram removidas.", variant: "destructive" });
-    } catch (e) {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: `chatSessions/${sessionId}`,
-            operation: 'delete',
-        }));
-    }
-  }, [toast]);
-
-  const updateChatSession = useCallback(async (sessionId: string, data: Partial<ChatSession>, logAction: LogAction, user: User | null) => {
-    const { db } = getClientFirebase();
-    const sessionRef = doc(db, 'chatSessions', sessionId);
-    
-    updateDoc(sessionRef, data).then(() => {
-        logAction('Atualização de Chat', `Sessão de chat ${sessionId} foi atualizada.`, user);
-        toast({ title: 'Nome do visitante atualizado!' });
-    }).catch(async (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: sessionRef.path,
-            operation: 'update',
-            requestResourceData: data,
-        }));
-    });
-  }, [toast]);
-  
   const value = useMemo(() => ({
     addOrder, deleteOrder, permanentlyDeleteOrder, updateOrderStatus, recordInstallmentPayment, reversePayment, updateInstallmentDueDate, updateInstallmentAmount, updateCustomer, deleteCustomer, importCustomers, updateOrderDetails,
     addProduct, updateProduct, deleteProduct,
@@ -1500,7 +1455,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     payCommissions, reverseCommissionPayment,
     restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData,
     saveStockAudit, addAvaria, updateAvaria, deleteAvaria,
-    emptyTrash, deleteChatSession, updateChatSession,
+    emptyTrash,
     // Admin Data states
     orders,
     commissionPayments,
@@ -1519,7 +1474,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     payCommissions, reverseCommissionPayment,
     restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData,
     saveStockAudit, addAvaria, updateAvaria, deleteAvaria,
-    emptyTrash, deleteChatSession, updateChatSession,
+    emptyTrash,
     orders, commissionPayments, stockAudits, avarias, chatSessions, customers, customerOrders, customerFinancials, financialSummary, commissionSummary
   ]);
 
