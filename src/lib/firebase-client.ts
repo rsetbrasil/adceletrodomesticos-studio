@@ -13,21 +13,25 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
+// Singleton pattern to ensure Firebase is initialized only once
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-// Initialize Firebase
-if (firebaseConfig.projectId) {
-    if (getApps().length === 0) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        app = getApp();
-    }
-    auth = getAuth(app);
-    db = getFirestore(app);
+function initializeClientFirebase() {
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
+  auth = getAuth(app);
+  db = getFirestore(app);
 }
 
 export function getClientFirebase() {
+    // Initialize on first call if not already initialized
+    if (!app) {
+        initializeClientFirebase();
+    }
     return { app, auth, db };
 }
