@@ -17,25 +17,17 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-function initializeClientFirebase() {
+// Initialize Firebase
+if (firebaseConfig.projectId) {
     if (getApps().length === 0) {
-        if (firebaseConfig.projectId) {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        }
+        app = initializeApp(firebaseConfig);
     } else {
         app = getApp();
-        auth = getAuth(app);
-        db = getFirestore(app);
     }
+    auth = getAuth(app);
+    db = getFirestore(app);
 }
 
-
 export function getClientFirebase() {
-    if (typeof window !== 'undefined') {
-        initializeClientFirebase();
-    }
-    
     return { app, auth, db };
 }
