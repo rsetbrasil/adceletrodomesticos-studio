@@ -5,17 +5,23 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { User, UserRole } from '@/lib/types';
-import { initialUsers } from '@/lib/users';
 import { getClientFirebase } from '@/lib/firebase-client';
 import { collection, doc, getDocs, setDoc, updateDoc, writeBatch, query, where, getDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { useAudit } from './AuditContext';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 
+// NOTE: In a real application, passwords should be hashed and stored securely in a database.
+// This is for prototype purposes only.
+const initialUsers: User[] = [
+  { id: 'user-1', username: 'admin', password: 'adminpassword', name: 'Administrador', role: 'admin' },
+  { id: 'user-2', username: 'gerente', password: 'gerentepassword', name: 'Gerente Loja', role: 'gerente' },
+  { id: 'user-3', username: 'vendedor', password: 'vendedorpassword', name: 'Vendedor Teste', role: 'vendedor' },
+];
+
 interface AuthContextType {
   user: User | null;
   users: User[];
-  initialUsers: User[];
   login: (user: string, pass: string) => void;
   logout: () => void;
   addUser: (data: Omit<User, 'id'>) => Promise<boolean>;
@@ -42,7 +48,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { db } = getClientFirebase();
 
     const usersUnsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
-        setUsers(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as User)));
+        if (snapshot.empty) {
+          // If no users, create initial ones
+          const batch = writeBatch(db);
+          initialUsers.forEach(u => {
+            batch.set(doc(db, 'users', u.id), u);
+          });
+          batch.commit()
+            .then(() => console.log("Initial users created."))
+            .catch(e => console.error("Error creating initial users", e));
+        } else {
+            setUsers(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as User)));
+        }
     },
     (error) => {
       console.error("Error fetching users:", error);
@@ -271,7 +288,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, users, initialUsers, login, logout, addUser, updateUser, deleteUser, changeMyPassword, isLoading, isAuthenticated: !!user, restoreUsers }}>
+    <AuthContext.Provider value={{ user, users, login, logout, addUser, updateUser, deleteUser, changeMyPassword, isLoading, isAuthenticated: !!user, restoreUsers }}>
       {children}
     </AuthContext.Provider>
   );
