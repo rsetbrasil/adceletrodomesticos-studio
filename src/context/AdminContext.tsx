@@ -153,7 +153,6 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     setupListener('commissionPayments', setCommissionPayments, 'paymentDate');
     setupListener('stockAudits', setStockAudits);
     setupListener('avarias', setAvarias);
-    setupListener('chatSessions', setChatSessions, 'lastMessageAt');
     
     return () => unsubscribes.forEach(unsub => unsub());
   }, []);
@@ -826,16 +825,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     
     const detailsToUpdate: Partial<Order> = { status: newStatus };
 
-    // This is the new logic to auto-calculate commission
     if (newStatus === 'Entregue' && orderToUpdate.sellerId) {
-        const orderWithNewStatus = { ...orderToUpdate, status: newStatus };
-        detailsToUpdate.commission = calculateCommission(orderWithNewStatus, products);
-        detailsToUpdate.isCommissionManual = false; // Flag that it was auto-calculated
-    } else if (newStatus !== 'Entregue') {
-        // Reset commission if status changes from Entregue unless it was manually set
-        if (orderToUpdate.isCommissionManual !== true) {
-            detailsToUpdate.commission = 0;
-        }
+        detailsToUpdate.commission = calculateCommission(orderToUpdate, products);
+        detailsToUpdate.isCommissionManual = false;
+        detailsToUpdate.commissionPaid = false;
+    } else if (newStatus !== 'Entregue' && orderToUpdate.isCommissionManual !== true) {
+        detailsToUpdate.commission = 0;
         detailsToUpdate.commissionPaid = false;
     }
     
