@@ -755,21 +755,35 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     // A robust way to generate a unique order ID
     const prefix = order.items && order.items.length > 0 ? 'PED' : 'REG';
     const orderId = `${prefix}-${Date.now()}`;
+    
+    let isNewCustomer = true;
+    if (order.customer?.cpf) {
+        const normalizedCpf = order.customer.cpf.replace(/\D/g, '');
+        const existingCustomerOrder = orders.find(o => o.customer.cpf?.replace(/\D/g, '') === normalizedCpf);
+        if (existingCustomerOrder) {
+            isNewCustomer = false;
+        }
+    }
 
     const orderToSave = {
         ...order,
         id: orderId,
         sellerId: order.sellerId || user?.id || '',
-        sellerName: order.sellerName || user?.name || 'Não atribuído',
+        sellerName: order.sellerName || 'Não atribuído',
         commissionPaid: false,
     } as Order;
+
+    if (isNewCustomer && order.customer?.cpf) {
+        orderToSave.customer.password = order.customer.cpf.substring(0, 6);
+    }
+
 
     orderToSave.commission = calculateCommission(orderToSave, products);
     
     const subtotal = order.items?.reduce((acc, item) => acc + item.price * item.quantity, 0) || 0;
     const total = subtotal - (order.discount || 0);
     const totalFinanced = total - (order.downPayment || 0);
-    orderToSave.total = totalFinanced;
+    orderToSave.total = total; // Total should reflect the final price after discount
     
     if (orderToSave.installments > 0 && order.firstDueDate) {
       orderToSave.installmentDetails = recalculateInstallments(totalFinanced, orderToSave.installments, orderId, order.firstDueDate.toISOString())

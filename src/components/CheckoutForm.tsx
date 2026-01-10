@@ -25,7 +25,7 @@ import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
 import { AlertTriangle, CreditCard, KeyRound, Trash2 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
-import { useAdmin } from '@/context/AdminContext';
+import { useAdmin, useAdminData } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { useAudit } from '@/context/AuditContext';
 import { useData } from '@/context/DataContext';
@@ -83,6 +83,7 @@ export default function CheckoutForm() {
   const { cartItems, getCartTotal, clearCart, setLastOrder, removeFromCart } = useCart();
   const { settings } = useSettings();
   const { addOrder } = useAdmin();
+  const { customers: allCustomers } = useAdminData();
   const { products } = useData();
   const { user } = useAuth();
   const { logAction } = useAudit();
@@ -135,6 +136,26 @@ export default function CheckoutForm() {
   }, [cartItemsWithDetails]);
 
   const isCartValid = cartItemsWithDetails.every(item => item.hasEnoughStock);
+
+  const handleCpfBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const cpf = e.target.value?.replace(/\D/g, '');
+    if (cpf && cpf.length === 11 && isValidCPF(cpf)) {
+        const existingCustomer = allCustomers.find(c => c.cpf?.replace(/\D/g, '') === cpf);
+        if (existingCustomer) {
+            form.reset({
+                ...existingCustomer,
+                cpf: existingCustomer.cpf,
+            });
+            setIsNewCustomer(false);
+            toast({
+                title: "Cliente Encontrado!",
+                description: "Seus dados foram preenchidos automaticamente.",
+            });
+        } else {
+            setIsNewCustomer(true);
+        }
+    }
+  };
 
   const handleZipBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
     const zip = e.target.value.replace(/\D/g, '');
@@ -207,7 +228,7 @@ export default function CheckoutForm() {
     
     // The logic to check for existing customer and assign password is now inside `addOrder`
     // to avoid loading all orders on the client-side.
-    if (customerData.cpf) {
+    if (customerData.cpf && isNewCustomer) {
         customerData.password = customerData.cpf.substring(0, 6);
     }
     
@@ -335,16 +356,19 @@ export default function CheckoutForm() {
             <h3 className="text-xl font-semibold mb-4 font-headline">Informações do Cliente</h3>
             <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="cpf" render={({ field }) => ( <FormItem><FormLabel>CPF</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} onBlur={handleCpfBlur} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone (WhatsApp)</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} onChange={e => field.onChange(formatPhone(e.target.value))} maxLength={15} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="phone2" render={({ field }) => ( <FormItem><FormLabel>Telefone 2 (Opcional)</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} onChange={e => field.onChange(formatPhone(e.target.value))} maxLength={15} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="phone3" render={({ field }) => ( <FormItem><FormLabel>Telefone 3 (Opcional)</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} onChange={e => field.onChange(formatPhone(e.target.value))} maxLength={15} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="email" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>Email (Opcional)</FormLabel><FormControl><Input placeholder="seu@email.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
-                 <div className="p-3 bg-blue-500/10 text-blue-800 rounded-lg text-sm">
-                    <p><strong>Atenção:</strong> Se este for seu primeiro pedido, a senha de acesso para a Área do Cliente será os <strong>6 primeiros dígitos do seu CPF</strong>.</p>
-                </div>
+                 {isNewCustomer && (
+                    <div className="p-3 bg-blue-500/10 text-blue-800 rounded-lg text-sm flex items-start gap-2">
+                        <KeyRound className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                        <p><strong>Atenção:</strong> Se este for seu primeiro pedido, a senha de acesso para a Área do Cliente será os <strong>6 primeiros dígitos do seu CPF</strong>.</p>
+                    </div>
+                )}
                 <h4 className="text-lg font-semibold pt-4">Endereço de Entrega</h4>
                 <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                     <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} onBlur={handleZipBlur} /></FormControl><FormMessage /></FormItem> )} />
