@@ -43,7 +43,6 @@ const pathToSectionMap: { [key: string]: AppSection } = {
     '/admin/pedidos': 'pedidos',
     '/admin/criar-pedido': 'criar-pedido',
     '/admin/clientes': 'clientes',
-    '/admin/atendimento': 'atendimento',
     '/admin/produtos': 'produtos',
     '/admin/categorias': 'categorias',
     '/admin/avarias': 'avarias',
