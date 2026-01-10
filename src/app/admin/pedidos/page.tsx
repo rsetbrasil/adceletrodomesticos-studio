@@ -112,7 +112,7 @@ export default function OrdersAdminPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [installmentsInput, setInstallmentsInput] = useState(1);
   const [editedInstallmentValues, setEditedInstallmentValues] = useState<{ [key: number]: string }>({});
-  const [commissionInput, setCommissionInput] = useState('0');
+  const [commissionInput, setCommissionInput] = useState('0,00');
   const [observationsInput, setObservationsInput] = useState('');
   const [discountInput, setDiscountInput] = useState(0);
   const [downPaymentInput, setDownPaymentInput] = useState(0);
@@ -249,7 +249,7 @@ export default function OrdersAdminPage() {
       }
       setInstallmentsInput(updatedOrderInList?.installments || 1);
       setEditedInstallmentValues({});
-      setCommissionInput((updatedOrderInList?.commission || 0).toString().replace('.', ','));
+      setCommissionInput(formatBRL(updatedOrderInList?.commission));
       setObservationsInput(updatedOrderInList?.observations || '');
       setDiscountInput(updatedOrderInList?.discount || 0);
     }
@@ -259,7 +259,7 @@ export default function OrdersAdminPage() {
     setSelectedOrder(order);
     setInstallmentsInput(order.installments);
     setEditedInstallmentValues({});
-    setCommissionInput((order.commission || 0).toString().replace('.', ','));
+    setCommissionInput(formatBRL(order.commission));
     setObservationsInput(order.observations || '');
     setDiscountInput(order.discount || 0);
     setDownPaymentInput(0);
@@ -351,7 +351,7 @@ export default function OrdersAdminPage() {
   const handleCalculateCommission = () => {
     if (!selectedOrder) return;
     const commissionValue = selectedOrder.commission || 0;
-    setCommissionInput(commissionValue.toFixed(2).replace('.', ','));
+    setCommissionInput(formatBRL(commissionValue));
   };
 
   const handleUpdateCommission = () => {
@@ -1228,3 +1228,4 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
+
