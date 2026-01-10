@@ -17,27 +17,24 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-if (typeof window !== 'undefined' && !getApps().length) {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-} else if (typeof window !== 'undefined') {
-    app = getApp();
-    auth = getAuth(app);
-    db = getFirestore(app);
-}
-
-export function getClientFirebase() {
-    // This is a bit of a hack to ensure firebase is initialized on the client
-    // without having to make every calling component a client component.
-    if (typeof window !== 'undefined' && !getApps().length) {
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-    } else if (typeof window !== 'undefined') {
+function initializeClientFirebase() {
+    if (getApps().length === 0) {
+        if (firebaseConfig.projectId) {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        }
+    } else {
         app = getApp();
         auth = getAuth(app);
         db = getFirestore(app);
+    }
+}
+
+
+export function getClientFirebase() {
+    if (typeof window !== 'undefined') {
+        initializeClientFirebase();
     }
     
     return { app, auth, db };
