@@ -23,13 +23,14 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
-import { AlertTriangle, CreditCard, KeyRound, Trash2 } from 'lucide-react';
+import { AlertTriangle, CreditCard, KeyRound, Trash2, ArrowLeft } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { useAdmin, useAdminData } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
 import { useAudit } from '@/context/AuditContext';
 import { useData } from '@/context/DataContext';
 import { Textarea } from './ui/textarea';
+import Link from 'next/link';
 
 function isValidCPF(cpf: string) {
     if (typeof cpf !== 'string') return false;
@@ -116,6 +117,30 @@ export default function CheckoutForm() {
       router.push('/');
     }
   }, [cartItems, router]);
+  
+  const handleCpfChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    form.setValue('cpf', value); // Update form state immediately
+
+    const cpf = value?.replace(/\D/g, '');
+    if (cpf && cpf.length === 11 && isValidCPF(value)) {
+        const existingCustomer = allCustomers.find(c => c.cpf?.replace(/\D/g, '') === cpf);
+        if (existingCustomer) {
+            form.reset({
+                ...existingCustomer,
+                cpf: existingCustomer.cpf,
+            });
+            setIsNewCustomer(false);
+            toast({
+                title: "Cliente Encontrado!",
+                description: "Seus dados foram preenchidos automaticamente.",
+            });
+        } else {
+            setIsNewCustomer(true);
+        }
+    }
+  }, [allCustomers, form, toast]);
+
 
   const cartItemsWithDetails = useMemo(() => {
     return cartItems.map(item => {
@@ -136,27 +161,6 @@ export default function CheckoutForm() {
   }, [cartItemsWithDetails]);
 
   const isCartValid = cartItemsWithDetails.every(item => item.hasEnoughStock);
-
-  const checkAndLoadCustomer = useCallback((cpfValue: string) => {
-    const cpf = cpfValue?.replace(/\D/g, '');
-    if (cpf && cpf.length === 11 && isValidCPF(cpf)) {
-        const existingCustomer = allCustomers.find(c => c.cpf?.replace(/\D/g, '') === cpf);
-        if (existingCustomer) {
-            form.reset({
-                ...existingCustomer,
-                cpf: existingCustomer.cpf,
-            });
-            setIsNewCustomer(false);
-            toast({
-                title: "Cliente Encontrado!",
-                description: "Seus dados foram preenchidos automaticamente.",
-            });
-        } else {
-            setIsNewCustomer(true);
-        }
-    }
-  }, [allCustomers, form, toast]);
-
 
   const handleZipBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
     const zip = e.target.value.replace(/\D/g, '');
@@ -367,10 +371,7 @@ export default function CheckoutForm() {
                                     <Input 
                                         placeholder="000.000.000-00" 
                                         {...field} 
-                                        onChange={(e) => {
-                                            field.onChange(e);
-                                            checkAndLoadCustomer(e.target.value);
-                                        }} 
+                                        onChange={handleCpfChange}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -415,9 +416,17 @@ export default function CheckoutForm() {
             </div>
           </div>
           
-          <Button type="submit" size="lg" className="w-full text-lg" disabled={!isCartValid || form.formState.isSubmitting}>
-            Finalizar Compra
-          </Button>
+          <div className="flex flex-col-reverse sm:flex-row gap-4 justify-end">
+            <Button type="button" variant="outline" size="lg" asChild>
+                <Link href="/#catalog">
+                    <ArrowLeft className="mr-2 h-5 w-5" />
+                    Continuar Comprando
+                </Link>
+            </Button>
+            <Button type="submit" size="lg" className="w-full sm:w-auto text-lg" disabled={!isCartValid || form.formState.isSubmitting}>
+                Finalizar Compra
+            </Button>
+          </div>
         </form>
       </Form>
     </div>
