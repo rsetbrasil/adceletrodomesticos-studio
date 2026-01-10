@@ -638,6 +638,7 @@ export default function CreateOrderPage() {
                                             const rawValue = e.target.value.replace(/\D/g, '');
                                             field.onChange(Number(rawValue) / 100);
                                         }}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -660,6 +661,7 @@ export default function CreateOrderPage() {
                                             const rawValue = e.target.value.replace(/\D/g, '');
                                             field.onChange(Number(rawValue) / 100);
                                         }}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -677,11 +679,7 @@ export default function CreateOrderPage() {
                                         type="number" 
                                         min={1} 
                                         {...field} 
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                            }
-                                        }}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                                     />
                                 </FormControl>
                                 <FormMessage />
