@@ -276,37 +276,70 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     return { totalPendingCommission, commissionsBySeller };
   }, [orders, users]);
   
-  const restoreAdminData = useCallback(async (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => {
-    const { db } = getClientFirebase();
-    try {
-        const productsSnap = await getDocs(collection(db, 'products'));
-        const ordersSnap = await getDocs(collection(db, 'orders'));
-        const categoriesSnap = await getDocs(collection(db, 'categories'));
+    const restoreAdminData = useCallback(async (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => {
+        const { db } = getClientFirebase();
+        const BATCH_LIMIT = 499; // Firestore batch limit is 500 operations
 
-        const batch = writeBatch(db);
+        const collectionsToProcess = [
+            { name: 'products', data: data.products },
+            { name: 'orders', data: data.orders },
+            { name: 'categories', data: data.categories }
+        ];
 
-        productsSnap.forEach(doc => batch.delete(doc.ref));
-        ordersSnap.forEach(doc => batch.delete(doc.ref));
-        categoriesSnap.forEach(doc => batch.delete(doc.ref));
+        try {
+            // Step 1: Delete existing data in batches
+            for (const { name } of collectionsToProcess) {
+                const snapshot = await getDocs(collection(db, name));
+                if (snapshot.empty) continue;
 
-        data.products.forEach(p => batch.set(doc(db, 'products', p.id), p));
-        data.orders.forEach(o => batch.set(doc(db, 'orders', o.id), o));
-        data.categories.forEach(c => batch.set(doc(db, 'categories', c.id), c));
+                let batch = writeBatch(db);
+                let count = 0;
+                for (const doc of snapshot.docs) {
+                    batch.delete(doc.ref);
+                    count++;
+                    if (count === BATCH_LIMIT) {
+                        await batch.commit();
+                        batch = writeBatch(db);
+                        count = 0;
+                    }
+                }
+                if (count > 0) {
+                    await batch.commit();
+                }
+            }
 
-        await batch.commit();
+            // Step 2: Write new data in batches
+            for (const { name, data: dataArray } of collectionsToProcess) {
+                if (!dataArray || dataArray.length === 0) continue;
+                
+                let batch = writeBatch(db);
+                let count = 0;
+                for (const item of dataArray) {
+                    batch.set(doc(db, name, item.id), item);
+                    count++;
+                    if (count === BATCH_LIMIT) {
+                        await batch.commit();
+                        batch = writeBatch(db);
+                        count = 0;
+                    }
+                }
+                if (count > 0) {
+                    await batch.commit();
+                }
+            }
 
-        logAction('Restauração de Backup', 'Todos os dados de produtos, pedidos e categorias foram restaurados.', user);
-        toast({ title: 'Dados restaurados com sucesso!' });
-    } catch (error) {
-        console.error("Error restoring data:", error);
-        toast({ title: 'Erro ao Restaurar', description: 'Falha na operação de escrita no banco de dados.', variant: 'destructive'});
-        // Re-throw or handle as a FirestorePermissionError if applicable
-        if (error instanceof Error && (error.message.includes('permission') || error.message.includes('denied'))) {
-            throw new FirestorePermissionError({ path: 'multiple', operation: 'write' });
+            logAction('Restauração de Backup', 'Todos os dados de produtos, pedidos e categorias foram restaurados.', user);
+            toast({ title: 'Dados restaurados com sucesso!' });
+        } catch (error) {
+            console.error("Error restoring data:", error);
+            if (error instanceof Error && error.message.includes("payload")) {
+                toast({ title: 'Erro ao Restaurar', description: 'O arquivo de backup é muito grande. A operação foi dividida, mas ainda falhou. Tente um arquivo menor.', variant: 'destructive'});
+            } else {
+                toast({ title: 'Erro ao Restaurar', description: 'Falha na operação de escrita no banco de dados.', variant: 'destructive'});
+            }
+            throw error; // Re-throw to be caught by the calling function
         }
-        throw error;
-    }
-}, [toast]);
+    }, [toast]);
 
 
   const resetOrders = useCallback(async (logAction: LogAction, user: User | null) => {

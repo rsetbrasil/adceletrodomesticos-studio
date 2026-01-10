@@ -135,7 +135,7 @@ export default function ConfiguracaoPage() {
   const { restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData } = useAdmin();
   const { products, categories } = useData();
   const { orders, customers } = useAdminData();
-  const { user, users, restoreUsers, initialUsers } = useAuth();
+  const { user, users, restoreUsers } = useAuth();
   const { permissions, updatePermissions, isLoading: permissionsLoading, resetPermissions } = usePermissions();
   const { toast } = useToast();
   const { logAction } = useAudit();
@@ -218,7 +218,6 @@ export default function ConfiguracaoPage() {
           if (data.permissions) {
              await updatePermissions(data.permissions);
           }
-          toast({ title: 'Backup Restaurado!', description: 'Os dados da loja foram restaurados com sucesso.' });
         } else {
           throw new Error('Formato de arquivo de backup inválido.');
         }
@@ -251,7 +250,7 @@ export default function ConfiguracaoPage() {
             break;
         case 'resetAll':
             await resetAllAdminData(logAction, user);
-            await restoreUsers(initialUsers);
+            await restoreUsers([]); // Will trigger recreation of initial users
             await resetSettings();
             await resetPermissions();
             toast({ title: "Loja Resetada!", description: "Todos os dados foram restaurados para o padrão." });
