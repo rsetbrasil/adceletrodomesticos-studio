@@ -20,12 +20,12 @@ function Calendar({
 }: CalendarProps) {
   return (
     <DayPicker
+      captionLayout="dropdown-buttons"
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
-        caption_layout: 'dropdown-buttons',
         caption_label: "text-sm font-medium",
         caption_dropdowns: "flex justify-center pt-1 relative items-center gap-1",
         nav: "space-x-1 flex items-center",
