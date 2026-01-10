@@ -816,21 +816,13 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const oldStatus = orderToUpdate.status;
     const wasCanceledOrDeleted = oldStatus === 'Cancelado' || oldStatus === 'Excluído';
     const isNowCanceledOrDeleted = newStatus === 'Cancelado' || newStatus === 'Excluído';
-
-    if (wasCanceledOrDeleted && !isNowCanceledOrDeleted) {
-        if (!await manageStockForOrder(orderToUpdate, 'subtract')) {
-            return;
-        }
-    }
     
     const detailsToUpdate: Partial<Order> = { status: newStatus };
 
     if (newStatus === 'Entregue' && orderToUpdate.sellerId) {
-        detailsToUpdate.commission = calculateCommission(orderToUpdate, products);
+        const orderWithNewStatus = { ...orderToUpdate, status: newStatus };
+        detailsToUpdate.commission = calculateCommission(orderWithNewStatus, products);
         detailsToUpdate.isCommissionManual = false;
-        detailsToUpdate.commissionPaid = false;
-    } else if (newStatus !== 'Entregue' && orderToUpdate.isCommissionManual !== true) {
-        detailsToUpdate.commission = 0;
         detailsToUpdate.commissionPaid = false;
     }
     
