@@ -58,7 +58,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-            {isClient && adminUser && (
+            {adminUser && (
                 <Link href="/admin/pedidos" className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}>
                     <Settings />
                     <span className="sr-only">Painel Administrativo</span>
@@ -86,4 +86,5 @@ export default function Header() {
     </div>
   );
 }
+
 
