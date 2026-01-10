@@ -23,18 +23,26 @@ function Calendar({
         months: "flex flex-col sm:flex-row gap-4",
         month: "space-y-4",
         caption_label: "text-sm font-medium text-center",
+
         day: cn(
           buttonVariants({ variant: "ghost" }),
           "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
         ),
-        day_selected:
+
+        selected:
           "bg-primary text-primary-foreground hover:bg-primary focus:bg-primary",
-        day_today: "border border-primary",
-        day_outside: "text-muted-foreground opacity-50",
-        day_disabled: "text-muted-foreground opacity-50",
-        day_range_middle:
+
+        today: "border border-primary",
+
+        outside: "text-muted-foreground opacity-50",
+
+        disabled: "text-muted-foreground opacity-50",
+
+        range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
-        day_hidden: "invisible",
+
+        hidden: "invisible",
+
         ...classNames,
       }}
       components={{
@@ -51,4 +59,5 @@ function Calendar({
 }
 
 Calendar.displayName = "Calendar"
+
 export { Calendar }
