@@ -278,26 +278,36 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   
   const restoreAdminData = useCallback(async (data: { products: Product[], orders: Order[], categories: Category[] }, logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
-    const batch = writeBatch(db);
+    try {
+        const productsSnap = await getDocs(collection(db, 'products'));
+        const ordersSnap = await getDocs(collection(db, 'orders'));
+        const categoriesSnap = await getDocs(collection(db, 'categories'));
 
-    products.forEach(p => batch.delete(doc(db, 'products', p.id)));
-    orders.forEach(o => batch.delete(doc(db, 'orders', o.id)));
-    categories.forEach(c => batch.delete(doc(db, 'categories', c.id)));
-    
-    await batch.commit();
+        const batch = writeBatch(db);
 
-    const addBatch = writeBatch(db);
-    data.products.forEach(p => addBatch.set(doc(db, 'products', p.id), p));
-    data.orders.forEach(o => addBatch.set(doc(db, 'orders', o.id), o));
-    data.categories.forEach(c => addBatch.set(doc(db, 'categories', c.id), c));
+        productsSnap.forEach(doc => batch.delete(doc.ref));
+        ordersSnap.forEach(doc => batch.delete(doc.ref));
+        categoriesSnap.forEach(doc => batch.delete(doc.ref));
 
-    addBatch.commit().then(() => {
+        data.products.forEach(p => batch.set(doc(db, 'products', p.id), p));
+        data.orders.forEach(o => batch.set(doc(db, 'orders', o.id), o));
+        data.categories.forEach(c => batch.set(doc(db, 'categories', c.id), c));
+
+        await batch.commit();
+
         logAction('Restauração de Backup', 'Todos os dados de produtos, pedidos e categorias foram restaurados.', user);
         toast({ title: 'Dados restaurados com sucesso!' });
-    }).catch(async (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'multiple', operation: 'write' }));
-    });
-  }, [products, orders, categories, toast]);
+    } catch (error) {
+        console.error("Error restoring data:", error);
+        toast({ title: 'Erro ao Restaurar', description: 'Falha na operação de escrita no banco de dados.', variant: 'destructive'});
+        // Re-throw or handle as a FirestorePermissionError if applicable
+        if (error instanceof Error && (error.message.includes('permission') || error.message.includes('denied'))) {
+            throw new FirestorePermissionError({ path: 'multiple', operation: 'write' });
+        }
+        throw error;
+    }
+}, [toast]);
+
 
   const resetOrders = useCallback(async (logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
