@@ -826,11 +826,14 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     
     const detailsToUpdate: Partial<Order> = { status: newStatus };
 
+    // This is the new logic to auto-calculate commission
     if (newStatus === 'Entregue' && orderToUpdate.sellerId) {
-      detailsToUpdate.commission = calculateCommission(orderToUpdate, products);
-    } else {
+        const orderWithNewStatus = { ...orderToUpdate, status: newStatus };
+        detailsToUpdate.commission = calculateCommission(orderWithNewStatus, products);
+        detailsToUpdate.isCommissionManual = false; // Flag that it was auto-calculated
+    } else if (newStatus !== 'Entregue') {
         if (!orderToUpdate.isCommissionManual) {
-          detailsToUpdate.commission = 0;
+            detailsToUpdate.commission = 0;
         }
         detailsToUpdate.commissionPaid = false;
     }
