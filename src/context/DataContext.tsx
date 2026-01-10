@@ -20,23 +20,26 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   useEffect(() => {
     const { db } = getClientFirebase();
     const productsUnsubscribe = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'asc')), (snapshot) => {
       const fetchedProducts = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product));
       setProducts(fetchedProducts);
-      setIsLoading(false);
+      setProductsLoading(false);
     }, (error) => {
         console.error("Error fetching products:", error);
-        setIsLoading(false);
+        setProductsLoading(false);
     });
 
     const categoriesUnsubscribe = onSnapshot(query(collection(db, 'categories'), orderBy('order')), (snapshot) => {
       setCategories(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
+      setCategoriesLoading(false);
     }, (error) => {
         console.error("Error fetching categories:", error);
+        setCategoriesLoading(false);
     });
     
     return () => {
@@ -44,6 +47,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       categoriesUnsubscribe();
     };
   }, []);
+
+  const isLoading = productsLoading || categoriesLoading;
 
   const value = useMemo(() => ({
     products, 
