@@ -431,7 +431,7 @@ export default function CustomersAdminPage() {
             const text = e.target?.result as string;
             await importCustomers(text, logAction, user);
         };
-        reader.readAsText(file);
+        reader.readText(file);
         
         // Reset file input
         if(fileInputRef.current) {

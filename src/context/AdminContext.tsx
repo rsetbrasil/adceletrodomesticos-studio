@@ -1037,11 +1037,16 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     orders.forEach(order => {
         const orderCustomerKey = order.customer.cpf?.replace(/\D/g, '') || `${order.customer.name}-${order.customer.phone}`;
         if (orderCustomerKey === oldCustomerKey) {
-            const customerData = { ...order.customer, ...updatedCustomerData };
-            if (updatedCustomerData.password === undefined || updatedCustomerData.password === '') {
-                delete customerData.password;
+            const customerDataForOrder = { ...order.customer, ...updatedCustomerData };
+            // Persist seller info from customer to order
+            if (updatedCustomerData.sellerId && updatedCustomerData.sellerName) {
+                customerDataForOrder.sellerId = updatedCustomerData.sellerId;
+                customerDataForOrder.sellerName = updatedCustomerData.sellerName;
             }
-            batch.update(doc(db, 'orders', order.id), { customer: customerData });
+            if (updatedCustomerData.password === undefined || updatedCustomerData.password === '') {
+                delete customerDataForOrder.password;
+            }
+            batch.update(doc(db, 'orders', order.id), { customer: customerDataForOrder });
         }
     });
 
