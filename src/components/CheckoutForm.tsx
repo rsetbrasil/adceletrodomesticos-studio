@@ -253,11 +253,11 @@ export default function CheckoutForm() {
     }));
     
     let sellerId = user?.id;
-    let sellerName = user?.name;
+    let finalSellerName = user?.name || 'Não atribuído';
     const existingCustomer = allCustomers.find(c => c.cpf && customerData.cpf && c.cpf?.replace(/\D/g, '') === c.cpf.replace(/\D/g, ''));
-    if (existingCustomer && existingCustomer.sellerId) {
+    if (existingCustomer && existingCustomer.sellerId && existingCustomer.sellerName) {
         sellerId = existingCustomer.sellerId;
-        sellerName = existingCustomer.sellerName;
+        finalSellerName = existingCustomer.sellerName;
     }
 
 
@@ -273,7 +273,7 @@ export default function CheckoutForm() {
       paymentMethod: 'Crediário',
       installmentDetails,
       sellerId: sellerId,
-      sellerName: sellerName || 'Não atribuído',
+      sellerName: finalSellerName,
       observations: values.observations,
     };
     
@@ -292,15 +292,36 @@ export default function CheckoutForm() {
                 // Not implemented, but this is where the W-API call would go
           } else if (settings.storePhone) {
               const storePhone = settings.storePhone.replace(/\D/g, '');
-              const productNames = cartItemsWithDetails.map(item => item.name).join(', ');
               
+              const productsSummary = cartItemsWithDetails.map(item => 
+                `${item.name}\nValor: ${formatCurrency(item.price)}\nQtd: ${item.quantity} un\nSubtotal: ${formatCurrency(item.price * item.quantity)}`
+              ).join('\n\n');
+
               const messageParts = [
                   `*Novo Pedido Recebido!*`,
-                  `*Pedido:* ${savedOrder.id}`,
-                  `*Cliente:* ${values.name}`,
-                  `*Produtos:* ${productNames}`,
-                  `*Total:* ${formatCurrency(total)}`,
-                  `*Parcelamento Máximo:* Até ${maxAllowedInstallments}x`
+                  `*Cód. Pedido:* ${savedOrder.id}`,
+                  `*Vendedor:* ${finalSellerName}`,
+                  ``,
+                  `*PRODUTOS:*`,
+                  productsSummary,
+                  ``,
+                  `---------------------------`,
+                  ``,
+                  `*Total da Compra:* ${formatCurrency(total)}`,
+                  `*Forma de Pagamento:* ${order.paymentMethod}`,
+                  `*Condição Sugerida:* Até ${maxAllowedInstallments}x`,
+                  `*Observação:* ${values.observations || '-'}`,
+                  ``,
+                  `---------------------------`,
+                  `*DADOS DO CLIENTE:*`,
+                  `${values.name}`,
+                  `${values.phone}`,
+                  `CPF: ${values.cpf}`,
+                  ``,
+                  `*ENDEREÇO:*`,
+                  `CEP: ${values.zip}`,
+                  `${values.address}, Nº ${values.number}`,
+                  `${values.neighborhood} - ${values.city}/${values.state}`,
               ];
 
               const message = messageParts.join('\n');
