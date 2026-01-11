@@ -149,3 +149,104 @@
 .print-layout-a4 .print-a4\:block {
   display: block;
 }
+
+/* ===== iOS Calendar ===== */
+
+.ios-calendar-wrapper {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+  width: 320px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.ios-calendar {
+  --rdp-cell-size: 40px;
+}
+
+/* Header */
+.ios-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.ios-caption-label {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.ios-nav {
+  position: absolute;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ios-nav-btn {
+  background: #f2f2f7;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Weekdays */
+.ios-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 6px;
+}
+
+.ios-weekday {
+  text-align: center;
+  font-size: 12px;
+  color: #8e8e93;
+}
+
+/* Days grid */
+.ios-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.ios-day-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ios-day {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ios-day:hover {
+  background: #f2f2f7;
+}
+
+/* Selected day */
+.ios-day-selected {
+  background: #0a84ff;
+  color: white;
+}
+
+/* Today */
+.ios-day-today {
+  border: 1px solid #0a84ff;
+}
+
+/* Outside days */
+.ios-day-outside {
+  color: #c7c7cc;
+}
