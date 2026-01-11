@@ -84,7 +84,7 @@ export default function CheckoutForm() {
   const { cartItems, getCartTotal, clearCart, setLastOrder, removeFromCart } = useCart();
   const { settings } = useSettings();
   const { addOrder } = useAdmin();
-  const { customers: allCustomers } = useAdminData();
+  const { customers, deletedCustomers } = useAdminData();
   const { products } = useData();
   const { user } = useAuth();
   const { logAction } = useAudit();
@@ -92,6 +92,8 @@ export default function CheckoutForm() {
   const { toast } = useToast();
   const [isNewCustomer, setIsNewCustomer] = useState(true);
   const [sellerName, setSellerName] = useState<string | null>(null);
+  
+  const allKnownCustomers = useMemo(() => [...customers, ...deletedCustomers], [customers, deletedCustomers]);
   
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -125,7 +127,7 @@ export default function CheckoutForm() {
 
     const cpf = value?.replace(/\D/g, '');
     if (cpf && cpf.length === 11 && isValidCPF(value)) {
-        const existingCustomer = allCustomers.find(c => c.cpf?.replace(/\D/g, '') === cpf);
+        const existingCustomer = allKnownCustomers.find(c => c.cpf?.replace(/\D/g, '') === cpf);
         if (existingCustomer) {
             form.reset({
                 ...existingCustomer,
@@ -142,7 +144,7 @@ export default function CheckoutForm() {
             setSellerName(null);
         }
     }
-  }, [allCustomers, form, toast]);
+  }, [allKnownCustomers, form, toast]);
 
 
   const cartItemsWithDetails = useMemo(() => {
@@ -255,7 +257,7 @@ export default function CheckoutForm() {
     let sellerId: string | undefined = undefined;
     let finalSellerName: string | undefined = undefined;
 
-    const existingCustomer = allCustomers.find(c => c.cpf && customerData.cpf && c.cpf?.replace(/\D/g, '') === c.cpf.replace(/\D/g, ''));
+    const existingCustomer = allKnownCustomers.find(c => c.cpf && customerData.cpf && c.cpf?.replace(/\D/g, '') === c.cpf.replace(/\D/g, ''));
     if (existingCustomer && existingCustomer.sellerId && existingCustomer.sellerName) {
         sellerId = existingCustomer.sellerId;
         finalSellerName = existingCustomer.sellerName;
@@ -292,9 +294,7 @@ export default function CheckoutForm() {
               description: `Seu pedido #${savedOrder.id} foi confirmado.`,
           });
 
-          if (settings.wapiInstance && settings.wapiToken) {
-                // Not implemented, but this is where the W-API call would go
-          } else if (settings.storePhone) {
+          if (settings.storePhone) {
               const storePhone = settings.storePhone.replace(/\D/g, '');
               
               const productsSummary = cartItemsWithDetails.map(item => 
