@@ -23,7 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Order, CustomerInfo } from '@/lib/types';
 import { addMonths } from 'date-fns';
-import { AlertTriangle, CreditCard, KeyRound, Trash2, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, CreditCard, KeyRound, Trash2, ArrowLeft, User } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { useAdmin, useAdminData } from '@/context/AdminContext';
 import { useAuth } from '@/context/AuthContext';
@@ -91,6 +91,7 @@ export default function CheckoutForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isNewCustomer, setIsNewCustomer] = useState(true);
+  const [sellerName, setSellerName] = useState<string | null>(null);
   
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -131,12 +132,14 @@ export default function CheckoutForm() {
                 cpf: existingCustomer.cpf,
             });
             setIsNewCustomer(false);
+            setSellerName(existingCustomer.sellerName || null);
             toast({
                 title: "Cliente Encontrado!",
                 description: "Seus dados foram preenchidos automaticamente.",
             });
         } else {
             setIsNewCustomer(true);
+            setSellerName(null);
         }
     }
   }, [allCustomers, form, toast]);
@@ -388,6 +391,15 @@ export default function CheckoutForm() {
                         )} 
                     />
                     <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    {sellerName && (
+                        <div className="md:col-span-2">
+                            <FormLabel>Vendedor Responsável</FormLabel>
+                             <div className="flex items-center gap-2 h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <span>{sellerName}</span>
+                            </div>
+                        </div>
+                    )}
                     <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Telefone (WhatsApp)</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} onChange={e => field.onChange(formatPhone(e.target.value))} maxLength={15} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="phone2" render={({ field }) => ( <FormItem><FormLabel>Telefone 2 (Opcional)</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} onChange={e => field.onChange(formatPhone(e.target.value))} maxLength={15} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="phone3" render={({ field }) => ( <FormItem><FormLabel>Telefone 3 (Opcional)</FormLabel><FormControl><Input placeholder="(99) 99999-9999" {...field} onChange={e => field.onChange(formatPhone(e.target.value))} maxLength={15} /></FormControl><FormMessage /></FormItem> )} />
