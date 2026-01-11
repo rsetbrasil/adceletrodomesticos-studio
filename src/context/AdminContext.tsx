@@ -1038,14 +1038,9 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         const orderCustomerKey = order.customer.cpf?.replace(/\D/g, '') || `${order.customer.name}-${order.customer.phone}`;
         if (orderCustomerKey === oldCustomerKey) {
             // Persist the seller info from the new data onto the existing order customer data
-            const customerDataForOrder = { 
-                ...order.customer, 
-                ...updatedCustomerData,
-                sellerId: updatedCustomerData.sellerId,
-                sellerName: updatedCustomerData.sellerName,
-            };
-
-            if (updatedCustomerData.password === undefined || updatedCustomerData.password === '') {
+            const customerDataForOrder = { ...updatedCustomerData };
+            
+            if (customerDataForOrder.password === undefined || customerDataForOrder.password === '') {
                 delete customerDataForOrder.password;
             }
             batch.update(doc(db, 'orders', order.id), { customer: customerDataForOrder });

@@ -737,9 +737,9 @@ Não esqueça de enviar o comprovante!`;
                             </div>
                         </div>
                          {selectedCustomer.sellerName && (
-                            <div className="flex items-center gap-2 col-span-full pt-4 mt-4 border-t">
+                            <div className="flex items-center gap-2 pt-2 mt-2 col-span-full border-t">
                                 <UserIcon className="h-4 w-4 text-muted-foreground" />
-                                <span>Vendedor Responsável: <strong>{selectedCustomer.sellerName}</strong></span>
+                                <span className="font-semibold">Vendedor Responsável: <strong>{selectedCustomer.sellerName}</strong></span>
                             </div>
                         )}
                         {selectedCustomer.observations && (
