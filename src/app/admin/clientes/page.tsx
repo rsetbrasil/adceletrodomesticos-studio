@@ -509,6 +509,11 @@ Não esqueça de enviar o comprovante!`;
         description: `O pedido #${order.id} foi atribuído a ${seller.name}.`
     });
   };
+  
+  const handleAssignToMe = (order: Order) => {
+    if (!user) return;
+    handleAssignSeller(order, user);
+  };
 
   return (
     <>
@@ -917,24 +922,29 @@ Não esqueça de enviar o comprovante!`;
                                             ) : (
                                                 <p className="text-muted-foreground text-sm text-center py-4">Este pedido foi pago por {order.paymentMethod} e não possui parcelas.</p>
                                             )}
-                                             <div className="flex justify-between items-center mt-3">
-                                                 <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="sm">
-                                                            <UserPlus className="mr-2 h-4 w-4" />
-                                                            Atribuir Vendedor
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="start">
-                                                        <DropdownMenuLabel>Selecione o Vendedor</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator />
-                                                        {sellers.map(s => (
-                                                            <DropdownMenuItem key={s.id} onSelect={() => handleAssignSeller(order, s)}>
-                                                                {s.name}
-                                                            </DropdownMenuItem>
-                                                        ))}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                             <div className="flex justify-between items-center mt-4 pt-4 border-t flex-wrap gap-2">
+                                                <div className="flex gap-2 items-center">
+                                                    <Button variant="outline" size="sm" onClick={() => handleAssignToMe(order)}>
+                                                        <UserPlus className="mr-2 h-4 w-4" />
+                                                        Atribuir a Mim
+                                                    </Button>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="sm">
+                                                                Atribuir a Outro...
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="start">
+                                                            <DropdownMenuLabel>Selecione o Vendedor</DropdownMenuLabel>
+                                                            <DropdownMenuSeparator />
+                                                            {sellers.map(s => (
+                                                                <DropdownMenuItem key={s.id} onSelect={() => handleAssignSeller(order, s)}>
+                                                                    {s.name}
+                                                                </DropdownMenuItem>
+                                                            ))}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
                                                 
                                                 {order.paymentMethod === 'Crediário' && (
                                                 <Button variant="ghost" size="sm" asChild>

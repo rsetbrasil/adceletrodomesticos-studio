@@ -1228,4 +1228,3 @@ Não esqueça de enviar o comprovante!`;
     </>
   );
 }
-
