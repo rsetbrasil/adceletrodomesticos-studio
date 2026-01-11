@@ -19,11 +19,14 @@ type LogAction = (action: string, details: string, user: User | null) => void;
 
 // Moved from utils to avoid server-side execution
 const calculateCommission = (order: Order, allProducts: Product[]) => {
-    if (!order.sellerId) return 0;
-    
     // If a commission was set manually on the order, it takes precedence.
-    if (order.isCommissionManual && typeof order.commission === 'number') {
+    if (order.isCommissionManual === true && typeof order.commission === 'number') {
         return order.commission;
+    }
+    
+    // If the order has no seller, there's no commission.
+    if (!order.sellerId) {
+        return 0;
     }
 
     // Otherwise, calculate based on product rules.
@@ -173,6 +176,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const sortedOrders = [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     sortedOrders.forEach(order => {
+        if (order.status === 'Excluído') return; // Do not show deleted customers
         const customerKey = order.customer.cpf ? order.customer.cpf.replace(/\D/g, '') : `${order.customer.name}-${order.customer.phone}`;
         if (customerKey && !customerMap.has(customerKey)) {
             customerMap.set(customerKey, order.customer);
@@ -830,10 +834,10 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const orderWithNewStatus: Order = { ...orderToUpdate, status: newStatus };
     const detailsToUpdate: Partial<Order> = { status: newStatus };
 
-    if (newStatus === 'Entregue' && orderWithNewStatus.sellerId) {
-        detailsToUpdate.commission = calculateCommission(orderWithNewStatus, products);
-        detailsToUpdate.commissionPaid = false;
-        detailsToUpdate.isCommissionManual = false;
+    if (newStatus === 'Entregue') {
+        const updatedOrderWithDetails = { ...orderToUpdate, ...detailsToUpdate };
+        detailsToUpdate.commission = calculateCommission(updatedOrderWithDetails, products);
+        detailsToUpdate.commissionPaid = false; // Reset commission status on delivery
     }
     
     const orderRef = doc(db, 'orders', orderId);
@@ -1048,28 +1052,28 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const { db } = getClientFirebase();
     const customerKey = customer.cpf?.replace(/\D/g, '') || `${customer.name}-${customer.phone}`;
 
-    const ordersToDelete = orders.filter(order => {
+    const ordersToUpdate = orders.filter(order => {
         const orderCustomerKey = order.customer.cpf?.replace(/\D/g, '') || `${order.customer.name}-${order.customer.phone}`;
         return orderCustomerKey === customerKey;
     });
 
-    if (ordersToDelete.length === 0) {
+    if (ordersToUpdate.length === 0) {
         toast({ title: "Nenhum pedido encontrado", description: "Não há registros para este cliente.", variant: "destructive" });
         return;
     }
     
     const batch = writeBatch(db);
-    ordersToDelete.forEach(order => {
-        batch.delete(doc(db, 'orders', order.id));
+    ordersToUpdate.forEach(order => {
+        batch.update(doc(db, 'orders', order.id), { status: 'Excluído' });
     });
 
     batch.commit().then(() => {
-        logAction('Exclusão de Cliente', `Cliente ${customer.name} (CPF: ${customer.cpf}) e todos os seus ${ordersToDelete.length} pedidos foram excluídos.`, user);
-        toast({ title: "Cliente Excluído!", description: `O cliente ${customer.name} e todos os seus pedidos foram removidos permanentemente.`, variant: "destructive" });
+        logAction('Exclusão de Cliente', `Cliente ${customer.name} (CPF: ${customer.cpf}) e seus ${ordersToUpdate.length} pedidos foram movidos para a lixeira.`, user);
+        toast({ title: "Cliente Excluído!", description: `O cliente ${customer.name} e todos os seus pedidos foram movidos para a lixeira.`, variant: "destructive" });
     }).catch(async(e) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: 'orders',
-            operation: 'delete',
+            operation: 'update',
         }));
     });
 }, [orders, toast]);

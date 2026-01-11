@@ -466,6 +466,8 @@ Não esqueça de enviar o comprovante!`;
     setSelectedCustomer(null);
   };
 
+  const canDeleteCustomer = user?.role === 'admin' || user?.role === 'gerente';
+
   return (
     <>
         <div className="grid lg:grid-cols-3 gap-8 items-start">
@@ -561,28 +563,30 @@ Não esqueça de enviar o comprovante!`;
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Editar
                             </Button>
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" outline size="sm">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Excluir Cliente
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Tem certeza que deseja excluir este cliente?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Esta ação é irreversível e excluirá permanentemente o cliente <span className="font-bold">{selectedCustomer.name}</span> e todos os seus pedidos e histórico financeiro.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteCustomer}>
-                                            Sim, Excluir Tudo
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                            {canDeleteCustomer && (
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" outline size="sm">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Excluir Cliente
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Tem certeza que deseja excluir este cliente?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Esta ação moverá todos os pedidos do cliente <span className="font-bold">{selectedCustomer.name}</span> para a lixeira.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleDeleteCustomer}>
+                                                Sim, Excluir
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            )}
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
