@@ -62,35 +62,35 @@ function Calendar({
           }
           return <ChevronRight className="h-4 w-4" />;
         },
-        Dropdown: ({ value, onChange, children, ...props }: DropdownProps) => {
-          const options = React.Children.toArray(
-            children
-          ) as React.ReactElement<React.HTMLProps<HTMLOptionElement>>[];
-          const selected = options.find((child) => child.props.value === value);
-          const handleChange = (value: string) => {
-            const changeEvent = {
-              target: { value },
-            } as React.ChangeEvent<HTMLSelectElement>;
-            onChange?.(changeEvent);
+        Dropdown: ({ value, onChange, name, ...props }: DropdownProps) => {
+          const options = props.options || [];
+          const selected = options.find((option) => option.value === value);
+
+          const handleChange = (newValue: string) => {
+            if (onChange) {
+               const changeEvent = {
+                target: { value: newValue },
+              } as React.ChangeEvent<HTMLSelectElement>;
+              onChange(changeEvent);
+            }
           };
+
           return (
             <Select
               value={value?.toString()}
-              onValueChange={(value) => {
-                handleChange(value);
-              }}
+              onValueChange={handleChange}
             >
               <SelectTrigger className="pr-1.5 focus:ring-0">
-                <SelectValue>{selected?.props?.children}</SelectValue>
+                <SelectValue>{selected?.label}</SelectValue>
               </SelectTrigger>
               <SelectContent position="popper">
                 <ScrollArea className="h-80">
                   {options.map((option, id: number) => (
                     <SelectItem
-                      key={`${option.props.value}-${id}`}
-                      value={option.props.value?.toString() ?? ""}
+                      key={`${option.value}-${id}`}
+                      value={option.value?.toString() ?? ""}
                     >
-                      {option.props.children}
+                      {option.label}
                     </SelectItem>
                   ))}
                 </ScrollArea>
