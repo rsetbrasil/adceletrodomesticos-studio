@@ -333,6 +333,7 @@ export default function CreateOrderPage() {
         sellerId: seller.id,
         sellerName: seller.name,
         observations: values.observations,
+        source: 'Manual',
     };
     
     try {

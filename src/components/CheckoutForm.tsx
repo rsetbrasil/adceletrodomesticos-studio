@@ -275,6 +275,7 @@ export default function CheckoutForm() {
       sellerId: sellerId,
       sellerName: finalSellerName,
       observations: values.observations,
+      source: 'Online',
     };
     
     try {
@@ -298,7 +299,7 @@ export default function CheckoutForm() {
               ).join('\n\n');
 
               const messageParts = [
-                  `*Novo Pedido Recebido!*`,
+                  `*Novo Pedido do Catálogo Online!*`,
                   `*Cód. Pedido:* ${savedOrder.id}`,
                   `*Vendedor:* ${finalSellerName}`,
                   ``,

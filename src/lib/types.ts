@@ -118,6 +118,7 @@ export type Order = {
   commissionPaid?: boolean;
   isCommissionManual?: boolean;
   observations?: string;
+  source?: 'Online' | 'Manual';
 };
 
 export type CommissionPayment = {
