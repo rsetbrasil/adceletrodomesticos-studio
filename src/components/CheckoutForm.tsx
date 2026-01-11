@@ -217,7 +217,7 @@ export default function CheckoutForm() {
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     
-    let customerData: CustomerInfo = {
+    const customerData: CustomerInfo = {
       name: values.name,
       cpf: values.cpf?.replace(/\D/g, ''),
       phone: values.phone,
@@ -254,12 +254,12 @@ export default function CheckoutForm() {
     
     let sellerId = user?.id;
     let finalSellerName = user?.name || 'Não atribuído';
+
     const existingCustomer = allCustomers.find(c => c.cpf && customerData.cpf && c.cpf?.replace(/\D/g, '') === c.cpf.replace(/\D/g, ''));
     if (existingCustomer && existingCustomer.sellerId && existingCustomer.sellerName) {
         sellerId = existingCustomer.sellerId;
         finalSellerName = existingCustomer.sellerName;
     }
-
 
     const order: Partial<Order> & { firstDueDate: Date } = {
       customer: customerData,
