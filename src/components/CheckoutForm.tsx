@@ -61,6 +61,8 @@ const checkoutSchema = z.object({
   city: z.string().min(2, 'Cidade é obrigatória.'),
   state: z.string().min(2, 'Estado é obrigatória.'),
   observations: z.string().optional(),
+  sellerId: z.string().optional(),
+  sellerName: z.string().optional(),
 });
 
 
@@ -91,7 +93,6 @@ export default function CheckoutForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isNewCustomer, setIsNewCustomer] = useState(true);
-  const [sellerName, setSellerName] = useState<string | null>(null);
   
   const allKnownCustomers = useMemo(() => [...customers, ...deletedCustomers], [customers, deletedCustomers]);
   
@@ -131,17 +132,18 @@ export default function CheckoutForm() {
         if (existingCustomer) {
             form.reset({
                 ...existingCustomer,
-                cpf: existingCustomer.cpf,
+                cpf: existingCustomer.cpf, // ensure formatted cpf is kept if it was
             });
             setIsNewCustomer(false);
-            setSellerName(existingCustomer.sellerName || null);
             toast({
                 title: "Cliente Encontrado!",
                 description: "Seus dados foram preenchidos automaticamente.",
             });
         } else {
             setIsNewCustomer(true);
-            setSellerName(null);
+            // Clear seller fields if customer is not found
+            form.setValue('sellerId', undefined);
+            form.setValue('sellerName', undefined);
         }
     }
   }, [allKnownCustomers, form, toast]);
@@ -166,6 +168,8 @@ export default function CheckoutForm() {
   }, [cartItemsWithDetails]);
 
   const isCartValid = cartItemsWithDetails.every(item => item.hasEnoughStock);
+  
+  const sellerName = form.watch('sellerName');
 
   const handleZipBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
     const zip = e.target.value.replace(/\D/g, '');
@@ -219,22 +223,9 @@ export default function CheckoutForm() {
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     
-    const customerData: CustomerInfo = {
-      name: values.name,
-      cpf: values.cpf?.replace(/\D/g, ''),
-      phone: values.phone,
-      phone2: values.phone2,
-      phone3: values.phone3,
-      email: values.email,
-      zip: values.zip,
-      address: values.address,
-      number: values.number,
-      complement: values.complement,
-      neighborhood: values.neighborhood,
-      city: values.city,
-      state: values.state,
-      observations: values.observations,
-    };
+    const { sellerId: formSellerId, sellerName: formSellerName, ...customerValues } = values;
+
+    const customerData: CustomerInfo = customerValues;
     
     if (customerData.cpf && isNewCustomer) {
         customerData.password = customerData.cpf.substring(0, 6);
@@ -253,18 +244,6 @@ export default function CheckoutForm() {
         paidAmount: 0,
         payments: [],
     }));
-    
-    let sellerId: string | undefined = undefined;
-    let finalSellerName: string | undefined = undefined;
-
-    const existingCustomer = allKnownCustomers.find(c => c.cpf && customerData.cpf && c.cpf?.replace(/\D/g, '') === c.cpf.replace(/\D/g, ''));
-    if (existingCustomer && existingCustomer.sellerId && existingCustomer.sellerName) {
-        sellerId = existingCustomer.sellerId;
-        finalSellerName = existingCustomer.sellerName;
-    } else {
-        finalSellerName = 'Não atribuído';
-    }
-
 
     const order: Partial<Order> & { firstDueDate: Date } = {
       customer: customerData,
@@ -277,8 +256,8 @@ export default function CheckoutForm() {
       status: 'Processando',
       paymentMethod: 'Crediário',
       installmentDetails,
-      sellerId: sellerId,
-      sellerName: finalSellerName,
+      sellerId: formSellerId, // Use directly from form values
+      sellerName: formSellerName, // Use directly from form values
       observations: values.observations,
       source: 'Online',
     };
@@ -304,7 +283,7 @@ export default function CheckoutForm() {
               const messageParts = [
                   `*Novo Pedido do Catálogo Online!*`,
                   `*Cód. Pedido:* ${savedOrder.id}`,
-                  `*Vendedor:* ${finalSellerName}`,
+                  `*Vendedor:* ${order.sellerName || 'Não atribuído'}`,
                   ``,
                   `*PRODUTOS:*`,
                   productsSummary,
