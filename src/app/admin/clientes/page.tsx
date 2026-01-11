@@ -405,7 +405,7 @@ export default function CustomersAdminPage() {
           delete updatedCustomerData.password;
       }
 
-      updateCustomer(selectedCustomer, updatedCustomerData, logAction, user);
+      updateCustomer(selectedCustomer, updatedCustomerData as CustomerInfo, logAction, user);
       setSelectedCustomer(updatedCustomerData as CustomerInfo);
       setIsEditDialogOpen(false);
     }
@@ -737,7 +737,7 @@ Não esqueça de enviar o comprovante!`;
                             </div>
                         </div>
                          {selectedCustomer.sellerName && (
-                            <div className="flex items-center col-span-full gap-2 pt-2 border-t mt-2">
+                            <div className="flex items-center gap-2 col-span-full pt-4 mt-4 border-t">
                                 <UserIcon className="h-4 w-4 text-muted-foreground" />
                                 <span>Vendedor Responsável: <strong>{selectedCustomer.sellerName}</strong></span>
                             </div>

@@ -1037,12 +1037,14 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     orders.forEach(order => {
         const orderCustomerKey = order.customer.cpf?.replace(/\D/g, '') || `${order.customer.name}-${order.customer.phone}`;
         if (orderCustomerKey === oldCustomerKey) {
-            const customerDataForOrder = { ...order.customer, ...updatedCustomerData };
-            // Persist seller info from customer to order
-            if (updatedCustomerData.sellerId && updatedCustomerData.sellerName) {
-                customerDataForOrder.sellerId = updatedCustomerData.sellerId;
-                customerDataForOrder.sellerName = updatedCustomerData.sellerName;
-            }
+            // Persist the seller info from the new data onto the existing order customer data
+            const customerDataForOrder = { 
+                ...order.customer, 
+                ...updatedCustomerData,
+                sellerId: updatedCustomerData.sellerId,
+                sellerName: updatedCustomerData.sellerName,
+            };
+
             if (updatedCustomerData.password === undefined || updatedCustomerData.password === '') {
                 delete customerDataForOrder.password;
             }
