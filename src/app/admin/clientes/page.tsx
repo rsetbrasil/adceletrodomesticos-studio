@@ -33,6 +33,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const formatCurrency = (value: number) => {
@@ -376,6 +377,17 @@ export default function CustomersAdminPage() {
         setEditedInfo(prev => ({ ...prev, [name]: value }));
     }
   };
+  
+  const handleSellerChange = (sellerId: string) => {
+      const seller = sellers.find(s => s.id === sellerId);
+      if (seller) {
+          setEditedInfo(prev => ({
+              ...prev,
+              sellerId: seller.id,
+              sellerName: seller.name,
+          }));
+      }
+  };
 
   const handleSaveChanges = () => {
     if (selectedCustomer && editedInfo && user) {
@@ -716,6 +728,12 @@ Não esqueça de enviar o comprovante!`;
                                 <p className="text-muted-foreground">{`${selectedCustomer.neighborhood}, ${selectedCustomer.city}/${selectedCustomer.state} - CEP: ${selectedCustomer.zip}`}</p>
                             </div>
                         </div>
+                        {selectedCustomer.sellerName && (
+                            <div className="flex items-center col-span-full gap-2 mt-2 pt-4 border-t">
+                                <UserIcon className="h-4 w-4 text-muted-foreground" />
+                                <span>Vendedor Responsável: <strong>{selectedCustomer.sellerName}</strong></span>
+                            </div>
+                        )}
                         {selectedCustomer.observations && (
                              <div className="flex items-start col-span-full gap-2 mt-2 pt-4 border-t">
                                 <FileSignature className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -1140,6 +1158,20 @@ Não esqueça de enviar o comprovante!`;
                          <div className="md:col-span-6">
                             <Label htmlFor="state">Estado</Label>                            <Input id="state" name="state" value={editedInfo.state || ''} onChange={handleInputChange} />
                         </div>
+                    </div>
+                    <div>
+                        <Label htmlFor="sellerId">Vendedor Responsável</Label>
+                        <Select value={editedInfo.sellerId || ''} onValueChange={handleSellerChange}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione um vendedor" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">Nenhum</SelectItem>
+                                {sellers.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div>
                         <Label htmlFor="observations">Observações</Label>

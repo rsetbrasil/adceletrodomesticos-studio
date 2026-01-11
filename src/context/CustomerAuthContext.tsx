@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
@@ -6,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { CustomerInfo, Order } from '@/lib/types';
 import { getClientFirebase } from '@/lib/firebase-client';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 
 interface CustomerAuthContextType {
   customer: CustomerInfo | null;
@@ -69,10 +70,7 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
     const q = query(ordersRef, where('customer.cpf', '==', normalizedCpf));
 
     try {
-        const querySnapshot = await new Promise<import('firebase/firestore').QuerySnapshot>((resolve, reject) => {
-            const unsubscribe = onSnapshot(q, resolve, reject);
-            // Optional: You might want to unsubscribe after the first snapshot if you don't need real-time updates for login
-        });
+        const querySnapshot = await getDocs(q);
         
         const customerOrders = querySnapshot.docs.map(doc => doc.data() as Order);
 

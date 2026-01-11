@@ -248,6 +248,15 @@ export default function CheckoutForm() {
         paidAmount: 0,
         payments: [],
     }));
+    
+    let sellerId = user?.id;
+    let sellerName = user?.name;
+    const existingCustomer = allCustomers.find(c => c.cpf && customerData.cpf && c.cpf?.replace(/\D/g, '') === c.cpf.replace(/\D/g, ''));
+    if (existingCustomer && existingCustomer.sellerId) {
+        sellerId = existingCustomer.sellerId;
+        sellerName = existingCustomer.sellerName;
+    }
+
 
     const order: Partial<Order> & { firstDueDate: Date } = {
       customer: customerData,
@@ -260,8 +269,9 @@ export default function CheckoutForm() {
       status: 'Processando',
       paymentMethod: 'Crediário',
       installmentDetails,
-      sellerId: user?.id,
-      sellerName: user?.name,
+      sellerId: sellerId,
+      sellerName: sellerName || 'Não atribuído',
+      observations: values.observations,
     };
     
     try {

@@ -71,6 +71,8 @@ export type CustomerInfo = {
   state: string;
   password?: string;
   observations?: string;
+  sellerId?: string;
+  sellerName?: string;
 };
 
 export type Payment = {
