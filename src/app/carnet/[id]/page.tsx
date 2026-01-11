@@ -32,7 +32,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
     const valorFinanciado = order.total;
 
     return (
-    <div className="carnet-content-wrapper bg-white break-inside-avoid print:p-0 text-sm print:text-[10px] flex flex-col h-full">
+    <div className="carnet-content-wrapper bg-white break-inside-avoid print:p-0 text-sm print:text-[10px] flex flex-col print:h-[277mm]">
         <div className="pb-1 border-b">
             <div className="flex justify-between items-start">
                 <div className="flex items-center">
@@ -108,34 +108,36 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                     </tbody>
                 </table>
             </div>
-            <table className="w-full text-xs print:text-[9px] mt-auto">
-                <tfoot className="bg-muted/50 print:bg-gray-100 font-bold">
-                    <tr className="border-t">
-                        <td colSpan={2} className="p-1 text-right">SUBTOTAL:</td>
-                        <td className="p-1 text-right font-mono w-[25%]">{formatCurrency(subtotal)}</td>
-                        <td className="w-[35%]"></td>
-                    </tr>
-                    {(order.downPayment || 0) > 0 && (
+            <div className="mt-auto">
+                <table className="w-full text-xs print:text-[9px]">
+                    <tfoot className="bg-muted/50 print:bg-gray-100 font-bold">
                         <tr className="border-t">
-                            <td colSpan={2} className="p-1 text-right text-green-600">ENTRADA:</td>
-                            <td className="p-1 text-right font-mono text-green-600">- {formatCurrency(order.downPayment || 0)}</td>
+                            <td colSpan={2} className="p-1 text-right">SUBTOTAL:</td>
+                            <td className="p-1 text-right font-mono w-[25%]">{formatCurrency(subtotal)}</td>
+                            <td className="w-[35%]"></td>
+                        </tr>
+                        {(order.downPayment || 0) > 0 && (
+                            <tr className="border-t">
+                                <td colSpan={2} className="p-1 text-right text-green-600">ENTRADA:</td>
+                                <td className="p-1 text-right font-mono text-green-600">- {formatCurrency(order.downPayment || 0)}</td>
+                                <td></td>
+                            </tr>
+                        )}
+                        {(order.discount || 0) > 0 && (
+                            <tr className="border-t">
+                                <td colSpan={2} className="p-1 text-right text-destructive">DESCONTO:</td>
+                                <td className="p-1 text-right font-mono text-destructive">- {formatCurrency(order.discount || 0)}</td>
+                                <td></td>
+                            </tr>
+                        )}
+                        <tr className="border-t text-base print:text-sm">
+                            <td colSpan={2} className="p-1 text-right">VALOR TOTAL:</td>
+                            <td className="p-1 text-right font-mono">{formatCurrency(valorFinanciado)}</td>
                             <td></td>
                         </tr>
-                    )}
-                    {(order.discount || 0) > 0 && (
-                        <tr className="border-t">
-                            <td colSpan={2} className="p-1 text-right text-destructive">DESCONTO:</td>
-                            <td className="p-1 text-right font-mono text-destructive">- {formatCurrency(order.discount || 0)}</td>
-                            <td></td>
-                        </tr>
-                    )}
-                    <tr className="border-t text-base print:text-sm">
-                        <td colSpan={2} className="p-1 text-right">VALOR TOTAL:</td>
-                        <td className="p-1 text-right font-mono">{formatCurrency(valorFinanciado)}</td>
-                        <td></td>
-                    </tr>
-                </tfoot>
-            </table>
+                    </tfoot>
+                </table>
+             </div>
         </div>
 
         {order.observations && (
@@ -280,10 +282,10 @@ export default function CarnetPage() {
         </header>
         
         <main className="w-full bg-white p-4 print:p-0 print:shadow-none print-default:grid print-default:grid-cols-2 print-default:gap-x-4 print-a4:flex print-a4:flex-col print-a4:h-[260mm]">
-            <div className="print-default:border-r print-default:border-dashed print-default:border-black print-default:pr-4 print-a4:flex-grow print-a4:flex print-a4:flex-col">
+            <div className="print-default:border-r print-default:border-dashed print-default:border-black print-default:pr-4">
                 <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
-            <div className="hidden print-default:block print-default:pl-4 print-a4:hidden">
+            <div className="hidden print-default:block print-default:pl-4">
                 <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
         </main>
