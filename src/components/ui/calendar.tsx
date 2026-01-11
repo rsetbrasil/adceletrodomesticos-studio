@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -37,12 +38,8 @@ export function Calendar({
           day_outside: "ios-day-outside",
         }}
         components={{
-          Chevron: ({ orientation }) =>
-            orientation === "left" ? (
-              <ChevronLeft size={18} />
-            ) : (
-              <ChevronRight size={18} />
-            ),
+          IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
+          IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
         }}
         {...props}
       />
