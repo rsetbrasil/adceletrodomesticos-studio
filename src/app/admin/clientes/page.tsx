@@ -379,6 +379,13 @@ export default function CustomersAdminPage() {
   };
   
   const handleSellerChange = (sellerId: string) => {
+    if (sellerId === 'none') {
+        setEditedInfo(prev => ({
+            ...prev,
+            sellerId: undefined,
+            sellerName: undefined,
+        }));
+    } else {
       const seller = sellers.find(s => s.id === sellerId);
       if (seller) {
           setEditedInfo(prev => ({
@@ -387,6 +394,7 @@ export default function CustomersAdminPage() {
               sellerName: seller.name,
           }));
       }
+    }
   };
 
   const handleSaveChanges = () => {
@@ -1161,12 +1169,12 @@ Não esqueça de enviar o comprovante!`;
                     </div>
                     <div>
                         <Label htmlFor="sellerId">Vendedor Responsável</Label>
-                        <Select value={editedInfo.sellerId || ''} onValueChange={handleSellerChange}>
+                        <Select value={editedInfo.sellerId || 'none'} onValueChange={handleSellerChange}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Selecione um vendedor" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Nenhum</SelectItem>
+                                <SelectItem value="none">Nenhum</SelectItem>
                                 {sellers.map(s => (
                                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                 ))}
