@@ -32,7 +32,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
     const valorFinanciado = order.total;
 
     return (
-    <div className="carnet-content-wrapper bg-white break-inside-avoid print:p-0 text-sm print:text-[10px] flex flex-col print:h-[277mm]">
+    <div className="carnet-content-wrapper bg-white break-inside-avoid-page print:p-0 text-sm print:text-[10px] flex flex-col">
         <div className="pb-1 border-b">
             <div className="flex justify-between items-start">
                 <div className="flex items-center">
@@ -281,7 +281,7 @@ export default function CarnetPage() {
           </div>
         </header>
         
-        <main className="w-full bg-white p-4 print:p-0 print:shadow-none print-default:grid print-default:grid-cols-2 print-default:gap-x-4 print-a4:flex print-a4:flex-col print-a4:h-[260mm]">
+        <main className="w-full bg-white p-4 print:p-0 print:shadow-none print-default:grid print-default:grid-cols-2 print-default:gap-x-4 print-a4:flex print-a4:flex-col">
             <div className="print-default:border-r print-default:border-dashed print-default:border-black print-default:pr-4">
                 <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
