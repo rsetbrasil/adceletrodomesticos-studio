@@ -252,14 +252,17 @@ export default function CheckoutForm() {
         payments: [],
     }));
     
-    let sellerId = user?.id;
-    let finalSellerName = user?.name || 'Não atribuído';
+    let sellerId: string | undefined = undefined;
+    let finalSellerName: string | undefined = undefined;
 
     const existingCustomer = allCustomers.find(c => c.cpf && customerData.cpf && c.cpf?.replace(/\D/g, '') === c.cpf.replace(/\D/g, ''));
     if (existingCustomer && existingCustomer.sellerId && existingCustomer.sellerName) {
         sellerId = existingCustomer.sellerId;
         finalSellerName = existingCustomer.sellerName;
+    } else {
+        finalSellerName = 'Não atribuído';
     }
+
 
     const order: Partial<Order> & { firstDueDate: Date } = {
       customer: customerData,
