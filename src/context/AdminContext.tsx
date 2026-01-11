@@ -129,6 +129,7 @@ interface AdminContextType {
   avarias: Avaria[];
   chatSessions: ChatSession[];
   customers: CustomerInfo[];
+  deletedCustomers: CustomerInfo[];
   customerOrders: { [key: string]: Order[] };
   customerFinancials: { [key: string]: { totalComprado: number, totalPago: number, saldoDevedor: number } };
   financialSummary: { totalVendido: number, totalRecebido: number, totalPendente: number, lucroBruto: number, monthlyData: { name: string, total: number }[] };
@@ -171,31 +172,38 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // Memos for derived data, now living in AdminContext
-  const customers = useMemo(() => {
-    const customerMap = new Map<string, CustomerInfo>();
+  const { customers, deletedCustomers } = useMemo(() => {
+    const customerMap = new Map<string, { customer: CustomerInfo, hasActiveOrder: boolean }>();
     const sortedOrders = [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     sortedOrders.forEach(order => {
-        if (order.status === 'Excluído') return; // Do not show deleted customers
         const customerKey = order.customer.cpf ? order.customer.cpf.replace(/\D/g, '') : `${order.customer.name}-${order.customer.phone}`;
-        if (customerKey && !customerMap.has(customerKey)) {
-            customerMap.set(customerKey, order.customer);
+        if (!customerKey) return;
+
+        const existing = customerMap.get(customerKey);
+        
+        if (!existing) {
+             customerMap.set(customerKey, { customer: order.customer, hasActiveOrder: order.status !== 'Excluído' });
+        } else if (order.status !== 'Excluído') {
+            existing.hasActiveOrder = true;
         }
     });
+    
+    const all = Array.from(customerMap.values());
+    const active = all.filter(item => item.hasActiveOrder).map(item => item.customer).sort((a, b) => a.name.localeCompare(b.name));
+    const deleted = all.filter(item => !item.hasActiveOrder).map(item => item.customer).sort((a, b) => a.name.localeCompare(b.name));
 
-    return Array.from(customerMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return { customers: active, deletedCustomers: deleted };
   }, [orders]);
   
   const customerOrders = useMemo(() => {
     const ordersByCustomer: { [key: string]: Order[] } = {};
     orders.forEach(order => {
-      if (order.status !== 'Cancelado' && order.status !== 'Excluído') {
         const customerKey = order.customer.cpf?.replace(/\D/g, '') || `${order.customer.name}-${order.customer.phone}`;
         if (!ordersByCustomer[customerKey]) {
           ordersByCustomer[customerKey] = [];
         }
         ordersByCustomer[customerKey].push(order);
-      }
     });
     for(const key in ordersByCustomer) {
         ordersByCustomer[key].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -205,9 +213,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const customerFinancials = useMemo(() => {
       const financialsByCustomer: { [key: string]: { totalComprado: number, totalPago: number, saldoDevedor: number } } = {};
-      customers.forEach(customer => {
+      const allCustomers = [...customers, ...deletedCustomers];
+      allCustomers.forEach(customer => {
         const customerKey = customer.cpf?.replace(/\D/g, '') || `${customer.name}-${customer.phone}`;
-        const ordersForCustomer = customerOrders[customerKey] || [];
+        const ordersForCustomer = (customerOrders[customerKey] || []).filter(o => o.status !== 'Excluído' && o.status !== 'Cancelado');
+        
         const allInstallments = ordersForCustomer.flatMap(order => order.installmentDetails || []);
         const totalComprado = ordersForCustomer.reduce((acc, order) => acc + order.total, 0);
         const totalPago = allInstallments.reduce((sum, inst) => sum + (inst.paidAmount || 0), 0);
@@ -215,7 +225,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         financialsByCustomer[customerKey] = { totalComprado, totalPago, saldoDevedor };
       });
       return financialsByCustomer;
-  }, [customers, customerOrders]);
+  }, [customers, deletedCustomers, customerOrders]);
 
   const financialSummary = useMemo(() => {
     let totalVendido = 0;
@@ -831,13 +841,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const wasCanceledOrDeleted = oldStatus === 'Cancelado' || oldStatus === 'Excluído';
     const isNowCanceledOrDeleted = newStatus === 'Cancelado' || newStatus === 'Excluído';
     
-    const orderWithNewStatus: Order = { ...orderToUpdate, status: newStatus };
+    const updatedOrderWithDetails: Order = { ...orderToUpdate, status: newStatus };
     const detailsToUpdate: Partial<Order> = { status: newStatus };
 
     if (newStatus === 'Entregue') {
-        const updatedOrderWithDetails = { ...orderToUpdate, ...detailsToUpdate };
         detailsToUpdate.commission = calculateCommission(updatedOrderWithDetails, products);
-        detailsToUpdate.commissionPaid = false; // Reset commission status on delivery
+        detailsToUpdate.commissionPaid = false;
     }
     
     const orderRef = doc(db, 'orders', orderId);
@@ -1468,6 +1477,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     avarias,
     chatSessions,
     customers,
+    deletedCustomers,
     customerOrders,
     customerFinancials,
     financialSummary,
@@ -1480,7 +1490,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     restoreAdminData, resetOrders, resetProducts, resetFinancials, resetAllAdminData,
     saveStockAudit, addAvaria, updateAvaria, deleteAvaria,
     emptyTrash,
-    orders, commissionPayments, stockAudits, avarias, chatSessions, customers, customerOrders, customerFinancials, financialSummary, commissionSummary
+    orders, commissionPayments, stockAudits, avarias, chatSessions, customers, deletedCustomers, customerOrders, customerFinancials, financialSummary, commissionSummary
   ]);
 
   return (

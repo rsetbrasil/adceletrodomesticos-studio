@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User as UserIcon, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, Clock, UserSquare, History, Import, UserPlus, FileSignature, Trash2 } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, MapPin, Users, CreditCard, Printer, Upload, FileText, X, Pencil, CheckCircle, Undo2, CalendarIcon, ClipboardPaste, KeyRound, Search, MessageSquarePlus, Clock, UserSquare, History, Import, UserPlus, FileSignature, Trash2, Trash } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,7 @@ import CustomerForm from '@/components/CustomerForm';
 import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { useSettings } from '@/context/SettingsContext';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const formatCurrency = (value: number) => {
@@ -99,8 +100,8 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 };
 
 export default function CustomersAdminPage() {
-  const { updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers, addOrder, deleteCustomer } = useAdmin();
-  const { customers, customerOrders, customerFinancials } = useAdminData();
+  const { updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers, addOrder, deleteCustomer, updateOrderStatus } = useAdmin();
+  const { customers, customerOrders, customerFinancials, deletedCustomers } = useAdminData();
   const { user } = useAuth();
   const { settings } = useSettings();
   const { logAction } = useAudit();
@@ -120,6 +121,7 @@ export default function CustomersAdminPage() {
   const [installmentToPay, setInstallmentToPay] = useState<Installment | null>(null);
   const [orderForPayment, setOrderForPayment] = useState<Order | null>(null);
   const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('active');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [commentDialog, setCommentDialog] = useState<{
@@ -168,6 +170,17 @@ export default function CustomersAdminPage() {
         (customer.cpf && customer.cpf.replace(/\D/g, '').includes(lowercasedQuery))
     );
   }, [customers, searchQuery]);
+
+  const filteredDeletedCustomers = useMemo(() => {
+    if (!deletedCustomers) return [];
+    if (!searchQuery) return deletedCustomers;
+
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return deletedCustomers.filter(customer =>
+        customer.name.toLowerCase().includes(lowercasedQuery) ||
+        (customer.cpf && customer.cpf.replace(/\D/g, '').includes(lowercasedQuery))
+    );
+  }, [deletedCustomers, searchQuery]);
   
   const ordersForSelectedCustomer = useMemo(() => {
       if (!selectedCustomer) return [];
@@ -465,84 +478,130 @@ Não esqueça de enviar o comprovante!`;
     deleteCustomer(selectedCustomer, logAction, user);
     setSelectedCustomer(null);
   };
+  
+  const handleRestoreCustomer = (customer: CustomerInfo) => {
+    if (!user) return;
+    const ordersToRestore = customerOrders[getCustomerKey(customer)] || [];
+    ordersToRestore.forEach(order => {
+        if(order.status === 'Excluído') {
+            updateOrderStatus(order.id, 'Processando', logAction, user);
+        }
+    });
+    toast({ title: "Cliente Restaurado!", description: `O cliente ${customer.name} e seus pedidos foram restaurados.`});
+  };
 
   const canDeleteCustomer = user?.role === 'admin' || user?.role === 'gerente';
 
   return (
     <>
         <div className="grid lg:grid-cols-3 gap-8 items-start">
-        <Card className="lg:col-span-1">
-            <CardHeader>
-                <div className='flex justify-between items-center flex-wrap gap-2'>
-                    <CardTitle className="flex items-center gap-2">
-                        <Users className="h-5 w-5" />
-                        Clientes
-                    </CardTitle>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => setIsAddCustomerDialogOpen(true)}>
-                            <UserPlus className="h-4 w-4 mr-2" />
-                            Cadastrar
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                            <Import className="h-4 w-4 mr-2" />
-                            Importar
-                        </Button>
-                    </div>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept=".csv"
-                        onChange={handleImportCustomers}
-                    />
-                </div>
-                <CardDescription>Selecione um cliente para ver os detalhes, cadastre um novo ou importe uma lista.</CardDescription>
-            </CardHeader>
-            <CardContent>
-            <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                    placeholder="Buscar por nome ou CPF..."
-                    className="pl-10"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                {searchQuery && (
-                    <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearchQuery('')}>
-                        <X className="h-4 w-4" />
-                    </Button>
-                )}
-            </div>
-            {filteredCustomers.length > 0 ? (
-                <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-2">
-                {filteredCustomers.map((customer) => (
-                    <Button
-                    key={getCustomerKey(customer)}
-                    variant={getCustomerKey(selectedCustomer) === getCustomerKey(customer) ? 'secondary' : 'ghost'}
-                    className="justify-start w-full text-left h-auto py-2"
-                    onClick={() => setSelectedCustomer(customer)}
-                    >
-                    <div className="flex items-center gap-3">
-                        <div className="bg-muted rounded-full p-2">
-                        <UserIcon className="h-5 w-5 text-muted-foreground" />
+            <Card className="lg:col-span-1">
+                <CardHeader>
+                    <div className='flex justify-between items-center flex-wrap gap-2'>
+                        <CardTitle className="flex items-center gap-2">
+                            <Users className="h-5 w-5" />
+                            Clientes
+                        </CardTitle>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => setIsAddCustomerDialogOpen(true)}>
+                                <UserPlus className="h-4 w-4 mr-2" />
+                                Cadastrar
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                <Import className="h-4 w-4 mr-2" />
+                                Importar
+                            </Button>
                         </div>
-                        <div>
-                            <p className="font-semibold">{customer.name}</p>
-                            <p className="text-xs text-muted-foreground">{customer.cpf}</p>
-                        </div>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept=".csv"
+                            onChange={handleImportCustomers}
+                        />
                     </div>
-                    </Button>
-                ))}
-                </div>
-            ) : (
-                <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
-                    <Users className="mx-auto h-10 w-10" />
-                    <h3 className="mt-4 text-md font-semibold">Nenhum cliente encontrado</h3>
-                    <p className="mt-1 text-xs">{searchQuery ? 'Tente uma busca diferente.' : 'Os clientes aparecerão aqui após a primeira compra.'}</p>
-                </div>
-            )}
-            </CardContent>
-        </Card>
+                </CardHeader>
+                <CardContent>
+                    <Tabs value={activeTab} onValueChange={setActiveTab}>
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="active">Ativos</TabsTrigger>
+                            <TabsTrigger value="deleted">Lixeira</TabsTrigger>
+                        </TabsList>
+                        <div className="relative my-4">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Buscar por nome ou CPF..."
+                                className="pl-10"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            {searchQuery && (
+                                <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearchQuery('')}>
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+                        <TabsContent value="active">
+                             {filteredCustomers.length > 0 ? (
+                                <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-2">
+                                {filteredCustomers.map((customer) => (
+                                    <Button
+                                    key={getCustomerKey(customer)}
+                                    variant={getCustomerKey(selectedCustomer) === getCustomerKey(customer) ? 'secondary' : 'ghost'}
+                                    className="justify-start w-full text-left h-auto py-2"
+                                    onClick={() => setSelectedCustomer(customer)}
+                                    >
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-muted rounded-full p-2">
+                                        <UserIcon className="h-5 w-5 text-muted-foreground" />
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold">{customer.name}</p>
+                                            <p className="text-xs text-muted-foreground">{customer.cpf}</p>
+                                        </div>
+                                    </div>
+                                    </Button>
+                                ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
+                                    <Users className="mx-auto h-10 w-10" />
+                                    <h3 className="mt-4 text-md font-semibold">Nenhum cliente ativo</h3>
+                                    <p className="mt-1 text-xs">{searchQuery ? 'Tente uma busca diferente.' : 'Os clientes aparecerão aqui.'}</p>
+                                </div>
+                            )}
+                        </TabsContent>
+                        <TabsContent value="deleted">
+                             {filteredDeletedCustomers.length > 0 ? (
+                                <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-2">
+                                {filteredDeletedCustomers.map((customer) => (
+                                    <div key={getCustomerKey(customer)} className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-muted/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-destructive/10 rounded-full p-2">
+                                            <Trash className="h-5 w-5 text-destructive" />
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold">{customer.name}</p>
+                                                <p className="text-xs text-muted-foreground">{customer.cpf}</p>
+                                            </div>
+                                        </div>
+                                        <Button variant="ghost" size="sm" onClick={() => handleRestoreCustomer(customer)}>
+                                            <History className="mr-2 h-4 w-4" /> Restaurar
+                                        </Button>
+                                    </div>
+                                ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
+                                    <Trash className="mx-auto h-10 w-10" />
+                                    <h3 className="mt-4 text-md font-semibold">Lixeira vazia</h3>
+                                    <p className="mt-1 text-xs">Clientes excluídos aparecerão aqui.</p>
+                                </div>
+                            )}
+                        </TabsContent>
+                    </Tabs>
+                </CardContent>
+            </Card>
 
         <Card className="lg:col-span-2">
             <CardHeader>
