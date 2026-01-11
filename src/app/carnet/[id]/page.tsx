@@ -32,45 +32,39 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
     const valorFinanciado = order.total;
 
     return (
-    <div className="carnet-content-wrapper bg-white break-inside-avoid print:p-0 text-sm print:text-[9px]">
+    <div className="carnet-content-wrapper bg-white break-inside-avoid print:p-0 text-sm print:text-[9px] flex flex-col h-full">
         <div className="pb-2 print:pb-1 border-b">
-            <div style={{ display: 'table', width: '100%' }}>
-                <div style={{ display: 'table-row' }}>
-                    <div style={{ display: 'table-cell', verticalAlign: 'middle', paddingRight: '1rem' }}>
-                        <Logo />
+            <div className="flex justify-between items-start">
+                <div className="flex items-center">
+                    <div className="mr-4 print:mr-2"><Logo /></div>
+                    <div>
+                        <p className="font-bold text-base print:text-xs">{settings.storeName}</p>
+                        <p className="whitespace-pre-line text-xs print:text-[8px]">{settings.storeAddress}</p>
                     </div>
-                    <div style={{ display: 'table-cell', verticalAlign: 'middle' }}>
-                        <div className="text-xs">
-                            <p className="font-bold">{settings.storeName}</p>
-                            <p className="whitespace-pre-line">{settings.storeAddress}</p>
-                        </div>
-                    </div>
-                     <div style={{ display: 'table-cell', width: '30%', verticalAlign: 'middle', textAlign: 'right' }}>
-                        {settings.storePhone && (
-                            <p className="text-muted-foreground flex items-center gap-1 justify-end"><Phone className="h-3 w-3" /> WhatsApp: {settings.storePhone}</p>
-                        )}
-                    </div>
+                </div>
+                 <div className="text-right">
+                    {settings.storePhone && (
+                        <p className="text-muted-foreground flex items-center gap-1 justify-end text-xs print:text-[8px]"><Phone className="h-3 w-3" /> WhatsApp: {settings.storePhone}</p>
+                    )}
+                    <p className="font-semibold print:text-[10px]">Pedido Nº</p>
+                    <p className="font-mono text-lg print:text-base">{order.id}</p>
                 </div>
             </div>
         </div>
 
-        <div className="text-center my-2 print:my-1">
-            <p className="font-semibold print:text-[10px]">Pedido Nº</p>
-            <p className="font-mono text-lg print:text-base">{order.id}</p>
-        </div>
-
-        <div className="grid grid-cols-3 gap-x-4 gap-y-1 py-2 print:py-1 border-t">
+        <div className="grid grid-cols-3 gap-x-4 gap-y-1 py-2 print:py-1 border-b">
             <div className="col-span-3 md:col-span-1">
                 <p className="text-xs print:text-[8px] text-muted-foreground">CLIENTE</p>
                 <p className="font-semibold">{order.customer.name}</p>
-                <p className="text-xs print:text-[8px] text-muted-foreground mt-1">TELEFONE</p>
-                <p className="font-semibold">{order.customer.phone}</p>
                  <p className="text-xs print:text-[8px] text-muted-foreground mt-1">ENDEREÇO</p>
-                <p className="font-semibold">{`${order.customer.address}, ${order.customer.number}${order.customer.complement ? `, ${order.customer.complement}` : ''}, ${order.customer.neighborhood} - ${order.customer.city}/${order.customer.state}`}</p>
+                <p className="font-semibold">{`${order.customer.address}, ${order.customer.number}${order.customer.complement ? `, ${order.customer.complement}` : ''}`}</p>
+                <p className="font-semibold">{`${order.customer.neighborhood} - ${order.customer.city}/${order.customer.state}`}</p>
             </div>
              <div className="col-span-3 md:col-span-1">
                 <p className="text-xs print:text-[8px] text-muted-foreground">CPF</p>
                 <p className="font-semibold">{order.customer.cpf}</p>
+                <p className="text-xs print:text-[8px] text-muted-foreground mt-1">TELEFONE</p>
+                <p className="font-semibold">{order.customer.phone}</p>
                 <p className="text-xs print:text-[8px] text-muted-foreground mt-1">VENDEDOR(A)</p>
                 <p className="font-semibold">{order.sellerName}</p>
                 <p className="text-xs print:text-[8px] text-muted-foreground mt-1">DATA DA COMPRA</p>
@@ -89,15 +83,8 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
             </div>
         </div>
         
-        {order.observations && (
-            <div className="py-2 print:py-1 border-t">
-                <p className="text-xs print:text-[8px] text-muted-foreground">OBSERVAÇÕES</p>
-                <p className="font-semibold whitespace-pre-line">{order.observations}</p>
-            </div>
-        )}
-
-        <div className="flex flex-col md:flex-row gap-4 print:flex-row print:gap-2 mt-2">
-            <div className="flex-grow border rounded-md overflow-hidden">
+        <div className="flex-grow mt-2">
+            <div className="border rounded-md overflow-hidden h-full flex flex-col">
                 <table className="w-full text-xs print:text-[9px]">
                     <thead className="bg-muted/50 print:bg-gray-100">
                         <tr className="border-b">
@@ -122,41 +109,51 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                             </tr>
                         ))}
                     </tbody>
+                </table>
+                 <table className="w-full text-xs print:text-[9px] mt-auto">
                      <tfoot className="bg-muted/50 print:bg-gray-100 font-bold">
                         <tr className="border-t">
                             <td colSpan={2} className="p-1 text-right">SUBTOTAL:</td>
-                            <td className="p-1 text-right font-mono">{formatCurrency(subtotal)}</td>
-                            <td className="p-1"></td>
+                            <td className="p-1 text-right font-mono w-[25%]">{formatCurrency(subtotal)}</td>
+                            <td className="w-[35%]"></td>
                         </tr>
                         {(order.downPayment || 0) > 0 && (
                             <tr className="border-t">
                                 <td colSpan={2} className="p-1 text-right text-green-600">ENTRADA:</td>
                                 <td className="p-1 text-right font-mono text-green-600">- {formatCurrency(order.downPayment || 0)}</td>
-                                <td className="p-1"></td>
+                                <td></td>
                             </tr>
                         )}
                         {(order.discount || 0) > 0 && (
                             <tr className="border-t">
                                 <td colSpan={2} className="p-1 text-right text-destructive">DESCONTO:</td>
                                 <td className="p-1 text-right font-mono text-destructive">- {formatCurrency(order.discount || 0)}</td>
-                                <td className="p-1"></td>
+                                <td></td>
                             </tr>
                         )}
                         <tr className="border-t text-base">
                             <td colSpan={2} className="p-1 text-right">VALOR TOTAL:</td>
                             <td className="p-1 text-right font-mono">{formatCurrency(valorFinanciado)}</td>
-                            <td className="p-1"></td>
+                            <td></td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
         </div>
 
-
-        <div className="mt-2 text-xs print:text-[8px] text-muted-foreground">
-            <p className="font-semibold">Observações:</p>
-            <p>1. O pagamento pode ser realizado na loja ou via PIX (solicite o código ao vendedor).</p>
-            <p>2. Em caso de atraso, juros e multas podem ser aplicados.</p>
+        {order.observations && (
+            <div className="py-2 print:py-1 border-t mt-2">
+                <p className="text-xs print:text-[8px] text-muted-foreground">OBSERVAÇÕES:</p>
+                <p className="font-semibold whitespace-pre-line text-xs">{order.observations}</p>
+            </div>
+        )}
+        
+        <div className="mt-auto pt-2 text-xs print:text-[8px] text-muted-foreground border-t">
+            <p className="font-semibold">Importante:</p>
+            <ol className="list-decimal list-inside">
+                <li>O pagamento pode ser realizado na loja ou via PIX (solicite o código ao vendedor).</li>
+                <li>Em caso de atraso, juros e multas podem ser aplicados de acordo com o contrato.</li>
+            </ol>
         </div>
     </div>
 );
@@ -285,11 +282,11 @@ export default function CarnetPage() {
           </div>
         </header>
         
-        <main className="w-full bg-white p-6 print:p-0 print:shadow-none print-default:grid print-default:grid-cols-2 print-default:gap-x-4 print-a4:block">
-            <div className="print-default:border-r print-default:border-dashed print-default:border-black print-default:pr-4">
+        <main className="w-full bg-white p-6 print:p-0 print:shadow-none print-default:grid print-default:grid-cols-2 print-default:gap-x-4 print-a4:flex print-a4:flex-col print-a4:h-[260mm]">
+            <div className="print-default:border-r print-default:border-dashed print-default:border-black print-default:pr-4 print-a4:flex-grow print-a4:flex print-a4:flex-col">
                 <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
-            <div className="hidden print-default:block print-default:pl-4">
+            <div className="hidden print-default:block print-default:pl-4 print-a4:hidden">
                 <CarnetContent order={order} settings={settings} pixPayload={pixPayload} />
             </div>
         </main>
