@@ -729,6 +729,12 @@ Não esqueça de enviar o comprovante!`;
                             <strong className="text-muted-foreground font-mono text-xs">CPF</strong>
                             <span>{selectedCustomer.cpf || 'Não informado'}</span>
                         </div>
+                         {selectedCustomer.sellerName && (
+                            <div className="flex items-center gap-2">
+                                <UserIcon className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-semibold">Vendedor: <strong>{selectedCustomer.sellerName}</strong></span>
+                            </div>
+                        )}
                         <div className="flex items-start col-span-full gap-2 mt-2">
                             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                             <div>
@@ -736,12 +742,6 @@ Não esqueça de enviar o comprovante!`;
                                 <p className="text-muted-foreground">{`${selectedCustomer.neighborhood}, ${selectedCustomer.city}/${selectedCustomer.state} - CEP: ${selectedCustomer.zip}`}</p>
                             </div>
                         </div>
-                         {selectedCustomer.sellerName && (
-                            <div className="flex items-center gap-2 pt-2 mt-2 col-span-full border-t">
-                                <UserIcon className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-semibold">Vendedor Responsável: <strong>{selectedCustomer.sellerName}</strong></span>
-                            </div>
-                        )}
                         {selectedCustomer.observations && (
                              <div className="flex items-start col-span-full gap-2 mt-2 pt-4 border-t">
                                 <FileSignature className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />

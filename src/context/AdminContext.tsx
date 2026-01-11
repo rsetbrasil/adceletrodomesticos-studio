@@ -1037,11 +1037,15 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     orders.forEach(order => {
         const orderCustomerKey = order.customer.cpf?.replace(/\D/g, '') || `${order.customer.name}-${order.customer.phone}`;
         if (orderCustomerKey === oldCustomerKey) {
-            // Persist the seller info from the new data onto the existing order customer data
             const customerDataForOrder = { ...updatedCustomerData };
             
             if (customerDataForOrder.password === undefined || customerDataForOrder.password === '') {
                 delete customerDataForOrder.password;
+            }
+            // Preserve seller info from the existing order record if not present in the update
+            if (updatedCustomerData.sellerId === undefined && order.customer.sellerId) {
+                customerDataForOrder.sellerId = order.customer.sellerId;
+                customerDataForOrder.sellerName = order.customer.sellerName;
             }
             batch.update(doc(db, 'orders', order.id), { customer: customerDataForOrder });
         }
