@@ -32,7 +32,7 @@ import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { useSettings } from '@/context/SettingsContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 
 const formatCurrency = (value: number) => {
@@ -103,7 +103,7 @@ const resizeImage = (file: File, MAX_WIDTH = 1920, MAX_HEIGHT = 1080): Promise<s
 export default function CustomersAdminPage() {
   const { updateCustomer, recordInstallmentPayment, updateInstallmentDueDate, updateOrderDetails, reversePayment, importCustomers, addOrder, deleteCustomer, updateOrderStatus } = useAdmin();
   const { customers, customerOrders, customerFinancials, deletedCustomers } = useAdminData();
-  const { user } = useAuth();
+  const { user, users } = useAuth();
   const { settings } = useSettings();
   const { logAction } = useAudit();
   const { toast } = useToast();
@@ -493,6 +493,23 @@ Não esqueça de enviar o comprovante!`;
 
   const canDeleteCustomer = user?.role === 'admin' || user?.role === 'gerente';
 
+  const sellers = useMemo(() => {
+    return users.filter(u => u.role === 'vendedor' || u.role === 'admin' || u.role === 'gerente');
+  }, [users]);
+  
+  const handleAssignSeller = (order: Order, seller: User) => {
+    if (!seller) return;
+    const detailsToUpdate: Partial<Order> = {
+        sellerId: seller.id,
+        sellerName: seller.name,
+    };
+    updateOrderDetails(order.id, detailsToUpdate, logAction, user);
+    toast({
+        title: "Vendedor Atribuído!",
+        description: `O pedido #${order.id} foi atribuído a ${seller.name}.`
+    });
+  };
+
   return (
     <>
         <div className="grid lg:grid-cols-3 gap-8 items-start">
@@ -758,13 +775,14 @@ Não esqueça de enviar o comprovante!`;
                                                 <p className="text-xs text-muted-foreground italic truncate max-w-xs">{productNames}</p>
                                                 <p className="text-sm text-muted-foreground">{format(new Date(order.date), "dd/MM/yyyy", { locale: ptBR })}</p>
                                             </div>
-                                            <div className="text-right">
+                                            <div className="text-right flex flex-col items-end gap-1">
                                                 <p className="font-bold">{formatCurrency(order.total)}</p>
                                                 {isPaidOff ? (
                                                     <Badge className="bg-green-600 hover:bg-green-700 text-primary-foreground">Quitado</Badge>
                                                 ) : (
                                                     <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                                                 )}
+                                                {order.sellerName && <Badge variant="outline">{order.sellerName}</Badge>}
                                             </div>
                                         </div>
                                     </AccordionTrigger>
@@ -899,16 +917,34 @@ Não esqueça de enviar o comprovante!`;
                                             ) : (
                                                 <p className="text-muted-foreground text-sm text-center py-4">Este pedido foi pago por {order.paymentMethod} e não possui parcelas.</p>
                                             )}
-                                             {order.paymentMethod === 'Crediário' && (
-                                                <div className="text-right mt-3">
-                                                    <Button variant="ghost" size="sm" asChild>
-                                                        <Link href={`/carnet/${order.id}`} target="_blank" rel="noopener noreferrer">
-                                                            <FileText className="mr-2 h-4 w-4" />
-                                                            Ver Carnê Completo do Pedido
-                                                        </Link>
-                                                    </Button>
-                                                </div>
-                                             )}
+                                             <div className="flex justify-between items-center mt-3">
+                                                 <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="sm">
+                                                            <UserPlus className="mr-2 h-4 w-4" />
+                                                            Atribuir Vendedor
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="start">
+                                                        <DropdownMenuLabel>Selecione o Vendedor</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        {sellers.map(s => (
+                                                            <DropdownMenuItem key={s.id} onSelect={() => handleAssignSeller(order, s)}>
+                                                                {s.name}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                                
+                                                {order.paymentMethod === 'Crediário' && (
+                                                <Button variant="ghost" size="sm" asChild>
+                                                    <Link href={`/carnet/${order.id}`} target="_blank" rel="noopener noreferrer">
+                                                        <FileText className="mr-2 h-4 w-4" />
+                                                        Ver Carnê Completo
+                                                    </Link>
+                                                </Button>
+                                                )}
+                                             </div>
                                                 
                                             <div className="space-y-4 pt-4 border-t">
                                                 <h4 className="font-semibold flex items-center gap-2 text-sm">
