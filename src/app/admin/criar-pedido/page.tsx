@@ -94,7 +94,7 @@ const CustomProductForm = ({ onAdd }: { onAdd: (item: CartItem) => void }) => {
 
         if (name && !isNaN(priceValue) && priceValue > 0 && !isNaN(quantityValue) && quantityValue > 0) {
             onAdd({
-                id: `custom-${Date.now()}`,
+                id: `CUSTOM-${Date.now().toString().slice(-6)}`,
                 name: name,
                 price: priceValue,
                 quantity: quantityValue,
@@ -308,7 +308,7 @@ export default function CreateOrderPage() {
     const installmentValue = totalFinanced / values.installments;
 
     const installmentDetails = Array.from({ length: values.installments }, (_, i) => ({
-      id: `inst-manual-${Date.now()}-${i}`,
+      id: `inst-manual-${Date.now().toString().slice(-6)}-${i}`,
       installmentNumber: i + 1,
       amount: installmentValue,
       dueDate: addMonths(values.firstDueDate, i).toISOString(),

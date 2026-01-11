@@ -83,7 +83,7 @@ export default function PaymentDialog({
     if (isNaN(finalAmountToRecord) || finalAmountToRecord <= 0) return;
 
     const payment: Payment = {
-      id: `pay-${Date.now()}`,
+      id: `PAY-${Date.now().toString().slice(-6)}`,
       amount: finalAmountToRecord,
       date: new Date().toISOString(),
       method: paymentMethod,

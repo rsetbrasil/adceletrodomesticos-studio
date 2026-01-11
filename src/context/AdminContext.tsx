@@ -20,7 +20,7 @@ type LogAction = (action: string, details: string, user: User | null) => void;
 // Moved from utils to avoid server-side execution
 const calculateCommission = (order: Order, allProducts: Product[]) => {
     // If a commission was set manually on the order, it takes precedence.
-    if (order.isCommissionManual === true && typeof order.commission === 'number') {
+    if (order.isCommissionManual && typeof order.commission === 'number') {
         return order.commission;
     }
     
@@ -33,7 +33,7 @@ const calculateCommission = (order: Order, allProducts: Product[]) => {
     return order.items.reduce((totalCommission, item) => {
         const product = allProducts.find(p => p.id === item.id);
         
-        // If product doesn't exist in catalog or has no commission value, skip it.
+        // If product doesn't exist in catalog (e.g., custom item) or has no commission value, skip it.
         if (!product || typeof product.commissionValue === 'undefined' || product.commissionValue === null) {
             return totalCommission;
         }
@@ -408,8 +408,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'data-ai-hint' | 'createdAt'>, logAction: LogAction, user: User | null) => {
       const { db } = getClientFirebase();
-      const newProductId = `prod-${Date.now()}`;
-      // Use a simpler, more robust method for generating the product code
+      const newProductId = `PROD-${Date.now().toString().slice(-6)}`;
       const newProductCode = `ITEM-${Date.now().toString().slice(-6)}`;
       
       const newProduct: Partial<Product> = {
@@ -489,7 +488,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: "Erro", description: "Essa categoria já existe.", variant: "destructive" });
       return;
     }
-    const newCategoryId = `cat-${Date.now()}`;
+    const newCategoryId = `CAT-${Date.now().toString().slice(-6)}`;
     const newOrder = categories.length > 0 ? Math.max(...categories.map(c => c.order)) + 1 : 0;
     const newCategory: Category = {
       id: newCategoryId,
@@ -775,7 +774,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const { db } = getClientFirebase();
     // A robust way to generate a unique order ID
     const prefix = order.items && order.items.length > 0 ? 'PED' : 'REG';
-    const orderId = `${prefix}-${Date.now()}`;
+    const orderId = `${prefix}-${Date.now().toString().slice(-6)}`;
     
     let isNewCustomer = true;
     if (order.customer?.cpf) {
@@ -844,7 +843,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     const updatedOrderWithDetails: Order = { ...orderToUpdate, status: newStatus };
     const detailsToUpdate: Partial<Order> = { status: newStatus };
 
-    if (newStatus === 'Entregue') {
+    if (newStatus === 'Entregue' && updatedOrderWithDetails.sellerId) {
         detailsToUpdate.commission = calculateCommission(updatedOrderWithDetails, products);
         detailsToUpdate.commissionPaid = false;
     }
@@ -1297,7 +1296,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const payCommissions = useCallback(async (sellerId: string, sellerName: string, amount: number, orderIds: string[], period: string, logAction: LogAction, user: User | null): Promise<string | null> => {
     const { db } = getClientFirebase();
-    const paymentId = `comp-${sellerId}-${Date.now()}`;
+    const paymentId = `COMP-${Date.now().toString().slice(-6)}`;
     const payment: CommissionPayment = {
         id: paymentId,
         sellerId,
@@ -1375,7 +1374,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   const addAvaria = useCallback(async (avariaData: Omit<Avaria, 'id' | 'createdAt' | 'createdBy' | 'createdByName'>, logAction: LogAction, user: User | null) => {
     const { db } = getClientFirebase();
     if (!user) return;
-    const newAvariaId = `avaria-${Date.now()}`;
+    const newAvariaId = `AVR-${Date.now().toString().slice(-6)}`;
     const newAvaria: Avaria = {
       ...avariaData,
       id: newAvariaId,
