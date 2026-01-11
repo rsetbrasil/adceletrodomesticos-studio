@@ -196,7 +196,7 @@ export default function CreateOrderPage() {
     resolver: zodResolver(createOrderSchema),
     defaultValues: {
       customerId: '',
-      sellerId: user?.id || '',
+      sellerId: user?.id || sellers[0]?.id || '',
       date: new Date(),
       firstDueDate: addMonths(new Date(), 1),
       items: [],
@@ -430,7 +430,7 @@ export default function CreateOrderPage() {
                 render={({ field }) => (
                     <FormItem className="flex flex-col">
                         <FormLabel>Vendedor</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione o vendedor responsável" />
