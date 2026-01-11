@@ -71,17 +71,13 @@ export default function CommissionReceiptPage() {
 
         <main ref={receiptRef} id="receipt-content" className="bg-background rounded-lg border shadow-sm p-8 break-inside-avoid print:shadow-none print:border-none print:p-0">
            <div className="flex justify-between items-start pb-4 border-b">
-             <div style={{ display: 'table' }}>
-                <div style={{ display: 'table-row' }}>
-                    <div style={{ display: 'table-cell', verticalAlign: 'middle', paddingRight: '1rem' }}>
-                        <Logo />
-                    </div>
-                    <div style={{ display: 'table-cell', verticalAlign: 'middle' }}>
-                        <div className="text-xs">
-                            <p className="font-bold">{settings.storeName}</p>
-                            <p className="whitespace-pre-line">{settings.storeAddress}</p>
-                        </div>
-                    </div>
+             <div className="flex items-center">
+                <div className="mr-1.5">
+                    <Logo />
+                </div>
+                <div className="text-xs">
+                    <p className="font-bold">{settings.storeName}</p>
+                    <p className="whitespace-pre-line">{settings.storeAddress}</p>
                 </div>
             </div>
              <div className="text-right">

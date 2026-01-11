@@ -242,17 +242,13 @@ function StockAuditTab() {
             <div className="hidden print-only">
                 <div className="mb-8">
                     <div className="flex justify-between items-start pb-4 border-b">
-                        <div style={{ display: 'table' }}>
-                            <div style={{ display: 'table-row' }}>
-                                <div style={{ display: 'table-cell', verticalAlign: 'middle', paddingRight: '1rem' }}>
-                                    <Logo />
-                                </div>
-                                <div style={{ display: 'table-cell', verticalAlign: 'middle' }}>
-                                    <div className="text-xs">
-                                        <p className="font-bold">{settings.storeName}</p>
-                                        <p className="whitespace-pre-line">{settings.storeAddress}</p>
-                                    </div>
-                                </div>
+                        <div className="flex items-center">
+                            <div className="mr-1.5">
+                                <Logo />
+                            </div>
+                            <div className="text-xs">
+                                <p className="font-bold">{settings.storeName}</p>
+                                <p className="whitespace-pre-line">{settings.storeAddress}</p>
                             </div>
                         </div>
                         <div className="text-right">

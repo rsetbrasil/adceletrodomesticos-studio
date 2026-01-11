@@ -36,7 +36,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
         <div className="pb-1 border-b">
             <div className="flex justify-between items-start">
                 <div className="flex items-center">
-                    <div className="mr-2 print:w-20"><Logo /></div>
+                    <div className="mr-1.5 print:w-20"><Logo /></div>
                     <div>
                         <p className="font-bold text-base print:text-sm">{settings.storeName}</p>
                         <p className="whitespace-pre-line text-xs print:text-[9px]">{settings.storeAddress}</p>

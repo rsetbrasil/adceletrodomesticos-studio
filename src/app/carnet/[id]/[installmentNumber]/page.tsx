@@ -46,17 +46,13 @@ const ReceiptContent = ({ order, installment, settings, via }: { order: Order; i
     return (
         <div className="bg-white break-inside-avoid-page text-black font-mono text-xs relative print:p-0">
              <div className="flex justify-between items-start mb-4">
-                <div style={{ display: 'table' }}>
-                    <div style={{ display: 'table-row' }}>
-                        <div style={{ display: 'table-cell', verticalAlign: 'middle', paddingRight: '1rem' }}>
-                            <Logo />
-                        </div>
-                        <div style={{ display: 'table-cell', verticalAlign: 'middle' }}>
-                            <div className="text-[10px]">
-                                <p className="font-bold">{settings.storeName}</p>
-                                <p className="whitespace-pre-line">{settings.storeAddress}</p>
-                            </div>
-                        </div>
+                <div className="flex items-center">
+                    <div className="mr-1.5">
+                        <Logo />
+                    </div>
+                    <div className="text-[10px]">
+                        <p className="font-bold">{settings.storeName}</p>
+                        <p className="whitespace-pre-line">{settings.storeAddress}</p>
                     </div>
                 </div>
                 <h1 className="font-bold text-lg tracking-wider">EXTRATO DA PARCELA</h1>
