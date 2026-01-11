@@ -243,9 +243,8 @@ function StockAuditTab() {
                 <div className="mb-8">
                     <div className="flex justify-between items-start pb-4 border-b">
                         <div className="flex items-center">
-                            <div className="mr-1.5">
-                                <Logo />
-                            </div>
+                            <Logo />
+                            <div className="w-2" />
                             <div className="text-xs">
                                 <p className="font-bold">{settings.storeName}</p>
                                 <p className="whitespace-pre-line">{settings.storeAddress}</p>
