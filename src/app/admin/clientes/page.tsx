@@ -577,12 +577,12 @@ Não esqueça de enviar o comprovante!`;
                                 <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-2">
                                 {filteredDeletedCustomers.map((customer) => (
                                     <div key={getCustomerKey(customer)} className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-muted/50">
-                                        <div className="flex items-center gap-3">
-                                            <div className="bg-destructive/10 rounded-full p-2">
-                                            <Trash className="h-5 w-5 text-destructive" />
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className="bg-destructive/10 rounded-full p-2 flex-shrink-0">
+                                                <Trash className="h-5 w-5 text-destructive" />
                                             </div>
-                                            <div>
-                                                <p className="font-semibold">{customer.name}</p>
+                                            <div className="flex-grow overflow-hidden">
+                                                <p className="font-semibold truncate" title={customer.name}>{customer.name}</p>
                                                 <p className="text-xs text-muted-foreground">{customer.cpf}</p>
                                             </div>
                                         </div>
