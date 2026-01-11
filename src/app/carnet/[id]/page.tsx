@@ -80,8 +80,8 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
             </div>
         </div>
         
-        <div className="flex-grow mt-1">
-            <div className="border rounded-md overflow-hidden h-full flex flex-col">
+        <div className="flex-grow mt-1 border rounded-md overflow-hidden flex flex-col">
+            <div className="overflow-y-auto">
                 <table className="w-full text-xs print:text-[9px]">
                     <thead className="bg-muted/50 print:bg-gray-100">
                         <tr className="border-b">
@@ -107,35 +107,35 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                         ))}
                     </tbody>
                 </table>
-                 <table className="w-full text-xs print:text-[9px] mt-auto">
-                     <tfoot className="bg-muted/50 print:bg-gray-100 font-bold">
+            </div>
+            <table className="w-full text-xs print:text-[9px] mt-auto">
+                <tfoot className="bg-muted/50 print:bg-gray-100 font-bold">
+                    <tr className="border-t">
+                        <td colSpan={2} className="p-1 text-right">SUBTOTAL:</td>
+                        <td className="p-1 text-right font-mono w-[25%]">{formatCurrency(subtotal)}</td>
+                        <td className="w-[35%]"></td>
+                    </tr>
+                    {(order.downPayment || 0) > 0 && (
                         <tr className="border-t">
-                            <td colSpan={2} className="p-1 text-right">SUBTOTAL:</td>
-                            <td className="p-1 text-right font-mono w-[25%]">{formatCurrency(subtotal)}</td>
-                            <td className="w-[35%]"></td>
-                        </tr>
-                        {(order.downPayment || 0) > 0 && (
-                            <tr className="border-t">
-                                <td colSpan={2} className="p-1 text-right text-green-600">ENTRADA:</td>
-                                <td className="p-1 text-right font-mono text-green-600">- {formatCurrency(order.downPayment || 0)}</td>
-                                <td></td>
-                            </tr>
-                        )}
-                        {(order.discount || 0) > 0 && (
-                            <tr className="border-t">
-                                <td colSpan={2} className="p-1 text-right text-destructive">DESCONTO:</td>
-                                <td className="p-1 text-right font-mono text-destructive">- {formatCurrency(order.discount || 0)}</td>
-                                <td></td>
-                            </tr>
-                        )}
-                        <tr className="border-t text-base print:text-sm">
-                            <td colSpan={2} className="p-1 text-right">VALOR TOTAL:</td>
-                            <td className="p-1 text-right font-mono">{formatCurrency(valorFinanciado)}</td>
+                            <td colSpan={2} className="p-1 text-right text-green-600">ENTRADA:</td>
+                            <td className="p-1 text-right font-mono text-green-600">- {formatCurrency(order.downPayment || 0)}</td>
                             <td></td>
                         </tr>
-                    </tfoot>
-                </table>
-            </div>
+                    )}
+                    {(order.discount || 0) > 0 && (
+                        <tr className="border-t">
+                            <td colSpan={2} className="p-1 text-right text-destructive">DESCONTO:</td>
+                            <td className="p-1 text-right font-mono text-destructive">- {formatCurrency(order.discount || 0)}</td>
+                            <td></td>
+                        </tr>
+                    )}
+                    <tr className="border-t text-base print:text-sm">
+                        <td colSpan={2} className="p-1 text-right">VALOR TOTAL:</td>
+                        <td className="p-1 text-right font-mono">{formatCurrency(valorFinanciado)}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
 
         {order.observations && (
@@ -145,7 +145,7 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
             </div>
         )}
         
-        <div className="mt-auto pt-1 text-[9px] text-muted-foreground border-t">
+        <div className="mt-1 pt-1 text-[9px] text-muted-foreground border-t">
             <p className="font-semibold">Importante:</p>
             <ol className="list-decimal list-inside">
                 <li>O pagamento pode ser realizado na loja ou via PIX (solicite o código ao vendedor).</li>
