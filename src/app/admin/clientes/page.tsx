@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback, ChangeEvent, DragEvent, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, ChangeEvent, DragEvent, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAdmin, useAdminData } from '@/context/AdminContext';
@@ -736,8 +736,8 @@ Não esqueça de enviar o comprovante!`;
                                 <p className="text-muted-foreground">{`${selectedCustomer.neighborhood}, ${selectedCustomer.city}/${selectedCustomer.state} - CEP: ${selectedCustomer.zip}`}</p>
                             </div>
                         </div>
-                        {selectedCustomer.sellerName && (
-                            <div className="flex items-center col-span-full gap-2 mt-2 pt-4 border-t">
+                         {selectedCustomer.sellerName && (
+                            <div className="flex items-center col-span-full gap-2 pt-2 border-t mt-2">
                                 <UserIcon className="h-4 w-4 text-muted-foreground" />
                                 <span>Vendedor Responsável: <strong>{selectedCustomer.sellerName}</strong></span>
                             </div>
