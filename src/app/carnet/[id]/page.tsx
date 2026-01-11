@@ -59,32 +59,31 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
             <p className="font-mono text-lg print:text-base">{order.id}</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 py-2 print:py-1 border-t">
-            <div>
+        <div className="grid grid-cols-3 gap-x-4 gap-y-1 py-2 print:py-1 border-t">
+            <div className="col-span-3 md:col-span-1">
                 <p className="text-xs print:text-[8px] text-muted-foreground">CLIENTE</p>
                 <p className="font-semibold">{order.customer.name}</p>
-            </div>
-             <div>
-                <p className="text-xs print:text-[8px] text-muted-foreground">CPF</p>
-                <p className="font-semibold">{order.customer.cpf}</p>
-            </div>
-            <div>
-                <p className="text-xs print:text-[8px] text-muted-foreground">TELEFONE</p>
+                <p className="text-xs print:text-[8px] text-muted-foreground mt-1">TELEFONE</p>
                 <p className="font-semibold">{order.customer.phone}</p>
-            </div>
-            <div className="col-span-2">
-                <p className="text-xs print:text-[8px] text-muted-foreground">ENDEREÇO</p>
+                 <p className="text-xs print:text-[8px] text-muted-foreground mt-1">ENDEREÇO</p>
                 <p className="font-semibold">{`${order.customer.address}, ${order.customer.number}${order.customer.complement ? `, ${order.customer.complement}` : ''}, ${order.customer.neighborhood} - ${order.customer.city}/${order.customer.state}`}</p>
             </div>
-             <div>
-                <p className="text-xs print:text-[8px] text-muted-foreground">DATA DA COMPRA</p>
+             <div className="col-span-3 md:col-span-1">
+                <p className="text-xs print:text-[8px] text-muted-foreground">CPF</p>
+                <p className="font-semibold">{order.customer.cpf}</p>
+                <p className="text-xs print:text-[8px] text-muted-foreground mt-1">VENDEDOR(A)</p>
+                <p className="font-semibold">{order.sellerName}</p>
+                <p className="text-xs print:text-[8px] text-muted-foreground mt-1">DATA DA COMPRA</p>
                 <p className="font-semibold">{format(new Date(order.date), 'dd/MM/yyyy', { locale: ptBR })}</p>
             </div>
-            <div>
-                <p className="text-xs print:text-[8px] text-muted-foreground">VENDEDOR(A)</p>
-                <p className="font-semibold">{order.sellerName}</p>
+             <div className="col-span-3 md:col-span-1">
+                {pixPayload && (
+                    <div className="w-full md:w-48 flex-shrink-0 print:w-32 mx-auto">
+                        <PixQRCode payload={pixPayload} />
+                    </div>
+                )}
             </div>
-             <div className="col-span-2">
+            <div className="col-span-3 pt-2">
                 <p className="text-xs print:text-[8px] text-muted-foreground">PRODUTOS</p>
                 <p className="font-semibold">{order.items.map(item => item.name).join(', ')}</p>
             </div>
@@ -151,11 +150,6 @@ const CarnetContent = ({ order, settings, pixPayload }: { order: Order; settings
                     </tfoot>
                 </table>
             </div>
-             {pixPayload && (
-                <div className="w-full md:w-48 flex-shrink-0 print:w-32">
-                    <PixQRCode payload={pixPayload} />
-                </div>
-            )}
         </div>
 
 
